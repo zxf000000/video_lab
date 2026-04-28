@@ -1,0 +1,19 @@
+剧情：
+{story}
+
+总时长：{duration_seconds}秒
+目标节奏：快剪蒙太奇，优先 2-5 秒镜头
+
+已知角色：
+{character_list}
+
+已知场景：
+{scene_list}
+
+补充要求：
+- character_action 必须包含角色中文全名
+- character_ids 只能从已知角色中选择
+- scene_name 只能从已知场景中选择
+- start_frame_prompt 和 end_frame_prompt 必须严格遵守图序号规则：角色按 character_ids 顺序编号，场景固定为最后一个图号；无角色时场景为图一
+- narration_text 优先填写一句简短的旁白或对白；只有确实不需要口播信息时才留空
+- 如果镜头里已经有说话、回应、争执、交流、沉默对视、明显心理活动等描述，必须优先补一句对白或内心独白

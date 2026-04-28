@@ -1,0 +1,10 @@
+## 改写需求
+{{
+  "原始故事": "{original_story}",
+  "改写方向": "{rewrite_direction}",
+  "视觉风格": "{style}",
+  "可用角色": "{char_names}",
+  "可用场景": "{scene_names}"
+}}
+
+请直接输出改写后的剧情段落正文。

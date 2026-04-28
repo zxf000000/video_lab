@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+data/
+node_modules/
+.playwright/
+.claude/
+test-results/
+*.md
+EXECPLAN_*
+zopia_*

@@ -1,0 +1,9 @@
+原始剧情：
+{story}
+
+视觉风格：{style}
+目标时长：{duration_seconds}秒
+可用角色：{char_names}
+可用场景：{scene_names}
+
+请将以上内容整理成适合后续拆镜头的剧本化文本。

@@ -1,0 +1,11 @@
+## 创作需求
+{{
+  "题材": "{title}",
+  "需求描述": "{prompt}",
+  "视觉风格": "{style}",
+  "时长": {duration_seconds}秒,
+  "可用角色": "{char_names}",
+  "可用场景": "{scene_names}"
+}}
+
+请直接输出剧情段落正文。
