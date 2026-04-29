@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .. import repository, services
 from ..jobs import submit_project_task
+from ..pipeline import start_pipeline, start_rewrite_pipeline, start_from_stage
 from . import (
     register, respond_json, parse_json,
     serialize_project_summary, serialize_project_detail,
@@ -46,10 +47,10 @@ def create_project(environ, start_response):
         aspect_ratio=aspect_ratio, target_duration=target_duration,
     )
     if rewrite_direction:
-        submit_project_task(project_id, "create_project_by_rewrite",
-                            original_story=original_story, rewrite_direction=rewrite_direction)
+        services.rewrite_story_for_project(project_id, original_story=original_story, rewrite_direction=rewrite_direction)
+        start_rewrite_pipeline(project_id)
     else:
-        submit_project_task(project_id, "create_project")
+        start_pipeline(project_id)
     project = repository.get_project(project_id)
     return respond_json(start_response, {"project": serialize_project_summary(project)}, status="201 Created")
 
@@ -86,9 +87,12 @@ def regenerate(environ, start_response, project_id: str):
     pid = int(project_id)
     if not repository.get_project(pid):
         return respond_json(start_response, {"error": "Project not found"}, status="404 Not Found")
-    repository.fail_project_running_tasks(pid, "Superseded by a new generation run.")
-    repository.update_project_status(pid, "draft")
-    task_id = submit_project_task(pid, "create_project")
+    payload = parse_json(environ)
+    keep_story = bool(payload.get("keep_story", False))
+    if keep_story:
+        task_id = start_from_stage(pid, "generate_screenplay")
+    else:
+        task_id = start_pipeline(pid)
     return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
 
 
@@ -117,6 +121,88 @@ def list_story_versions(environ, start_response, project_id: str):
 def restore_story_version(environ, start_response, project_id: str, version_id: str):
     services.restore_story_version(int(project_id), int(version_id))
     return respond_json(start_response, {"project": serialize_project_summary(repository.get_project(int(project_id)))})
+
+
+# ── Screenplay ────────────────────────────────────────────────────
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/screenplay")
+def generate_screenplay(environ, start_response, project_id: str):
+    task_id = submit_project_task(int(project_id), "generate_screenplay")
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("PUT", r"/api/projects/(?P<project_id>\d+)/screenplay")
+def update_screenplay(environ, start_response, project_id: str):
+    payload = parse_json(environ)
+    cn = str(payload.get("content", ""))
+    en = str(payload.get("content_en", ""))
+    services.update_screenplay(int(project_id), cn, en)
+    return respond_json(start_response, {"project": serialize_project_summary(repository.get_project(int(project_id)))})
+
+
+@register("GET", r"/api/projects/(?P<project_id>\d+)/screenplay-versions")
+def list_screenplay_versions(environ, start_response, project_id: str):
+    versions = repository.list_screenplay_versions(int(project_id))
+    return respond_json(start_response, {"versions": [serialize_version(v) for v in versions]})
+
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/screenplay-versions/(?P<version_id>\d+)/restore")
+def restore_screenplay_version(environ, start_response, project_id: str, version_id: str):
+    services.restore_screenplay_version(int(project_id), int(version_id))
+    return respond_json(start_response, {"project": serialize_project_summary(repository.get_project(int(project_id)))})
+
+
+# ── Beats ─────────────────────────────────────────────────────────
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/beats")
+def generate_beats(environ, start_response, project_id: str):
+    task_id = submit_project_task(int(project_id), "generate_beats")
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("PUT", r"/api/projects/(?P<project_id>\d+)/beats")
+def update_beats(environ, start_response, project_id: str):
+    payload = parse_json(environ)
+    cn = str(payload.get("content", ""))
+    en = str(payload.get("content_en", ""))
+    services.update_beats(int(project_id), cn, en)
+    return respond_json(start_response, {"project": serialize_project_summary(repository.get_project(int(project_id)))})
+
+
+@register("GET", r"/api/projects/(?P<project_id>\d+)/beats-versions")
+def list_beats_versions(environ, start_response, project_id: str):
+    versions = repository.list_beats_versions(int(project_id))
+    return respond_json(start_response, {"versions": [serialize_version(v) for v in versions]})
+
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/beats-versions/(?P<version_id>\d+)/restore")
+def restore_beats_version(environ, start_response, project_id: str, version_id: str):
+    services.restore_beats_version(int(project_id), int(version_id))
+    return respond_json(start_response, {"project": serialize_project_summary(repository.get_project(int(project_id)))})
+
+
+# ── Partial Regeneration ──────────────────────────────────────────
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/regenerate-from")
+def regenerate_from_stage(environ, start_response, project_id: str):
+    pid = int(project_id)
+    if not repository.get_project(pid):
+        return respond_json(start_response, {"error": "Project not found"}, status="404 Not Found")
+    payload = parse_json(environ)
+    from_stage = str(payload.get("from_stage", "story"))
+    valid_stages = {"story", "screenplay", "beats", "characters", "shots"}
+    if from_stage not in valid_stages:
+        return respond_json(start_response, {"error": f"from_stage must be one of {valid_stages}"}, status="400 Bad Request")
+    # Map route stage names to pipeline stage names
+    stage_map = {
+        "story": "generate_story",
+        "screenplay": "generate_screenplay",
+        "beats": "generate_beats",
+        "characters": "generate_characters",
+        "shots": "split_shots",
+    }
+    task_id = start_from_stage(pid, stage_map[from_stage])
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
 
 
 # ── Shots ─────────────────────────────────────────────────────────

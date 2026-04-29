@@ -1,0 +1,129 @@
+# Environment & Dependencies
+.env
+.env.local
+.env.*.local
+node_modules/
+venv/
+.venv/
+venv.*/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Python
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Next.js / Frontend
+.next/
+out/
+frontend/dist/
+*.tsbuildinfo
+*.local
+.vercel/
+
+# Test results
+test-results/
+*.log
+coverage.xml
+htmlcov/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Git
+.git/
+.gitignore
+
+# Video assets & generated files
+data/assets/
+data/*.mp4
+data/*.mov
+data/*.avi
+data/*.webm
+data/*.gif
+data/*.mp3
+data/config.json
+data/*.sqlite3
+data/*.db
+data/*.mov
+data/*.avi
+data/*.webm
+data/*.gif
+data/*.png
+data/*.jpg
+data/*.jpeg
+data/*.svg
+data/*.mp3
+*.mp4
+*.mov
+*.avi
+*.webm
+*.gif
+*.mp3
+
+# Claude Code
+.claude/
+.claude-worktrees/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Playwright / Testing
+.playwright/
+.playwright-cli/
+*.selenium_log
+
+# OS / Misc
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+.AppleDouble
+._*
+.SafariLocalStore
+
+# History backups
+.history/
+
+# Build artifacts
+*.exe
+*.dmg
+*.app

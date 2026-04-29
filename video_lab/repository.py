@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -66,6 +67,32 @@ def update_project_story(project_id: int, story_content: str, status: str) -> No
     create_story_version(project_id, story_content)
 
 
+def update_project_screenplay(project_id: int, cn: str, en: str, status: str) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE projects SET screenplay_content = ?, screenplay_content_en = ?, status = ?, updated_at = ? WHERE id = ?",
+            (cn, en, status, now_iso(), project_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    create_screenplay_version(project_id, cn, en)
+
+
+def update_project_beats(project_id: int, cn: str, en: str, status: str) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE projects SET beats_content = ?, beats_content_en = ?, status = ?, updated_at = ? WHERE id = ?",
+            (cn, en, status, now_iso(), project_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    create_beats_version(project_id, cn, en)
+
+
 def update_project_status(project_id: int, status: str) -> None:
     conn = get_connection()
     try:
@@ -90,7 +117,7 @@ def update_project_duration(project_id: int, target_duration: int) -> None:
         conn.close()
 
 
-def create_task(project_id: int, task_type: str, shot_id: int | None = None, params: dict | None = None) -> int:
+def create_task(project_id: int, task_type: str, shot_id: int | None = None, params: dict | None = None, parent_task_id: int | None = None) -> int:
     conn = get_connection()
     try:
         ts = now_iso()
@@ -99,10 +126,10 @@ def create_task(project_id: int, task_type: str, shot_id: int | None = None, par
         cur = conn.execute(
             """
             INSERT INTO tasks (
-                project_id, shot_id, task_type, status, error_message, params, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                project_id, shot_id, task_type, status, error_message, params, parent_task_id, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (project_id, shot_id, task_type, "queued", "", params_str, ts, ts),
+            (project_id, shot_id, task_type, "queued", "", params_str, parent_task_id, ts, ts),
         )
         conn.commit()
         return int(cur.lastrowid)
@@ -155,13 +182,13 @@ def update_task_progress(task_id: int, step: str) -> None:
         conn.close()
 
 
-def fail_stale_tasks(max_age_seconds: int = 300) -> int:
+def fail_stale_tasks(max_age_seconds: int = 600) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
     conn = get_connection()
     try:
         rows = conn.execute(
             """
-            SELECT id, project_id, task_type, updated_at
+            SELECT id, project_id, task_type, updated_at, params
             FROM tasks
             WHERE status IN ('queued', 'running')
             """
@@ -173,6 +200,13 @@ def fail_stale_tasks(max_age_seconds: int = 300) -> int:
             except (TypeError, ValueError):
                 continue
             if updated_at < cutoff:
+                # Skip tasks that show active progress (video generation in progress)
+                try:
+                    params = json.loads(row["params"] or "{}")
+                    if params.get("progress_step"):
+                        continue
+                except (json.JSONDecodeError, TypeError):
+                    pass
                 stale.append(row)
 
         if not stale:
@@ -188,14 +222,14 @@ def fail_stale_tasks(max_age_seconds: int = 300) -> int:
                 """,
                 ("failed", f"Task timed out after {max_age_seconds // 60} minutes without progress.", ts, row["id"]),
             )
-            if row["task_type"] in {"create_project", "create_project_by_rewrite", "generate_story", "split_shots"}:
+            if row["task_type"] in {"pipeline", "create_project", "create_project_by_rewrite", "generate_story", "generate_screenplay", "generate_beats", "split_shots", "regenerate_from_stage"}:
                 conn.execute(
                     """
                     UPDATE projects
                     SET status = ?, updated_at = ?
                     WHERE id = ? AND status IN (
-                        'generating_story', 'generating_characters',
-                        'generating_scenes', 'splitting_shots'
+                        'generating_story', 'generating_screenplay', 'generating_beats',
+                        'generating_characters', 'generating_scenes', 'splitting_shots'
                     )
                     """,
                     ("prompt_updated", ts, row["project_id"]),
@@ -563,6 +597,19 @@ def get_task(task_id: int) -> dict[str, Any] | None:
         conn.close()
 
 
+def get_child_tasks(parent_task_id: int) -> list[dict[str, Any]]:
+    """Get all child tasks of a pipeline orchestrator task."""
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM tasks WHERE parent_task_id = ? ORDER BY id",
+            (parent_task_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def has_running_task(shot_id: int, task_type: str) -> bool:
     conn = get_connection()
     try:
@@ -716,6 +763,8 @@ def permanent_delete_project(project_id: int) -> bool:
         conn.execute("DELETE FROM characters WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM scenes WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM story_versions WHERE project_id = ?", (project_id,))
+        conn.execute("DELETE FROM screenplay_versions WHERE project_id = ?", (project_id,))
+        conn.execute("DELETE FROM beats_versions WHERE project_id = ?", (project_id,))
         cur = conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
         conn.commit()
         return cur.rowcount > 0
@@ -956,6 +1005,117 @@ def get_story_version(version_id: int) -> dict[str, Any] | None:
     try:
         row = conn.execute("SELECT * FROM story_versions WHERE id = ?", (version_id,)).fetchone()
         return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+# --- Screenplay versions ---
+
+def create_screenplay_version(project_id: int, cn: str, en: str) -> int:
+    conn = get_connection()
+    try:
+        ts = now_iso()
+        row = conn.execute(
+            "SELECT COALESCE(MAX(version), 0) FROM screenplay_versions WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()
+        next_version = (row[0] or 0) + 1
+        cur = conn.execute(
+            "INSERT INTO screenplay_versions (project_id, content, content_en, version, created_at) VALUES (?, ?, ?, ?, ?)",
+            (project_id, cn, en, next_version, ts),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def list_screenplay_versions(project_id: int) -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM screenplay_versions WHERE project_id = ? ORDER BY version DESC", (project_id,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_screenplay_version(version_id: int) -> dict[str, Any] | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM screenplay_versions WHERE id = ?", (version_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+# --- Beats versions ---
+
+def create_beats_version(project_id: int, cn: str, en: str) -> int:
+    conn = get_connection()
+    try:
+        ts = now_iso()
+        row = conn.execute(
+            "SELECT COALESCE(MAX(version), 0) FROM beats_versions WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()
+        next_version = (row[0] or 0) + 1
+        cur = conn.execute(
+            "INSERT INTO beats_versions (project_id, content, content_en, version, created_at) VALUES (?, ?, ?, ?, ?)",
+            (project_id, cn, en, next_version, ts),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def list_beats_versions(project_id: int) -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM beats_versions WHERE project_id = ? ORDER BY version DESC", (project_id,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_beats_version(version_id: int) -> dict[str, Any] | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM beats_versions WHERE id = ?", (version_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+# --- Invalidation for partial regeneration ---
+
+def invalidate_downstream(project_id: int, from_stage: str) -> None:
+    """Clear content for stages downstream of from_stage."""
+    stage_order = ["story", "screenplay", "beats", "characters", "scenes", "shots"]
+    if from_stage not in stage_order:
+        return
+    idx = stage_order.index(from_stage)
+    downstream = stage_order[idx + 1:]
+    conn = get_connection()
+    try:
+        if "screenplay" in downstream:
+            conn.execute("UPDATE projects SET screenplay_content = '', screenplay_content_en = '' WHERE id = ?", (project_id,))
+        if "beats" in downstream:
+            conn.execute("UPDATE projects SET beats_content = '', beats_content_en = '' WHERE id = ?", (project_id,))
+        if "characters" in downstream:
+            conn.execute("DELETE FROM characters WHERE project_id = ? AND locked = 0", (project_id,))
+        if "scenes" in downstream:
+            conn.execute("UPDATE shots SET scene_id = NULL WHERE project_id = ?", (project_id,))
+            conn.execute("DELETE FROM scenes WHERE project_id = ?", (project_id,))
+        if "shots" in downstream:
+            conn.execute("DELETE FROM tasks WHERE project_id = ?", (project_id,))
+            conn.execute("DELETE FROM shots WHERE project_id = ?", (project_id,))
+        conn.execute("UPDATE projects SET updated_at = ? WHERE id = ?", (now_iso(), project_id))
+        conn.commit()
     finally:
         conn.close()
 

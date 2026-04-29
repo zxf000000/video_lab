@@ -74,6 +74,8 @@ def create_project_row(title: str, prompt: str, style: str, aspect_ratio: str, t
 def create_project_and_story(title: str, prompt: str, style: str, aspect_ratio: str, target_duration: int) -> int:
     project_id = create_project_row(title, prompt, style, aspect_ratio, target_duration)
     generate_story(project_id)
+    generate_screenplay(project_id)
+    generate_beats(project_id)
     generate_characters(project_id)
     generate_scenes(project_id)
     split_shots(project_id)
@@ -108,6 +110,8 @@ def rewrite_story_for_project(project_id: int, original_story: str, rewrite_dire
 def create_project_by_rewrite(title: str, prompt: str, original_story: str, rewrite_direction: str, style: str, aspect_ratio: str, target_duration: int) -> int:
     project_id = create_project_row(title, prompt, style, aspect_ratio, target_duration)
     rewrite_story_for_project(project_id, original_story, rewrite_direction)
+    generate_screenplay(project_id)
+    generate_beats(project_id)
     generate_characters(project_id)
     generate_scenes(project_id)
     split_shots(project_id)
@@ -132,38 +136,56 @@ def generate_story(project_id: int) -> None:
     repository.update_project_story(project_id, story, "story_ready")
 
 
-def expand_story_beats(project_id: int) -> str:
+def generate_screenplay(project_id: int) -> tuple[str, str]:
+    """Generate screenplay from story and persist it (Chinese + English)."""
     project = repository.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
+    repository.update_project_status(project_id, "generating_screenplay")
     characters = repository.list_project_characters(project_id)
     scenes = repository.list_project_scenes(project_id)
     story = project["story_content"] or project["story_prompt"]
-    beats = _text().expand_story_beats(
-        story=story,
-        style=project["style"],
-        duration_seconds=int(project["target_duration"]),
-        characters=characters,
-        scenes=scenes,
-    )
-    return beats.strip() or story
+    try:
+        cn, en = _text().expand_story_screenplay(
+            story=story,
+            style=project["style"],
+            duration_seconds=int(project["target_duration"]),
+            characters=characters,
+            scenes=scenes,
+        )
+        cn = cn.strip() or story
+        en = en.strip() or ""
+    except Exception as exc:
+        logger.warning("expand_story_screenplay failed for project %s, falling back to story: %s", project_id, exc)
+        cn, en = story, ""
+    repository.update_project_screenplay(project_id, cn, en, "screenplay_ready")
+    return cn, en
 
 
-def expand_story_screenplay(project_id: int) -> str:
+def generate_beats(project_id: int) -> tuple[str, str]:
+    """Generate beats from screenplay and persist it (Chinese + English)."""
     project = repository.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
+    repository.update_project_status(project_id, "generating_beats")
     characters = repository.list_project_characters(project_id)
     scenes = repository.list_project_scenes(project_id)
-    story = project["story_content"] or project["story_prompt"]
-    screenplay = _text().expand_story_screenplay(
-        story=story,
-        style=project["style"],
-        duration_seconds=int(project["target_duration"]),
-        characters=characters,
-        scenes=scenes,
-    )
-    return screenplay.strip() or story
+    screenplay_cn = project.get("screenplay_content", "") or project["story_content"] or project["story_prompt"]
+    try:
+        cn, en = _text().expand_story_beats(
+            story=screenplay_cn,
+            style=project["style"],
+            duration_seconds=int(project["target_duration"]),
+            characters=characters,
+            scenes=scenes,
+        )
+        cn = cn.strip() or screenplay_cn
+        en = en.strip() or ""
+    except Exception as exc:
+        logger.warning("expand_story_beats failed for project %s, falling back to screenplay: %s", project_id, exc)
+        cn, en = screenplay_cn, ""
+    repository.update_project_beats(project_id, cn, en, "beats_ready")
+    return cn, en
 
 
 def split_shots(project_id: int) -> None:
@@ -173,31 +195,96 @@ def split_shots(project_id: int) -> None:
     repository.update_project_status(project_id, "splitting_shots")
     characters = repository.list_project_characters(project_id)
     scenes = repository.list_project_scenes(project_id)
-    story_input = project["story_content"] or project["story_prompt"]
-    try:
-        screenplay_text = expand_story_screenplay(project_id)
-    except Exception as exc:
-        logger.warning("expand_story_screenplay failed for project %s, falling back to raw story: %s", project_id, exc)
-        screenplay_text = story_input
-    try:
-        beat_story = _text().expand_story_beats(
-            story=screenplay_text,
-            style=project["style"],
-            duration_seconds=int(project["target_duration"]),
-            characters=characters,
-            scenes=scenes,
-        ).strip() or screenplay_text
-    except Exception as exc:
-        logger.warning("expand_story_beats failed for project %s, falling back to screenplay: %s", project_id, exc)
-        beat_story = screenplay_text
+
+    # Use persisted beats if available, otherwise generate
+    beats_cn = project.get("beats_content", "")
+    if not beats_cn:
+        screenplay_cn = project.get("screenplay_content", "")
+        if not screenplay_cn:
+            generate_screenplay(project_id)
+            project = repository.get_project(project_id)
+        generate_beats(project_id)
+        project = repository.get_project(project_id)
+        beats_cn = project.get("beats_content", "")
+
     shots = _text().split_story_into_shots(
-        beat_story,
+        beats_cn,
         int(project["target_duration"]),
         characters=characters,
         scenes=scenes,
     )
     repository.replace_project_shots(project_id, shots, characters, scenes)
     repository.update_project_status(project_id, "shots_ready")
+
+
+def update_screenplay(project_id: int, cn: str, en: str) -> None:
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    repository.update_project_screenplay(project_id, cn.strip(), en.strip(), project["status"])
+
+
+def update_beats(project_id: int, cn: str, en: str) -> None:
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    repository.update_project_beats(project_id, cn.strip(), en.strip(), project["status"])
+
+
+def restore_screenplay_version(project_id: int, version_id: int) -> None:
+    version = repository.get_screenplay_version(version_id)
+    if not version or version["project_id"] != project_id:
+        raise ValueError("Screenplay version not found")
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    repository.update_project_screenplay(project_id, version["content"], version.get("content_en", ""), project["status"])
+
+
+def restore_beats_version(project_id: int, version_id: int) -> None:
+    version = repository.get_beats_version(version_id)
+    if not version or version["project_id"] != project_id:
+        raise ValueError("Beats version not found")
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    repository.update_project_beats(project_id, version["content"], version.get("content_en", ""), project["status"])
+
+
+def regenerate_from_stage(project_id: int, from_stage: str) -> None:
+    """Re-run the pipeline starting from from_stage, preserving upstream content."""
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+
+    repository.invalidate_downstream(project_id, from_stage)
+
+    if from_stage == "story":
+        generate_story(project_id)
+        generate_screenplay(project_id)
+        generate_beats(project_id)
+        generate_characters(project_id)
+        generate_scenes(project_id)
+        split_shots(project_id)
+    elif from_stage == "screenplay":
+        generate_screenplay(project_id)
+        generate_beats(project_id)
+        generate_characters(project_id)
+        generate_scenes(project_id)
+        split_shots(project_id)
+    elif from_stage == "beats":
+        generate_beats(project_id)
+        generate_characters(project_id)
+        generate_scenes(project_id)
+        split_shots(project_id)
+    elif from_stage == "characters":
+        generate_characters(project_id)
+        generate_scenes(project_id)
+        split_shots(project_id)
+    elif from_stage == "shots":
+        split_shots(project_id)
+    else:
+        raise ValueError(f"Unknown stage: {from_stage}")
 
 
 def update_story(project_id: int, content: str) -> None:

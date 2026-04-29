@@ -35,6 +35,7 @@ class ChatfireProvider:
             "9:16": "1440x2560",
             "1:1": "2048x2048",
             "4:3": "2048x1536",
+            "3:4": "1536x2048",
         }
         return size_map.get(aspect_ratio or "16:9", "2560x1440")
 
@@ -241,7 +242,7 @@ class ChatfireProvider:
         normalized["scene_name"] = scene_name
 
         normalized["scene_description"] = str(normalized.get("scene_description") or normalized["shot_description"] or normalized["scene_name"])
-        normalized["camera_movement"] = str(normalized.get("camera_movement") or "固定")
+        normalized["camera_movement"] = str(normalized.get("camera_movement") or "固定机位，无明显运动")
         normalized["emotion_keywords"] = str(normalized.get("emotion_keywords") or "")
         character_action = str(normalized.get("character_action") or "").strip()
         if not character_action:
@@ -339,7 +340,8 @@ class ChatfireProvider:
             char_names=char_names,
             scene_names=scene_names,
         )
-        return self._chat(system, user, timeout=300)
+        raw = self._chat(system, user, timeout=300)
+        return self._parse_bilingual_json(raw, fallback_cn=story)
 
     def expand_story_screenplay(self, story, style, duration_seconds, characters=None, scenes=None):
         char_names = ",".join(c["name"] for c in (characters or [])) if characters else "主角"
@@ -352,7 +354,8 @@ class ChatfireProvider:
             char_names=char_names,
             scene_names=scene_names,
         )
-        return self._chat(system, user, timeout=300)
+        raw = self._chat(system, user, timeout=300)
+        return self._parse_bilingual_json(raw, fallback_cn=story)
 
     def split_story_into_shots(self, story, duration_seconds, characters=None, scenes=None):
         system = self._p("prompt_split_shots_system")
@@ -418,10 +421,17 @@ class ChatfireProvider:
         for i in range(shot_count):
             source = raw_parts[i % len(raw_parts)]
             cameras = ["远景", "中景", "特写", "跟拍", "过肩镜头", "航拍"]
-            movements = ["缓慢推进", "轻柔横摇", "手持晃动", "固定镜头", "推拉变焦", "稳定跟随"]
+            movements_detail = [
+                "缓慢向前推近，从全景到中景",
+                "从左至右轻柔横摇，速度平稳",
+                "手持轻微晃动，跟随主体移动",
+                "固定机位，无明显运动",
+                "快速推拉变焦，制造视觉冲击",
+                "稳定跟随主体前行，保持中景构图",
+            ]
             scene_name = scene_names[0] if scene_names else ""
             chosen_characters = char_names[:1] if char_names else []
-            shot_prompt = f"{source}，电影级{cameras[i % len(cameras)]}，{movements[i % len(movements)]}，光线明确，氛围集中。"
+            shot_prompt = f"{source}，{cameras[i % len(cameras)]}，{movements_detail[i % len(movements_detail)]}，自然侧光，前景虚化背景层次分明，节奏平稳，环境白噪音"
             shots.append({
                 "shot_title": f"镜头 {i + 1}",
                 "shot_description": source,
@@ -433,7 +443,7 @@ class ChatfireProvider:
                 "character_ids": chosen_characters,
                 "scene_name": scene_name,
                 "scene_description": source,
-                "camera_movement": ["推", "拉", "摇", "移", "跟", "固定"][i % 6],
+                "camera_movement": movements_detail[i % len(movements_detail)],
                 "emotion_keywords": "",
                 "narration_text": self._infer_narration_text(
                     source,
@@ -736,7 +746,7 @@ class ChatfireProvider:
                 img_path = _P(rpath)
                 if img_path.exists():
                     b64 = base64.b64encode(img_path.read_bytes()).decode()
-                    content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}, "role": "first_frame"})
+                    content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}, "role": "reference_image"})
         return {
             "model": model,
             "content": content,
@@ -796,6 +806,19 @@ class ChatfireProvider:
         return payload
 
     # --- Internal ---
+
+    def _parse_bilingual_json(self, raw: str, fallback_cn: str = "") -> tuple[str, str]:
+        """Parse LLM response expecting {"cn": "...", "en": "..."} JSON."""
+        try:
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start >= 0 and end > start:
+                parsed = json.loads(raw[start:end])
+                if isinstance(parsed, dict) and "cn" in parsed:
+                    return str(parsed["cn"]), str(parsed.get("en", ""))
+        except (json.JSONDecodeError, IndexError):
+            pass
+        return fallback_cn, ""
 
     def _chat(self, system: str, user: str, timeout: int | None = None) -> str:
         payload = {

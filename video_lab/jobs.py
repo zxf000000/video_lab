@@ -4,6 +4,7 @@ import atexit
 from concurrent.futures import ThreadPoolExecutor
 
 from . import repository, services
+from .pipeline import on_stage_complete
 
 
 executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="video-lab")
@@ -36,36 +37,22 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
     kw = kw or {}
     repository.update_task(task_id, "running")
     try:
-        if task_type == "generate_story":
+        if task_type == "pipeline":
+            # Pipeline orchestrator — tasks are managed by pipeline.py
+            pass
+        elif task_type == "generate_story":
             _heartbeat(task_id)
             services.generate_story(project_id)
+        elif task_type == "generate_screenplay":
+            _heartbeat(task_id)
+            services.generate_screenplay(project_id)
+        elif task_type == "generate_beats":
+            _heartbeat(task_id)
+            services.generate_beats(project_id)
+        elif task_type == "regenerate_from_stage":
+            _heartbeat(task_id)
+            services.regenerate_from_stage(project_id, kw.get("from_stage", "story"))
         elif task_type == "split_shots":
-            _heartbeat(task_id)
-            services.split_shots(project_id)
-        elif task_type == "create_project":
-            _heartbeat(task_id)
-            services.generate_story(project_id)
-            repository.update_project_status(project_id, "generating_characters")
-            _heartbeat(task_id)
-            services.generate_characters(project_id)
-            repository.update_project_status(project_id, "generating_scenes")
-            _heartbeat(task_id)
-            services.generate_scenes(project_id)
-            _heartbeat(task_id)
-            services.split_shots(project_id)
-        elif task_type == "create_project_by_rewrite":
-            _heartbeat(task_id)
-            services.rewrite_story_for_project(
-                project_id,
-                original_story=kw.get("original_story", ""),
-                rewrite_direction=kw.get("rewrite_direction", ""),
-            )
-            repository.update_project_status(project_id, "generating_characters")
-            _heartbeat(task_id)
-            services.generate_characters(project_id)
-            repository.update_project_status(project_id, "generating_scenes")
-            _heartbeat(task_id)
-            services.generate_scenes(project_id)
             _heartbeat(task_id)
             services.split_shots(project_id)
         elif task_type == "generate_all_frames":
@@ -116,6 +103,8 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
             repository.update_task_output(task_id, video_path)
         elif task_type == "seedance_t2v":
             _heartbeat(task_id)
+            from .providers.seedance import SeedanceProvider
+            from .config import load_seedance_config
             provider = SeedanceProvider(
                 load_seedance_config(),
                 on_progress=lambda step: repository.update_task_progress(task_id, step),
@@ -131,6 +120,8 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
             repository.update_task_output(task_id, video_path)
         elif task_type == "seedance_i2v":
             _heartbeat(task_id)
+            from .providers.seedance import SeedanceProvider
+            from .config import load_seedance_config
             provider = SeedanceProvider(
                 load_seedance_config(),
                 on_progress=lambda step: repository.update_task_progress(task_id, step),
@@ -147,6 +138,8 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
             repository.update_task_output(task_id, video_path)
         elif task_type == "seedance_character":
             _heartbeat(task_id)
+            from .providers.seedance import SeedanceProvider
+            from .config import load_seedance_config
             provider = SeedanceProvider(
                 load_seedance_config(),
                 on_progress=lambda step: repository.update_task_progress(task_id, step),
@@ -163,6 +156,8 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
             repository.update_task_output(task_id, image_path)
         elif task_type == "kling":
             _heartbeat(task_id)
+            from .providers.kling import KlingProvider
+            from .config import load_kling_config
             provider = KlingProvider(
                 load_kling_config(),
                 on_progress=lambda step: repository.update_task_progress(task_id, step),
@@ -173,5 +168,13 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
         else:
             raise ValueError(f"Unsupported task type: {task_type}")
         repository.update_task(task_id, "succeeded")
+        # Notify pipeline orchestrator if this is a child task
+        task = repository.get_task(task_id)
+        if task and task.get("parent_task_id"):
+            on_stage_complete(task["parent_task_id"])
     except Exception as exc:
         repository.update_task(task_id, "failed", str(exc))
+        # Also notify on failure so orchestrator can mark pipeline as failed
+        task = repository.get_task(task_id)
+        if task and task.get("parent_task_id"):
+            on_stage_complete(task["parent_task_id"])

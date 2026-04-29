@@ -104,6 +104,10 @@ def serialize_project_summary(project: dict[str, object] | None) -> dict[str, ob
         "target_duration": project["target_duration"],
         "status": project["status"],
         "story_content": project["story_content"],
+        "screenplay_content": project.get("screenplay_content", ""),
+        "screenplay_content_en": project.get("screenplay_content_en", ""),
+        "beats_content": project.get("beats_content", ""),
+        "beats_content_en": project.get("beats_content_en", ""),
         "created_at": project["created_at"],
         "updated_at": project["updated_at"],
     }
@@ -201,6 +205,7 @@ def serialize_version(version: dict[str, object] | None) -> dict[str, object]:
         "id": version["id"],
         "project_id": version["project_id"],
         "content": version["content"],
+        "content_en": version.get("content_en", ""),
         "version": version["version"],
         "created_at": version["created_at"],
     }

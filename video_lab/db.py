@@ -111,6 +111,26 @@ def init_db() -> None:
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS screenplay_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                content_en TEXT NOT NULL DEFAULT '',
+                version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS beats_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                content_en TEXT NOT NULL DEFAULT '',
+                version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id)
+            );
             """
         )
         _migrate_schema(conn)
@@ -144,6 +164,8 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE tasks ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0")
     if "params" not in existing_tasks:
         conn.execute("ALTER TABLE tasks ADD COLUMN params TEXT DEFAULT '{}'")
+    if "parent_task_id" not in existing_tasks:
+        conn.execute("ALTER TABLE tasks ADD COLUMN parent_task_id INTEGER")
 
     existing_chars = {row[1] for row in conn.execute("PRAGMA table_info(characters)").fetchall()}
     if "image_path" not in existing_chars:
@@ -152,3 +174,11 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
     if "deleted_at" not in existing_projects:
         conn.execute("ALTER TABLE projects ADD COLUMN deleted_at TEXT DEFAULT NULL")
+    for col, col_def in [
+        ("screenplay_content", "TEXT NOT NULL DEFAULT ''"),
+        ("screenplay_content_en", "TEXT NOT NULL DEFAULT ''"),
+        ("beats_content", "TEXT NOT NULL DEFAULT ''"),
+        ("beats_content_en", "TEXT NOT NULL DEFAULT ''"),
+    ]:
+        if col not in existing_projects:
+            conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {col_def}")

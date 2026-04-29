@@ -16,7 +16,7 @@ class TextProvider(Protocol):
         duration_seconds: int,
         characters: list[dict] | None = None,
         scenes: list[dict] | None = None,
-    ) -> str: ...
+    ) -> tuple[str, str]: ...
 
     def expand_story_screenplay(
         self,
@@ -25,7 +25,7 @@ class TextProvider(Protocol):
         duration_seconds: int,
         characters: list[dict] | None = None,
         scenes: list[dict] | None = None,
-    ) -> str: ...
+    ) -> tuple[str, str]: ...
 
     def split_story_into_shots(
         self,
