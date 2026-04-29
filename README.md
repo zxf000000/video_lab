@@ -29,10 +29,10 @@
 ## 目录结构
 
 ```text
-app.py
-video_lab/      # Python 后端
-frontend/       # Next.js + TailwindCSS 前端
-data/           # SQLite 和产物文件
+apps/
+  backend/      # Python WSGI API 服务
+  frontend/     # Next.js + TailwindCSS 前端
+data/           # SQLite 和生成产物
 ```
 
 ## 启动方式
@@ -40,7 +40,8 @@ data/           # SQLite 和产物文件
 ### 1. 启动后端
 
 ```bash
-python3 app.py
+cd apps/backend
+VIDEO_LAB_DATA_DIR=../../data python3 app.py
 ```
 
 后端地址：
@@ -54,7 +55,8 @@ http://127.0.0.1:8000
 首次需要安装依赖：
 
 ```bash
-source ~/.zshrc && npm install
+cd apps/frontend
+npm install
 ```
 
 ```bash
@@ -82,7 +84,7 @@ http://localhost:3000
 
 ## 后续替换真实模型的位置
 
-- `video_lab/providers.py`
+- `apps/backend/video_lab/providers/`
 
 建议替换以下方法：
 
@@ -100,3 +102,16 @@ http://localhost:3000
 
 - SQLite 数据库：`data/video_lab.sqlite3`
 - 产物目录：`data/assets/`
+
+## 一键本地启动
+
+从仓库根目录运行：
+
+```bash
+./start.sh
+```
+
+脚本会启动：
+
+- 后端：`http://127.0.0.1:8000`
+- 前端：`http://127.0.0.1:3000`

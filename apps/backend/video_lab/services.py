@@ -136,6 +136,15 @@ def generate_story(project_id: int) -> None:
     repository.update_project_story(project_id, story, "story_ready")
 
 
+def _coerce_bilingual_text(value, fallback: str) -> tuple[str, str]:
+    if isinstance(value, tuple):
+        cn = str(value[0]) if len(value) > 0 else ""
+        en = str(value[1]) if len(value) > 1 else ""
+    else:
+        cn, en = str(value), ""
+    return cn.strip() or fallback, en.strip()
+
+
 def generate_screenplay(project_id: int) -> tuple[str, str]:
     """Generate screenplay from story and persist it (Chinese + English)."""
     project = repository.get_project(project_id)
@@ -146,15 +155,13 @@ def generate_screenplay(project_id: int) -> tuple[str, str]:
     scenes = repository.list_project_scenes(project_id)
     story = project["story_content"] or project["story_prompt"]
     try:
-        cn, en = _text().expand_story_screenplay(
+        cn, en = _coerce_bilingual_text(_text().expand_story_screenplay(
             story=story,
             style=project["style"],
             duration_seconds=int(project["target_duration"]),
             characters=characters,
             scenes=scenes,
-        )
-        cn = cn.strip() or story
-        en = en.strip() or ""
+        ), story)
     except Exception as exc:
         logger.warning("expand_story_screenplay failed for project %s, falling back to story: %s", project_id, exc)
         cn, en = story, ""
@@ -172,15 +179,13 @@ def generate_beats(project_id: int) -> tuple[str, str]:
     scenes = repository.list_project_scenes(project_id)
     screenplay_cn = project.get("screenplay_content", "") or project["story_content"] or project["story_prompt"]
     try:
-        cn, en = _text().expand_story_beats(
+        cn, en = _coerce_bilingual_text(_text().expand_story_beats(
             story=screenplay_cn,
             style=project["style"],
             duration_seconds=int(project["target_duration"]),
             characters=characters,
             scenes=scenes,
-        )
-        cn = cn.strip() or screenplay_cn
-        en = en.strip() or ""
+        ), screenplay_cn)
     except Exception as exc:
         logger.warning("expand_story_beats failed for project %s, falling back to screenplay: %s", project_id, exc)
         cn, en = screenplay_cn, ""
@@ -207,6 +212,7 @@ def split_shots(project_id: int) -> None:
         project = repository.get_project(project_id)
         beats_cn = project.get("beats_content", "")
 
+    repository.update_project_status(project_id, "splitting_shots")
     shots = _text().split_story_into_shots(
         beats_cn,
         int(project["target_duration"]),

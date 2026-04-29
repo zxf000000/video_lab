@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - VIDEO_LAB_DATA_DIR=/app/data
+    # 配置通过前端 /config 页面管理，存储在 SQLite 数据库中
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000
+    depends_on:
+      - backend
+    restart: unless-stopped

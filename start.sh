@@ -2,6 +2,7 @@
 set -e
 
 cd "$(dirname "$0")"
+ROOT_DIR="$(pwd)"
 
 # Kill existing processes on ports
 cleanup() {
@@ -20,15 +21,18 @@ sleep 1
 # Start backend
 echo "Starting backend on http://127.0.0.1:8000"
 export VIDEO_LAB_CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+export VIDEO_LAB_DATA_DIR="$ROOT_DIR/data"
+cd apps/backend
 python3 app.py &
 BACKEND_PID=$!
+cd "$ROOT_DIR"
 
 # Start frontend
 echo "Starting frontend on http://127.0.0.1:3000"
-cd frontend
+cd apps/frontend
 npm run dev &
 FRONTEND_PID=$!
-cd ..
+cd "$ROOT_DIR"
 
 echo ""
 echo "  Backend:  http://127.0.0.1:8000"

@@ -52,7 +52,8 @@ htmlcov/
 # Next.js / Frontend
 .next/
 out/
-frontend/dist/
+apps/frontend/dist/
+/frontend/
 *.tsbuildinfo
 *.local
 .vercel/
@@ -64,13 +65,10 @@ coverage.xml
 htmlcov/
 
 # Docker
-Dockerfile*
-docker-compose*.yml
 .docker/
 
 # Git
 .git/
-.gitignore
 
 # Video assets & generated files
 data/assets/

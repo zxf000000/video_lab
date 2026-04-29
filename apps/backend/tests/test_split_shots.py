@@ -289,6 +289,34 @@ class TestPromptVars:
 # Service integration (split_shots in services.py)
 # ---------------------------------------------------------------------------
 
+@pytest.fixture()
+def db_setup(tmp_path):
+    """Create a temp DB and monkey-patch the DB path."""
+    import video_lab.db as dbmod
+
+    orig_path = dbmod.DB_PATH
+    orig_assets = dbmod.ASSETS_DIR
+    orig_data = dbmod.DATA_DIR
+
+    test_data = tmp_path / "data"
+    test_assets = test_data / "assets"
+    test_data.mkdir()
+    test_assets.mkdir()
+
+    dbmod.DB_PATH = test_data / "test.sqlite3"
+    dbmod.ASSETS_DIR = test_assets
+    dbmod.DATA_DIR = test_data
+
+    from video_lab.db import init_db
+    init_db()
+
+    yield
+
+    dbmod.DB_PATH = orig_path
+    dbmod.ASSETS_DIR = orig_assets
+    dbmod.DATA_DIR = orig_data
+
+
 class TestSplitShotsService:
     """Test services.split_shots with a temp DB and mocked provider."""
 

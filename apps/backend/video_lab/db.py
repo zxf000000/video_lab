@@ -1,9 +1,15 @@
 import sqlite3
+import os
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if BACKEND_DIR.name == "backend" and BACKEND_DIR.parent.name == "apps":
+    REPO_ROOT = BACKEND_DIR.parent.parent
+else:
+    REPO_ROOT = BACKEND_DIR
+
+DATA_DIR = Path(os.environ.get("VIDEO_LAB_DATA_DIR", REPO_ROOT / "data")).expanduser()
 DB_PATH = DATA_DIR / "video_lab.sqlite3"
 ASSETS_DIR = DATA_DIR / "assets"
 
