@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..db import ASSETS_DIR, BASE_DIR
+from ..db import ASSETS_DIR, BACKEND_DIR
 from . import register, serve_file
 
 
-STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR = BACKEND_DIR / "static"
 
 
 @register("GET", r"/assets/.*")
