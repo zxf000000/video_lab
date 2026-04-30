@@ -55,16 +55,25 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
         elif task_type == "split_shots":
             _heartbeat(task_id)
             services.split_shots(project_id)
+        elif task_type == "split_episode_shots":
+            _heartbeat(task_id)
+            services.split_episode_shots(int(kw["episode_id"]))
         elif task_type == "generate_all_frames":
             shots = repository.list_project_shots(project_id)
             for shot in shots:
                 _heartbeat(task_id)
                 services.generate_shot_frames(int(shot["id"]))
+        elif task_type == "generate_episode_frames":
+            _heartbeat(task_id)
+            services.generate_episode_shot_frames(int(kw["episode_id"]))
         elif task_type == "generate_all_videos":
             shots = repository.list_project_shots(project_id)
             for shot in shots:
                 _heartbeat(task_id)
                 services.generate_shot_video(int(shot["id"]))
+        elif task_type == "generate_episode_videos":
+            _heartbeat(task_id)
+            services.generate_episode_shot_videos(int(kw["episode_id"]))
         elif task_type == "generate_shot_frames" and shot_id is not None:
             _heartbeat(task_id)
             services.generate_shot_frames(shot_id)
@@ -83,6 +92,9 @@ def _run_task(task_id: int, project_id: int, task_type: str, shot_id: int | None
         elif task_type == "generate_characters":
             _heartbeat(task_id)
             services.generate_characters(project_id)
+        elif task_type == "generate_episode_screenplay":
+            _heartbeat(task_id)
+            services.generate_episode_screenplay(int(kw["episode_id"]))
         elif task_type == "generate_scenes":
             _heartbeat(task_id)
             services.generate_scenes(project_id)

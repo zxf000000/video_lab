@@ -74,11 +74,7 @@ def create_project_row(title: str, prompt: str, style: str, aspect_ratio: str, t
 def create_project_and_story(title: str, prompt: str, style: str, aspect_ratio: str, target_duration: int) -> int:
     project_id = create_project_row(title, prompt, style, aspect_ratio, target_duration)
     generate_story(project_id)
-    generate_screenplay(project_id)
-    generate_beats(project_id)
     generate_characters(project_id)
-    generate_scenes(project_id)
-    split_shots(project_id)
     return project_id
 
 
@@ -104,17 +100,13 @@ def rewrite_story_for_project(project_id: int, original_story: str, rewrite_dire
     # 根据段落数量更新项目的 target_duration
     if suggested_duration != int(project["target_duration"]):
         repository.update_project_duration(project_id, suggested_duration)
-    repository.update_project_story(project_id, story, "story_ready")
+    repository.update_project_story(project_id, story, "outline_ready")
 
 
 def create_project_by_rewrite(title: str, prompt: str, original_story: str, rewrite_direction: str, style: str, aspect_ratio: str, target_duration: int) -> int:
     project_id = create_project_row(title, prompt, style, aspect_ratio, target_duration)
     rewrite_story_for_project(project_id, original_story, rewrite_direction)
-    generate_screenplay(project_id)
-    generate_beats(project_id)
     generate_characters(project_id)
-    generate_scenes(project_id)
-    split_shots(project_id)
     return project_id
 
 
@@ -133,7 +125,7 @@ def generate_story(project_id: int) -> None:
         characters=characters,
         scenes=scenes,
     )
-    repository.update_project_story(project_id, story, "story_ready")
+    repository.update_project_story(project_id, story, "outline_ready")
 
 
 def _coerce_bilingual_text(value, fallback: str) -> tuple[str, str]:
@@ -267,28 +259,17 @@ def regenerate_from_stage(project_id: int, from_stage: str) -> None:
 
     if from_stage == "story":
         generate_story(project_id)
-        generate_screenplay(project_id)
-        generate_beats(project_id)
         generate_characters(project_id)
-        generate_scenes(project_id)
-        split_shots(project_id)
     elif from_stage == "screenplay":
-        generate_screenplay(project_id)
-        generate_beats(project_id)
+        generate_story(project_id)
         generate_characters(project_id)
-        generate_scenes(project_id)
-        split_shots(project_id)
     elif from_stage == "beats":
-        generate_beats(project_id)
+        generate_story(project_id)
         generate_characters(project_id)
-        generate_scenes(project_id)
-        split_shots(project_id)
     elif from_stage == "characters":
         generate_characters(project_id)
-        generate_scenes(project_id)
-        split_shots(project_id)
     elif from_stage == "shots":
-        split_shots(project_id)
+        generate_characters(project_id)
     else:
         raise ValueError(f"Unknown stage: {from_stage}")
 
@@ -486,7 +467,14 @@ def add_shot(project_id: int, shot_data: dict) -> int:
     project = repository.get_project(project_id)
     if not project:
         raise ValueError("Project not found")
-    shots = repository.list_project_shots(project_id)
+    episode_id = shot_data.get("episode_id")
+    if episode_id:
+        episode = repository.get_episode(int(episode_id))
+        if not episode or int(episode["project_id"]) != project_id:
+            raise ValueError("Episode not found")
+        shots = repository.list_episode_shots(int(episode_id))
+    else:
+        shots = repository.list_project_shots(project_id)
     max_order = max((s["order_index"] for s in shots), default=0)
     shot_data["order_index"] = max_order + 1
     return repository.create_shot(project_id, shot_data)
@@ -531,6 +519,44 @@ def generate_all_shot_videos(project_id: int) -> None:
         generate_shot_video(int(shot["id"]))
 
 
+def split_episode_shots(episode_id: int) -> list[dict]:
+    episode = repository.get_episode(episode_id)
+    if not episode:
+        raise ValueError("Episode not found")
+    project = repository.get_project(int(episode["project_id"]))
+    if not project:
+        raise ValueError("Project not found")
+    screenplay = str(episode.get("screenplay_content") or "").strip()
+    if not screenplay:
+        raise ValueError("Episode screenplay is empty")
+    repository.update_episode(episode_id, {"status": "splitting_shots"})
+    characters = repository.list_project_characters(int(project["id"]))
+    scenes = repository.list_project_scenes(int(project["id"]))
+    line_count = max(1, len([line for line in screenplay.splitlines() if line.strip()]))
+    duration_seconds = max(15, min(180, line_count * 2))
+    shots = _text().split_story_into_shots(
+        screenplay,
+        duration_seconds,
+        characters=characters,
+        scenes=scenes,
+    )
+    for shot in shots:
+        shot["episode_id"] = episode_id
+    repository.replace_episode_shots(int(project["id"]), episode_id, shots, characters, scenes)
+    repository.update_episode(episode_id, {"status": "shots_ready"})
+    return repository.list_episode_shots(episode_id)
+
+
+def generate_episode_shot_frames(episode_id: int) -> None:
+    for shot in repository.list_episode_shots(episode_id):
+        generate_shot_frames(int(shot["id"]))
+
+
+def generate_episode_shot_videos(episode_id: int) -> None:
+    for shot in repository.list_episode_shots(episode_id):
+        generate_shot_video(int(shot["id"]))
+
+
 def generate_characters(project_id: int) -> list[dict]:
     project = repository.get_project(project_id)
     if not project:
@@ -553,6 +579,7 @@ def generate_characters(project_id: int) -> list[dict]:
         char_id = repository.create_character(project_id, char)
         char["id"] = char_id
         result.append(char)
+    repository.update_project_status(project_id, "project_ready")
     return result
 
 
@@ -572,6 +599,129 @@ def generate_scenes(project_id: int) -> list[dict]:
         scene["id"] = scene_id
         result.append(scene)
     return result
+
+
+def create_episode(project_id: int, data: dict) -> int:
+    project = repository.get_project(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    payload = {
+        "episode_number": max(1, int(data.get("episode_number", 1) or 1)),
+        "title": str(data.get("title", "")).strip() or "未命名分集",
+        "outline_summary": str(data.get("outline_summary", "")).strip(),
+        "screenplay_content": str(data.get("screenplay_content", "")).strip(),
+        "screenplay_content_en": str(data.get("screenplay_content_en", "")).strip(),
+        "status": str(data.get("status", "draft")).strip() or "draft",
+    }
+    return repository.create_episode(project_id, payload)
+
+
+def update_episode(episode_id: int, data: dict) -> None:
+    episode = repository.get_episode(episode_id)
+    if not episode:
+        raise ValueError("Episode not found")
+    updates = {}
+    if "episode_number" in data:
+        updates["episode_number"] = max(1, int(data.get("episode_number") or episode["episode_number"]))
+    if "title" in data:
+        updates["title"] = str(data.get("title", "")).strip() or episode["title"]
+    if "outline_summary" in data:
+        updates["outline_summary"] = str(data.get("outline_summary", "")).strip()
+    if "status" in data:
+        updates["status"] = str(data.get("status", "")).strip() or episode.get("status", "draft")
+    repository.update_episode(episode_id, updates)
+
+
+def delete_episode(episode_id: int) -> None:
+    if not repository.delete_episode(episode_id):
+        raise ValueError("Episode not found")
+
+
+def generate_episode_screenplay(episode_id: int) -> tuple[str, str]:
+    episode = repository.get_episode(episode_id)
+    if not episode:
+        raise ValueError("Episode not found")
+    project = repository.get_project(int(episode["project_id"]))
+    if not project:
+        raise ValueError("Project not found")
+    repository.update_episode(episode_id, {"status": "generating_episode_screenplay"})
+    outline = project.get("story_content", "") or project.get("story_prompt", "")
+    characters = repository.list_project_characters(int(project["id"]))
+    character_lines = []
+    for char in characters:
+        if not char.get("name"):
+            continue
+        parts = [
+            f"- {char.get('name', '').strip()}:",
+            char.get("appearance_prompt", "").strip(),
+            char.get("personality_tags", "").strip(),
+        ]
+        character_lines.append(" ".join(part for part in parts if part).strip())
+    previous = repository.list_project_episodes(int(project["id"]))
+    previous_summaries = []
+    for item in previous:
+        if int(item["episode_number"]) >= int(episode["episode_number"]):
+            break
+        snippet = str(item.get("screenplay_content") or item.get("outline_summary") or "").strip()
+        if snippet:
+            previous_summaries.append(f"第{item['episode_number']}集《{item['title']}》：{snippet[:180]}")
+    source = "\n\n".join(
+        part for part in [
+            f"项目名：{project['title']}",
+            f"整体大纲：\n{outline}",
+            "角色卡：\n" + ("\n".join(character_lines) if character_lines else "暂无角色卡"),
+            f"当前集：第{episode['episode_number']}集《{episode['title']}》",
+            f"本集大纲：\n{episode.get('outline_summary', '') or '请根据整体大纲补齐本集剧情。'}",
+            "前情提要：\n" + ("\n".join(previous_summaries) if previous_summaries else "无"),
+            "请输出完整单集中文短剧剧本，包含场次、人物、动作、对白，节奏紧凑，直接可用于后续分镜。",
+        ] if part
+    )
+    try:
+        cn, en = _coerce_bilingual_text(_text().expand_story_screenplay(
+            story=source,
+            style=project["style"],
+            duration_seconds=int(project["target_duration"]),
+            characters=characters,
+            scenes=None,
+        ), source)
+    except Exception as exc:
+        logger.warning("generate_episode_screenplay failed for episode %s, falling back to source: %s", episode_id, exc)
+        cn, en = source, ""
+    repository.update_episode(episode_id, {
+        "screenplay_content": cn,
+        "screenplay_content_en": en,
+        "status": "screenplay_ready",
+    })
+    repository.create_episode_version(episode_id, cn, en)
+    return cn, en
+
+
+def update_episode_screenplay(episode_id: int, cn: str, en: str) -> None:
+    episode = repository.get_episode(episode_id)
+    if not episode:
+        raise ValueError("Episode not found")
+    cn_text = cn.strip()
+    en_text = en.strip()
+    repository.update_episode(episode_id, {
+        "screenplay_content": cn_text,
+        "screenplay_content_en": en_text,
+        "status": "screenplay_ready",
+    })
+    repository.create_episode_version(episode_id, cn_text, en_text)
+
+
+def restore_episode_version(episode_id: int, version_id: int) -> None:
+    episode = repository.get_episode(episode_id)
+    if not episode:
+        raise ValueError("Episode not found")
+    version = repository.get_episode_version(version_id)
+    if not version or int(version["episode_id"]) != episode_id:
+        raise ValueError("Episode version not found")
+    repository.update_episode(episode_id, {
+        "screenplay_content": version["content"],
+        "screenplay_content_en": version.get("content_en", ""),
+        "status": "screenplay_ready",
+    })
 
 
 def generate_character_image(char_id: int) -> str:

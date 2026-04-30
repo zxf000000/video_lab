@@ -119,6 +119,7 @@ def serialize_shot(shot: dict[str, object] | None) -> dict[str, object]:
     return {
         "id": shot["id"],
         "project_id": shot["project_id"],
+        "episode_id": shot.get("episode_id"),
         "order_index": shot["order_index"],
         "shot_title": shot["shot_title"],
         "shot_description": shot["shot_description"],
@@ -198,12 +199,30 @@ def serialize_scene(scene: dict[str, object] | None) -> dict[str, object]:
     }
 
 
+def serialize_episode(episode: dict[str, object] | None) -> dict[str, object]:
+    if not episode:
+        return {}
+    return {
+        "id": episode["id"],
+        "project_id": episode["project_id"],
+        "episode_number": episode["episode_number"],
+        "title": episode["title"],
+        "outline_summary": episode.get("outline_summary", ""),
+        "screenplay_content": episode.get("screenplay_content", ""),
+        "screenplay_content_en": episode.get("screenplay_content_en", ""),
+        "status": episode.get("status", "draft"),
+        "created_at": episode["created_at"],
+        "updated_at": episode["updated_at"],
+    }
+
+
 def serialize_version(version: dict[str, object] | None) -> dict[str, object]:
     if not version:
         return {}
     return {
         "id": version["id"],
-        "project_id": version["project_id"],
+        "project_id": version.get("project_id"),
+        "episode_id": version.get("episode_id"),
         "content": version["content"],
         "content_en": version.get("content_en", ""),
         "version": version["version"],
@@ -219,12 +238,14 @@ def serialize_project_detail(project_id: int) -> dict[str, object]:
     tasks = repository.list_project_tasks(project_id)
     characters = repository.list_project_characters(project_id)
     scenes = repository.list_project_scenes(project_id)
+    episodes = repository.list_project_episodes(project_id)
     return {
         **serialize_project_summary(project),
         "shots": [serialize_shot(s) for s in shots],
         "tasks": [serialize_task(t) for t in tasks],
         "characters": [serialize_character(c) for c in characters],
         "scenes": [serialize_scene(s) for s in scenes],
+        "episodes": [serialize_episode(e) for e in episodes],
     }
 
 

@@ -21,7 +21,7 @@ export default function ScriptTab({ project, isPending, onRunAction }: any) {
   const { confirm, ConfirmDialog } = useConfirm();
 
   const storyTasks = project.tasks?.filter(
-    (t: any) => t.task_type === "generate_story" || t.task_type === "split_shots" || t.task_type === "create_project"
+    (t: any) => t.task_type === "generate_story" || t.task_type === "generate_characters" || t.task_type === "pipeline"
   );
 
   function startEditing() {
@@ -75,11 +75,11 @@ export default function ScriptTab({ project, isPending, onRunAction }: any) {
     <div className="flex flex-col gap-6">
       <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-slate-900">剧情段落</h3>
+          <h3 className="text-xl font-semibold text-slate-900">项目大纲</h3>
           <div className="flex flex-wrap gap-3">
             {editing ? (
               <>
-                <ActionButton icon={IconDeviceFloppy} disabled={saving} label="保存剧情" onClick={saveStory} />
+                <ActionButton icon={IconDeviceFloppy} disabled={saving} label="保存大纲" onClick={saveStory} />
                 <ActionButton icon={IconX} disabled={saving} label="取消" onClick={cancelEditing} />
               </>
             ) : (
@@ -108,19 +108,19 @@ export default function ScriptTab({ project, isPending, onRunAction }: any) {
             </pre>
           )
         ) : (
-          <EmptyState text="暂无剧情内容，点击顶部栏的「重新生成」生成。" />
+          <EmptyState text="暂无大纲内容，点击顶部栏的「重新生成」生成。" />
         )}
 
         {project.status === "prompt_updated" && (
           <p className="mt-3 text-xs text-amber-600">
-            剧情已更新，镜头产物可能需要重新生成。
+            大纲已更新，建议重新生成角色卡或分集剧本。
           </p>
         )}
       </section>
 
       <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-slate-900">剧情版本历史</h3>
+          <h3 className="text-xl font-semibold text-slate-900">大纲版本历史</h3>
           <ActionButton
             icon={IconHistory}
             disabled={loadingVersions}
@@ -162,7 +162,7 @@ export default function ScriptTab({ project, isPending, onRunAction }: any) {
           <InfoItem label="状态" value={project.status} />
           <InfoItem label="风格" value={project.style} />
           <InfoItem label="比例" value={project.aspect_ratio} />
-          <InfoItem label="目标时长" value={`${project.target_duration}s`} />
+          <InfoItem label="分集数量" value={String(project.episodes?.length || 0)} />
         </div>
       </section>
 
@@ -170,8 +170,9 @@ export default function ScriptTab({ project, isPending, onRunAction }: any) {
       <RefineDrawer
         open={refineOpen}
         onClose={() => setRefineOpen(false)}
-        title="调整剧情"
+        title="调整大纲"
         currentContent={project.story_content || ""}
+        systemPromptKey="prompt_refine_outline_system"
         onApply={(newContent: string) => {
           setDraft(newContent);
           updateStory(project.id, newContent).then(() => {

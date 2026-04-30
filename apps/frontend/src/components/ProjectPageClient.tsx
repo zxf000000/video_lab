@@ -7,8 +7,7 @@ import { getProject, regenerateProject } from "../api";
 import ProjectHeader from "./ProjectHeader";
 import StepIndicator from "./StepIndicator";
 import ScriptTab from "./tabs/ScriptTab";
-import ScreenplayTab from "./tabs/ScreenplayTab";
-import BeatsTab from "./tabs/BeatsTab";
+import EpisodesTab from "./tabs/EpisodesTab";
 import CharactersTab from "./tabs/CharactersTab";
 import StoryboardTab from "./tabs/StoryboardTab";
 import TimelineTab from "./tabs/TimelineTab";
@@ -16,9 +15,8 @@ import { StatusBadge } from "./ui-legacy";
 
 const TAB_DEFS = [
   { key: "overview", label: "总览" },
-  { key: "script", label: "剧本" },
-  { key: "screenplay", label: "剧本化" },
-  { key: "beats", label: "节拍" },
+  { key: "outline", label: "大纲" },
+  { key: "episodes", label: "分集剧本" },
   { key: "characters", label: "角色&场景" },
   { key: "storyboard", label: "分镜板" },
   { key: "timeline", label: "时间轴" },
@@ -26,7 +24,7 @@ const TAB_DEFS = [
 
 const VALID_TABS = new Set(TAB_DEFS.map((t) => t.key));
 
-export default function ProjectPageClient({ projectId, initialTab = "script" }: any) {
+export default function ProjectPageClient({ projectId, initialTab = "outline" }: any) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -56,8 +54,8 @@ export default function ProjectPageClient({ projectId, initialTab = "script" }: 
   useEffect(() => {
     if (!project) return;
     const prev = prevStatusRef.current;
-    if (prev && prev !== project.status && project.status === "shots_ready") {
-      toast.success("AI 剧本生成完成！");
+    if (prev && prev !== project.status && project.status === "project_ready") {
+      toast.success("AI 已完成大纲和角色卡生成");
     }
     prevStatusRef.current = project.status;
   }, [project?.status]);
@@ -104,7 +102,7 @@ export default function ProjectPageClient({ projectId, initialTab = "script" }: 
   const isRegeneratingProject =
     (isPending && pendingAction === "regenerate_project") ||
     tasks.some((task: any) => task.task_type === "create_project" && (task.status === "queued" || task.status === "running")) ||
-    ["generating_story", "generating_screenplay", "generating_beats", "generating_characters", "generating_scenes", "splitting_shots"].includes(project?.status);
+    ["generating_story", "outline_ready", "generating_characters"].includes(project?.status);
 
   return (
     <div className="min-h-screen bg-ink text-slate-900">
@@ -138,7 +136,7 @@ export default function ProjectPageClient({ projectId, initialTab = "script" }: 
                   <OverviewSection project={project} shots={shots} framesReady={framesReady} videosReady={videosReady} failedTasks={failedTasks} />
                 )}
 
-                {activeTab === "script" && (
+                {activeTab === "outline" && (
                   <ScriptTab
                     project={project}
                     isPending={isPending}
@@ -146,19 +144,11 @@ export default function ProjectPageClient({ projectId, initialTab = "script" }: 
                   />
                 )}
 
-                {activeTab === "screenplay" && (
-                  <ScreenplayTab
+                {activeTab === "episodes" && (
+                  <EpisodesTab
                     project={project}
                     isPending={isPending}
-                    onRunAction={runProjectAction}
-                  />
-                )}
-
-                {activeTab === "beats" && (
-                  <BeatsTab
-                    project={project}
-                    isPending={isPending}
-                    onRunAction={runProjectAction}
+                    onRefresh={refreshProject}
                   />
                 )}
 
@@ -183,7 +173,7 @@ export default function ProjectPageClient({ projectId, initialTab = "script" }: 
                     <SidebarItem label="当前状态" value={<StatusBadge status={project.status} />} />
                     <SidebarItem label="风格" value={project.style} />
                     <SidebarItem label="画面比例" value={project.aspect_ratio} />
-                    <SidebarItem label="目标时长" value={`${project.target_duration}s`} />
+                    <SidebarItem label="分集数量" value={String(project.episodes?.length || 0)} />
                     <SidebarItem label="角色数量" value={String(project.characters?.length || 0)} />
                     <SidebarItem label="场景数量" value={String(project.scenes?.length || 0)} />
                   </div>
@@ -254,7 +244,7 @@ function OverviewSection({ project, shots, framesReady, videosReady, failedTasks
                 <div className="mt-5 flex flex-wrap gap-3 text-xs text-white/80">
                   <span className="rounded-full bg-white/10 px-3 py-1">{project.style}</span>
                   <span className="rounded-full bg-white/10 px-3 py-1">{project.aspect_ratio}</span>
-                  <span className="rounded-full bg-white/10 px-3 py-1">{project.target_duration}s target</span>
+                  <span className="rounded-full bg-white/10 px-3 py-1">{project.episodes?.length || 0} episodes</span>
                 </div>
               </>
             )}
@@ -266,7 +256,7 @@ function OverviewSection({ project, shots, framesReady, videosReady, failedTasks
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <ProjectStatCard label="镜头总数" value={String(shots.length).padStart(2, "0")} meta="storyboard items" tone="purple" />
+        <ProjectStatCard label="分集总数" value={String(project.episodes?.length || 0).padStart(2, "0")} meta="episode scripts" tone="purple" />
         <ProjectStatCard label="首尾帧完成" value={String(framesReady).padStart(2, "0")} meta="frames ready" tone="blue" />
         <ProjectStatCard label="视频完成" value={String(videosReady).padStart(2, "0")} meta="video ready" tone="green" />
         <ProjectStatCard label="失败任务" value={String(failedTasks.length).padStart(2, "0")} meta="needs attention" tone="amber" />

@@ -27,6 +27,12 @@ _STAGE_KEY_MAP = {
     "video": "generate_video",
     "rewrite": "rewrite",
     "conversation": "conversation",
+    "refine_outline": "refine_outline",
+    "refine_character": "refine_character",
+    "refine_scene": "refine_scene",
+    "refine_screenplay": "refine_screenplay",
+    "refine_beats": "refine_beats",
+    "refine_shot": "refine_shot",
 }
 
 

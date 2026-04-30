@@ -222,7 +222,7 @@ def fail_stale_tasks(max_age_seconds: int = 600) -> int:
                 """,
                 ("failed", f"Task timed out after {max_age_seconds // 60} minutes without progress.", ts, row["id"]),
             )
-            if row["task_type"] in {"pipeline", "create_project", "create_project_by_rewrite", "generate_story", "generate_screenplay", "generate_beats", "split_shots", "regenerate_from_stage"}:
+            if row["task_type"] in {"pipeline", "create_project", "create_project_by_rewrite", "generate_story", "generate_screenplay", "generate_beats", "split_shots", "regenerate_from_stage", "generate_characters"}:
                 conn.execute(
                     """
                     UPDATE projects
@@ -302,7 +302,7 @@ def replace_project_shots(project_id: int, shots: list[dict[str, Any]], characte
             conn.execute(
                 """
                 INSERT INTO shots (
-                    project_id, order_index, shot_title, shot_description,
+                    project_id, episode_id, order_index, shot_title, shot_description,
                     shot_prompt, duration_seconds, status,
                     character_action, scene_description, camera_movement,
                     emotion_keywords, narration_text,
@@ -313,6 +313,7 @@ def replace_project_shots(project_id: int, shots: list[dict[str, Any]], characte
                 """,
                 (
                     project_id,
+                    shot.get("episode_id"),
                     index,
                     shot["shot_title"],
                     shot["shot_description"],
@@ -563,6 +564,18 @@ def list_project_shots(project_id: int) -> list[dict[str, Any]]:
         conn.close()
 
 
+def list_episode_shots(episode_id: int) -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM shots WHERE episode_id = ? ORDER BY order_index ASC, id ASC",
+            (episode_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def get_shot(shot_id: int) -> dict[str, Any] | None:
     conn = get_connection()
     try:
@@ -642,6 +655,7 @@ def create_shot(project_id: int, data: dict[str, Any]) -> int:
             """,
             (
                 project_id,
+                data.get("episode_id"),
                 data.get("order_index", 0),
                 data.get("shot_title", ""),
                 data.get("shot_description", ""),
@@ -758,6 +772,11 @@ def restore_project(project_id: int) -> bool:
 def permanent_delete_project(project_id: int) -> bool:
     conn = get_connection()
     try:
+        conn.execute(
+            "DELETE FROM episode_versions WHERE episode_id IN (SELECT id FROM episodes WHERE project_id = ?)",
+            (project_id,),
+        )
+        conn.execute("DELETE FROM episodes WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM tasks WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM shots WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM characters WHERE project_id = ?", (project_id,))
@@ -959,6 +978,223 @@ def list_project_scenes(project_id: int) -> list[dict[str, Any]]:
         conn.close()
 
 
+# --- Episodes ---
+
+def list_project_episodes(project_id: int) -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM episodes WHERE project_id = ? ORDER BY episode_number ASC, id ASC",
+            (project_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_episode(episode_id: int) -> dict[str, Any] | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM episodes WHERE id = ?", (episode_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def create_episode(project_id: int, data: dict[str, Any]) -> int:
+    conn = get_connection()
+    try:
+        ts = now_iso()
+        cur = conn.execute(
+            """
+            INSERT INTO episodes (
+                project_id, episode_number, title, outline_summary,
+                screenplay_content, screenplay_content_en, status,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                project_id,
+                int(data.get("episode_number", 1) or 1),
+                data.get("title", ""),
+                data.get("outline_summary", ""),
+                data.get("screenplay_content", ""),
+                data.get("screenplay_content_en", ""),
+                data.get("status", "draft"),
+                ts,
+                ts,
+            ),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def update_episode(episode_id: int, data: dict[str, Any]) -> None:
+    allowed_fields = {
+        "episode_number",
+        "title",
+        "outline_summary",
+        "screenplay_content",
+        "screenplay_content_en",
+        "status",
+    }
+    updates = {key: data[key] for key in allowed_fields if key in data}
+    if not updates:
+        return
+    set_clauses = [f"{field} = ?" for field in updates]
+    params = list(updates.values())
+    set_clauses.append("updated_at = ?")
+    params.append(now_iso())
+    params.append(episode_id)
+    conn = get_connection()
+    try:
+        conn.execute(
+            f"UPDATE episodes SET {', '.join(set_clauses)} WHERE id = ?",
+            params,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_episode(episode_id: int) -> bool:
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM tasks WHERE params LIKE ?", (f'%\"episode_id\": {episode_id}%',))
+        conn.execute("DELETE FROM shots WHERE episode_id = ?", (episode_id,))
+        conn.execute("DELETE FROM episode_versions WHERE episode_id = ?", (episode_id,))
+        cur = conn.execute("DELETE FROM episodes WHERE id = ?", (episode_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_episode_shots(episode_id: int) -> int:
+    conn = get_connection()
+    try:
+        cur = conn.execute("DELETE FROM shots WHERE episode_id = ?", (episode_id,))
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def replace_episode_shots(
+    project_id: int,
+    episode_id: int,
+    shots: list[dict[str, Any]],
+    characters: list[dict[str, Any]] | None = None,
+    scenes: list[dict[str, Any]] | None = None,
+) -> None:
+    import json as _json
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM shots WHERE episode_id = ?", (episode_id,))
+        ts = now_iso()
+        char_name_to_id = {c["name"]: c["id"] for c in (characters or [])}
+        scene_name_to_id = {s["name"]: s["id"] for s in (scenes or [])}
+        for index, shot in enumerate(shots, start=1):
+            raw_char_ids = shot.get("character_ids", [])
+            if isinstance(raw_char_ids, str):
+                try:
+                    raw_char_ids = _json.loads(raw_char_ids)
+                except (_json.JSONDecodeError, TypeError):
+                    raw_char_ids = []
+            resolved_char_ids = []
+            for name in (raw_char_ids if isinstance(raw_char_ids, list) else []):
+                cid = char_name_to_id.get(name)
+                if cid is not None:
+                    resolved_char_ids.append(cid)
+            char_ids_json = _json.dumps(resolved_char_ids, ensure_ascii=False)
+            scene_id = None
+            scene_name = shot.get("scene_name", "")
+            if scene_name:
+                scene_id = scene_name_to_id.get(scene_name)
+            conn.execute(
+                """
+                INSERT INTO shots (
+                    project_id, episode_id, order_index, shot_title, shot_description,
+                    shot_prompt, duration_seconds, status,
+                    character_action, scene_description, camera_movement,
+                    emotion_keywords, narration_text,
+                    start_frame_prompt, end_frame_prompt,
+                    character_ids, scene_id,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project_id,
+                    episode_id,
+                    index,
+                    shot.get("shot_title", ""),
+                    shot.get("shot_description", ""),
+                    shot.get("shot_prompt", ""),
+                    shot.get("duration_seconds", 5),
+                    shot.get("status", "planned"),
+                    _to_str(shot.get("character_action", "")),
+                    _to_str(shot.get("scene_description", "")),
+                    _to_str(shot.get("camera_movement", "")),
+                    _to_str(shot.get("emotion_keywords", "")),
+                    _to_str(shot.get("narration_text", "")),
+                    _to_str(shot.get("start_frame_prompt", "")),
+                    _to_str(shot.get("end_frame_prompt", "")),
+                    char_ids_json,
+                    scene_id,
+                    ts,
+                    ts,
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def create_episode_version(episode_id: int, cn: str, en: str) -> int:
+    conn = get_connection()
+    try:
+        ts = now_iso()
+        row = conn.execute(
+            "SELECT COALESCE(MAX(version), 0) FROM episode_versions WHERE episode_id = ?",
+            (episode_id,),
+        ).fetchone()
+        next_version = (row[0] or 0) + 1
+        cur = conn.execute(
+            """
+            INSERT INTO episode_versions (episode_id, content, content_en, version, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (episode_id, cn, en, next_version, ts),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def list_episode_versions(episode_id: int) -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM episode_versions WHERE episode_id = ? ORDER BY version DESC",
+            (episode_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_episode_version(version_id: int) -> dict[str, Any] | None:
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM episode_versions WHERE id = ?", (version_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def get_scene(scene_id: int) -> dict[str, Any] | None:
     conn = get_connection()
     try:
@@ -1114,6 +1350,15 @@ def invalidate_downstream(project_id: int, from_stage: str) -> None:
         if "shots" in downstream:
             conn.execute("DELETE FROM tasks WHERE project_id = ?", (project_id,))
             conn.execute("DELETE FROM shots WHERE project_id = ?", (project_id,))
+        if from_stage == "story":
+            conn.execute(
+                """
+                UPDATE episodes
+                SET screenplay_content = '', screenplay_content_en = '', status = 'draft', updated_at = ?
+                WHERE project_id = ?
+                """,
+                (now_iso(), project_id),
+            )
         conn.execute("UPDATE projects SET updated_at = ? WHERE id = ?", (now_iso(), project_id))
         conn.commit()
     finally:

@@ -50,6 +50,7 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS shots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project_id INTEGER NOT NULL,
+                episode_id INTEGER,
                 order_index INTEGER NOT NULL,
                 shot_title TEXT NOT NULL,
                 shot_description TEXT NOT NULL,
@@ -61,7 +62,8 @@ def init_db() -> None:
                 video_path TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
-                FOREIGN KEY(project_id) REFERENCES projects(id)
+                FOREIGN KEY(project_id) REFERENCES projects(id),
+                FOREIGN KEY(episode_id) REFERENCES episodes(id)
             );
 
             CREATE TABLE IF NOT EXISTS tasks (
@@ -137,6 +139,30 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(project_id) REFERENCES projects(id)
             );
+
+            CREATE TABLE IF NOT EXISTS episodes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                episode_number INTEGER NOT NULL DEFAULT 1,
+                title TEXT NOT NULL DEFAULT '',
+                outline_summary TEXT NOT NULL DEFAULT '',
+                screenplay_content TEXT NOT NULL DEFAULT '',
+                screenplay_content_en TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'draft',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS episode_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                episode_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                content_en TEXT NOT NULL DEFAULT '',
+                version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(episode_id) REFERENCES episodes(id)
+            );
             """
         )
         _migrate_schema(conn)
@@ -149,6 +175,7 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     """Add new columns to existing tables if they don't exist."""
     existing_shots = {row[1] for row in conn.execute("PRAGMA table_info(shots)").fetchall()}
     for col, col_def in [
+        ("episode_id", "INTEGER REFERENCES episodes(id)"),
         ("character_action", "TEXT DEFAULT ''"),
         ("scene_description", "TEXT DEFAULT ''"),
         ("camera_movement", "TEXT DEFAULT ''"),
@@ -188,3 +215,12 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     ]:
         if col not in existing_projects:
             conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {col_def}")
+
+    existing_episodes = {row[1] for row in conn.execute("PRAGMA table_info(episodes)").fetchall()}
+    if existing_episodes:
+        for col, col_def in [
+            ("screenplay_content_en", "TEXT NOT NULL DEFAULT ''"),
+            ("status", "TEXT NOT NULL DEFAULT 'draft'"),
+        ]:
+            if col not in existing_episodes:
+                conn.execute(f"ALTER TABLE episodes ADD COLUMN {col} {col_def}")

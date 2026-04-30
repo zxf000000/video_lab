@@ -8,7 +8,7 @@ import { ActionButton, StatusBadge } from "./ui-legacy";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
-import { IconCheck, IconX, IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconCheck, IconX } from "@tabler/icons-react";
 
 const STYLE_PRESETS = [
   { id: "cinematic", label: "电影感", emoji: "🎬" },
@@ -29,7 +29,6 @@ const defaultForm = {
   story_prompt: "",
   style: "cinematic",
   aspect_ratio: "16:9",
-  target_duration: 30,
   original_story: "",
   rewrite_direction: "",
 };
@@ -69,7 +68,8 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
   }
 
   const isRewrite = mode === "rewrite";
-  const stepLabels = isRewrite ? REWRITE_STEP_LABELS : CREATE_STEP_LABELS;
+  const hasPrompt = !isRewrite && !!form.story_prompt.trim();
+  const stepLabels = isRewrite ? REWRITE_STEP_LABELS : hasPrompt ? CREATE_STEP_LABELS : CREATE_STEP_LABELS.slice(0, 1);
   const maxStep = stepLabels.length;
 
   const canNext = isRewrite
@@ -77,9 +77,9 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
       ? form.title.trim() && form.rewrite_direction.trim()
       : true
     : step === 1
-      ? form.title.trim() && form.story_prompt.trim()
+      ? form.title.trim()
       : step === 2
-        ? form.style.trim() && form.aspect_ratio && form.target_duration >= 5
+        ? form.style.trim() && form.aspect_ratio
         : true;
 
   async function handleCreate() {
@@ -91,7 +91,7 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
         story_prompt: form.story_prompt || form.original_story || form.rewrite_direction,
         style: form.style,
         aspect_ratio: form.aspect_ratio,
-        target_duration: Number(form.target_duration),
+        generate: hasPrompt || isRewrite,
         ...(isRewrite && {
           original_story: form.original_story,
           rewrite_direction: form.rewrite_direction,
@@ -99,7 +99,7 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
       });
       reset();
       onClose();
-      toast.success("项目已创建，AI 正在生成中...");
+      toast.success(hasPrompt || isRewrite ? "项目已创建，AI 正在生成大纲和角色卡..." : "项目已创建");
       router.push(`/projects/${payload.project.id}?tab=overview`);
     } catch (err: any) {
       setError(String(err.message || err));
@@ -208,16 +208,16 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs text-slate-500">剧情需求</label>
+                <label className="mb-1.5 block text-xs text-slate-500">剧情需求（可选）</label>
                 <Textarea
                   className="min-h-[180px] resize-y"
-                  placeholder="描述你想要的剧情，越详细越好。例如：一个在雨夜城市中奔跑的年轻人，躲避无人机追踪，最终在霓虹灯巷口停下并回头..."
+                  placeholder="描述你想要的剧情，越详细越好。留空则由 AI 根据项目名自动构思..."
                   value={form.story_prompt}
                   onChange={(e: any) => set("story_prompt", e.target.value)}
                 />
               </div>
               <p className="text-[11px] text-slate-500">
-                AI 将根据你的需求生成完整剧情，并自动拆分为多个镜头
+                填写剧情需求后 AI 会自动构思并生成内容；只填项目名则创建空项目
               </p>
             </div>
           )}
@@ -278,51 +278,8 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
                 </div>
               </div>
 
-              {/* Duration */}
-              <div>
-                <label className="mb-2 block text-xs text-slate-500">目标时长（秒）</label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-slate-600 transition hover:border-mint/40 hover:text-slate-900"
-                    onClick={() => set("target_duration", Math.max(5, Number(form.target_duration) - 5))}
-                  >
-                    <IconMinus size={16} stroke={2} />
-                  </button>
-                  <Input
-                    type="number"
-                    className="w-20 rounded-2xl py-2 text-center"
-                    min={5}
-                    max={120}
-                    value={form.target_duration}
-                    onChange={(e: any) => set("target_duration", e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-slate-600 transition hover:border-mint/40 hover:text-slate-900"
-                    onClick={() => set("target_duration", Math.min(120, Number(form.target_duration) + 5))}
-                  >
-                    <IconPlus size={16} stroke={2} />
-                  </button>
-                  <span className="text-xs text-slate-500">秒（5-120）</span>
-                </div>
-                {/* Quick presets */}
-                <div className="mt-2 flex gap-2">
-                  {[15, 30, 60, 90].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      className={`rounded-lg border px-3 py-1 text-[11px] transition ${
-                        Number(form.target_duration) === d
-                          ? "border-mint/40 bg-mint/10 text-mint"
-                          : "border-line text-slate-500 hover:text-slate-800"
-                      }`}
-                      onClick={() => set("target_duration", d)}
-                    >
-                      {d}s
-                    </button>
-                  ))}
-                </div>
+              <div className="rounded-2xl border border-dashed border-line bg-panel2 px-4 py-4 text-sm leading-6 text-slate-500">
+                创建后系统会先生成项目级大纲和角色卡，不再要求预先设置目标时长。后续由你手动选择分集并逐集生成剧本。
               </div>
             </div>
           )}
@@ -443,7 +400,7 @@ export default function CreateProjectDrawer({ open, onClose }: any) {
               </div>
             ) : (
               <div className="ml-auto">
-                <ActionButton label={isRewrite ? "开始改写" : "开始生成"} onClick={handleCreate} variant="primary" />
+                <ActionButton label={isRewrite ? "开始改写" : hasPrompt ? "开始生成" : "创建项目"} onClick={handleCreate} variant="primary" />
               </div>
             )}
           </div>
@@ -462,13 +419,14 @@ function CreateSummary({ form }: any) {
       </div>
       <div className="flex flex-col gap-3 rounded-[24px] border border-line bg-panel2 p-4">
         <SummaryRow label="项目名" value={form.title} />
-        <SummaryRow label="剧情需求" value={form.story_prompt} truncate />
+        <SummaryRow label="剧情需求" value={form.story_prompt || "由 AI 根据项目名自动构思"} truncate />
         <SummaryRow label="风格" value={STYLE_PRESETS.find((s) => s.id === form.style)?.label || form.style} />
         <SummaryRow label="画面比例" value={form.aspect_ratio} />
-        <SummaryRow label="目标时长" value={`${form.target_duration} 秒`} />
       </div>
       <p className="text-[11px] text-slate-500">
-        AI 将依次生成剧情段落并拆分为镜头，整个过程可能需要 10-30 秒
+        {form.story_prompt
+          ? "AI 将先生成项目大纲和角色卡，后续由你手动按集生成剧本"
+          : "将创建一个空项目，你可以后续手动添加故事和镜头"}
       </p>
     </div>
   );
@@ -487,10 +445,9 @@ function RewriteSummary({ form }: any) {
         <SummaryRow label="改写方向" value={form.rewrite_direction} truncate />
         <SummaryRow label="风格" value={STYLE_PRESETS.find((s) => s.id === form.style)?.label || form.style} />
         <SummaryRow label="画面比例" value={form.aspect_ratio} />
-        <SummaryRow label="目标时长" value="AI 根据段落数自动计算" />
       </div>
       <p className="text-[11px] text-slate-500">
-        AI 将根据改写方向生成新故事，自动根据段落数量计算时长并拆分为镜头
+        AI 将根据改写方向生成项目大纲和角色卡，后续由你逐集生成剧本
       </p>
     </div>
   );

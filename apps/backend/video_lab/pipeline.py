@@ -18,11 +18,7 @@ executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="pipeline")
 # Dependency graph: stage -> list of stages that must complete first
 STAGE_DEPS: dict[str, list[str]] = {
     "generate_story": [],
-    "generate_screenplay": ["generate_story"],
     "generate_characters": ["generate_story"],
-    "generate_scenes": ["generate_story"],
-    "generate_beats": ["generate_screenplay"],
-    "split_shots": ["generate_beats", "generate_characters", "generate_scenes"],
 }
 
 ALL_STAGES = list(STAGE_DEPS.keys())
@@ -66,11 +62,7 @@ def start_from_stage(project_id: int, from_stage: str) -> int:
     # Map pipeline stage names to the short names used by invalidate_downstream
     _stage_short = {
         "generate_story": "story",
-        "generate_screenplay": "screenplay",
-        "generate_beats": "beats",
         "generate_characters": "characters",
-        "generate_scenes": "scenes",
-        "split_shots": "shots",
     }
     repository.invalidate_downstream(project_id, _stage_short.get(from_stage, from_stage))
 
@@ -185,16 +177,8 @@ def _submit_worker(task_id: int, project_id: int, stage: str, parent_task_id: in
 
             if stage == "generate_story":
                 services.generate_story(project_id)
-            elif stage == "generate_screenplay":
-                services.generate_screenplay(project_id)
-            elif stage == "generate_beats":
-                services.generate_beats(project_id)
             elif stage == "generate_characters":
                 services.generate_characters(project_id)
-            elif stage == "generate_scenes":
-                services.generate_scenes(project_id)
-            elif stage == "split_shots":
-                services.split_shots(project_id)
             else:
                 raise ValueError(f"Unknown stage: {stage}")
 

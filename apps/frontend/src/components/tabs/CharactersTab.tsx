@@ -316,6 +316,7 @@ function CharacterSection({ project, onRefresh, onPreview }: any) {
         onClose={() => setRefineTarget(null)}
         title={refineTarget ? `调整${refineTarget.type === "character" ? "角色" : "场景"}: ${refineTarget.label}` : ""}
         currentContent={refineTarget?.content || ""}
+        systemPromptKey="prompt_refine_character_system"
         onApply={(newContent: string) => {
           if (!refineTarget) return;
           updateCharacter(refineTarget.id, { appearance_prompt: newContent }).then(() => onRefresh());
@@ -532,6 +533,7 @@ function SceneSection({ project, onRefresh, onPreview }: any) {
         onClose={() => setRefineTarget(null)}
         title={refineTarget ? `调整${refineTarget.type === "character" ? "角色" : "场景"}: ${refineTarget.label}` : ""}
         currentContent={refineTarget?.content || ""}
+        systemPromptKey="prompt_refine_scene_system"
         onApply={(newContent: string) => {
           if (!refineTarget) return;
           updateScene(refineTarget.id, { description: newContent }).then(() => onRefresh());

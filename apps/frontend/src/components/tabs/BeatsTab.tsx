@@ -190,6 +190,7 @@ export default function BeatsTab({ project, isPending, onRunAction }: any) {
         onClose={() => setRefineOpen(false)}
         title="调整节拍"
         currentContent={content || ""}
+        systemPromptKey="prompt_refine_beats_system"
         onApply={(newContent: string) => {
           if (lang === "cn") setDraftCn(newContent);
           else setDraftEn(newContent);

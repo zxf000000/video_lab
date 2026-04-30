@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { IconX } from "@tabler/icons-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { cn } from "@/src/lib/utils";
 
 interface ActionButtonProps {
@@ -44,6 +45,9 @@ export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
     success: "bg-emerald-100 text-emerald-600",
     completed: "bg-emerald-100 text-emerald-600",
     shots_ready: "bg-emerald-100 text-emerald-700",
+    outline_ready: "bg-cyan-100 text-cyan-700",
+    project_ready: "bg-emerald-100 text-emerald-700",
+    screenplay_ready: "bg-cyan-100 text-cyan-700",
     story_ready: "bg-cyan-100 text-cyan-700",
     video_ready: "bg-emerald-100 text-emerald-700",
     frames_ready: "bg-cyan-100 text-cyan-700",
@@ -53,6 +57,7 @@ export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
     queued: "bg-[#f2efff] text-mint",
     running: "bg-[#f2efff] text-mint",
     generating_story: "bg-[#f2efff] text-mint",
+    generating_episode_screenplay: "bg-[#f2efff] text-mint",
     generating_characters: "bg-[#f2efff] text-mint",
     generating_scenes: "bg-[#f2efff] text-mint",
     splitting_shots: "bg-[#f2efff] text-mint",
@@ -78,30 +83,30 @@ interface ImageViewerProps {
 }
 
 export function ImageViewer({ src, alt, onClose }: ImageViewerProps) {
-  useEffect(() => {
-    if (!src) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [src, onClose]);
-
   if (!src) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <img
-        src={src}
-        alt={alt || ""}
-        className="relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
-      <button
-        className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
+    <Dialog open={!!src} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-[90vw] border-0 bg-transparent p-0 shadow-none ring-0"
       >
-        <IconX size={16} stroke={2} />
-      </button>
-    </div>
+        <DialogHeader className="sr-only">
+          <DialogTitle>图片预览</DialogTitle>
+          <DialogDescription>查看大图预览。</DialogDescription>
+        </DialogHeader>
+        <img
+          src={src}
+          alt={alt || ""}
+          className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+        />
+        <button
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          onClick={onClose}
+        >
+          <IconX size={16} stroke={2} />
+        </button>
+      </DialogContent>
+    </Dialog>
   );
 }

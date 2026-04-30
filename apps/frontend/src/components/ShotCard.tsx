@@ -365,6 +365,7 @@ export default function ShotCard({ shot, onRefresh, projectId, tasks = [] }: any
         onClose={() => setRefineField(null)}
         title={`调整${refineField?.label || ""}`}
         currentContent={refineField?.content || ""}
+        systemPromptKey="prompt_refine_shot_system"
         onApply={(newContent) => {
           if (!refineField) return;
           setPromptFields((current: any) => ({

@@ -7,6 +7,7 @@ import {
   listSeedanceTasks, getApiBase,
 } from "../../src/api";
 import { ActionButton } from "../../src/components/ui-legacy";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../src/components/ui/dialog";
 import { Textarea } from "../../src/components/ui/textarea";
 import VideoPlayer from "../../src/components/VideoPlayer";
 import {
@@ -596,13 +597,6 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
 }
 
 function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
-  useEffect(() => {
-    if (!task) return;
-    const handler = (e: any) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [task, onClose]);
-
   if (!task) return null;
 
   const params = task.params || {};
@@ -613,12 +607,15 @@ function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }
   const videoUrl = task.output_path ? `${getApiBase()}/assets/${task.output_path}` : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div
-        className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Seedance 任务详情</DialogTitle>
+          <DialogDescription>查看 Seedance 任务视频、提示词和参数。</DialogDescription>
+        </DialogHeader>
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -671,7 +668,7 @@ function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }
             <ActionButton icon={IconDownload} label="下载视频" onClick={() => window.open(videoUrl, "_blank")} variant="primary" />
           ) : null}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -13,6 +13,8 @@ interface RefineDrawerProps {
   title: string;
   currentContent: string;
   onApply: (newContent: string) => void;
+  systemPromptKey?: string;
+  initialPrompt?: string;
 }
 
 export default function RefineDrawer({
@@ -21,6 +23,8 @@ export default function RefineDrawer({
   title,
   currentContent,
   onApply,
+  systemPromptKey = "",
+  initialPrompt,
 }: RefineDrawerProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -47,7 +51,7 @@ export default function RefineDrawer({
         : currentContent;
       const initialMsg = {
         role: "user",
-        content: `我需要优化以下${title}内容，请确认你已看到，然后等待我的修改要求：\n\n${trimmed}`,
+        content: initialPrompt || `以下是当前${title}内容，请先阅读并等待我的具体修改要求：\n\n${trimmed}`,
       };
       setMessages([initialMsg]);
       sendMessages([initialMsg]);
@@ -84,7 +88,8 @@ export default function RefineDrawer({
       (err: any) => {
         toast.error(String(err.message || err));
         setIsStreaming(false);
-      }
+      },
+      systemPromptKey,
     );
   }
 

@@ -3,15 +3,13 @@
 import { IconCheck, IconLoader2, IconX } from "@tabler/icons-react";
 import { StatusBadge } from "./ui-legacy";
 
-const GENERATION_TASK_TYPES = new Set(["create_project", "create_project_by_rewrite", "split_shots", "generate_story"]);
+const GENERATION_TASK_TYPES = new Set(["pipeline", "generate_story", "generate_characters"]);
 
 const GENERATION_STEPS = [
   { key: "submitted", label: "已提交", statuses: ["draft", "queued"] },
-  { key: "story", label: "生成剧情", statuses: ["generating_story", "story_ready"] },
-  { key: "characters", label: "提取角色", statuses: ["generating_characters"] },
-  { key: "scenes", label: "生成场景", statuses: ["generating_scenes"] },
-  { key: "shots", label: "拆分镜头", statuses: ["splitting_shots"] },
-  { key: "done", label: "完成", statuses: ["shots_ready"] },
+  { key: "story", label: "生成大纲", statuses: ["generating_story", "outline_ready"] },
+  { key: "characters", label: "生成角色卡", statuses: ["generating_characters"] },
+  { key: "done", label: "完成", statuses: ["project_ready"] },
 ];
 
 const STATUS_TO_STEP = new Map(
@@ -36,7 +34,7 @@ export default function ProjectGenerationProgress({ project, compact = false }: 
   if (compact) {
     return (
       <div className="mt-3 border-t border-line pt-3">
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {GENERATION_STEPS.map((step, index) => {
             const state = getStepState(index, activeIndex, failedTask);
             return (
@@ -65,7 +63,7 @@ export default function ProjectGenerationProgress({ project, compact = false }: 
         <StatusBadge status={failedTask ? "failed" : project.status} />
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {GENERATION_STEPS.map((step, index) => {
           const state = getStepState(index, activeIndex, failedTask);
           return (
@@ -88,12 +86,12 @@ export default function ProjectGenerationProgress({ project, compact = false }: 
 
 function getActiveIndex(project: any, createTask: any) {
   if (createTask?.status === "queued") return 0;
-  if (project?.status === "story_ready") return 1;
+  if (project?.status === "outline_ready") return 1;
   return STATUS_TO_STEP.get(project?.status) ?? 0;
 }
 
 function isGenerationStatus(status: any) {
-  return STATUS_TO_STEP.has(status) && status !== "shots_ready";
+  return STATUS_TO_STEP.has(status) && status !== "project_ready";
 }
 
 function isFailureStatus(status: any) {

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import { generateQuickVideo, getQuickVideoStatus, listQuickVideoTasks, generateImage, getApiBase, getModels } from "../../src/api";
 import { ActionButton, ImageViewer } from "../../src/components/ui-legacy";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../src/components/ui/dialog";
 import { Textarea } from "../../src/components/ui/textarea";
 import VideoPlayer from "../../src/components/VideoPlayer";
 import {
@@ -963,13 +964,6 @@ function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onVi
 }
 
 function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
-  useEffect(() => {
-    if (!task) return;
-    const handler = (e: any) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [task, onClose]);
-
   if (!task) return null;
 
   const params = task.params || {};
@@ -980,12 +974,15 @@ function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
   const videoUrl = task.video_url ? `${getApiBase()}${task.video_url}` : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div
-        className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>任务详情</DialogTitle>
+          <DialogDescription>查看生成任务的视频、提示词和元数据。</DialogDescription>
+        </DialogHeader>
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1032,8 +1029,8 @@ function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
             <ActionButton icon={IconDownload} label="下载视频" onClick={() => window.open(videoUrl, "_blank")} variant="primary" />
           ) : null}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1048,13 +1045,6 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: any) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
   if (!open) return null;
 
   function handleFileChange(e: any) {
@@ -1066,12 +1056,15 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative z-10 max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-[24px] border border-line bg-panel p-5 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open={open} onOpenChange={(nextOpen: any) => { if (!nextOpen) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[80vh] max-w-lg overflow-y-auto rounded-[24px] border border-line bg-panel p-5"
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>选择参考图</DialogTitle>
+          <DialogDescription>上传或选择历史参考图。</DialogDescription>
+        </DialogHeader>
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-900">选择参考图</h3>
@@ -1132,7 +1125,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
         ) : (
           <p className="py-4 text-center text-xs text-slate-400">暂无历史参考图</p>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

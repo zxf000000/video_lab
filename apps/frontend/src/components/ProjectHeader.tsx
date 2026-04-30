@@ -63,10 +63,10 @@ export default function ProjectHeader({
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-panel2"
                   onClick={() => handleRegenerate(false)}
                 >
-                  <IconRefresh size={14} stroke={2} className="text-slate-400" />
+                    <IconRefresh size={14} stroke={2} className="text-slate-400" />
                   <div>
                     <div className="font-medium">重新生成全部</div>
-                    <div className="mt-0.5 text-xs text-slate-400">从剧情开始重新生成所有内容</div>
+                    <div className="mt-0.5 text-xs text-slate-400">重新生成项目大纲和角色卡</div>
                   </div>
                 </button>
                 <button
@@ -75,8 +75,8 @@ export default function ProjectHeader({
                 >
                   <IconRefresh size={14} stroke={2} className="text-mint" />
                   <div>
-                    <div className="font-medium">保留剧情，重新生成后续</div>
-                    <div className="mt-0.5 text-xs text-slate-400">保留当前剧情，从剧本化开始重新生成</div>
+                    <div className="font-medium">保留大纲，重新生成角色卡</div>
+                    <div className="mt-0.5 text-xs text-slate-400">保留当前大纲，只重新提取角色卡</div>
                   </div>
                 </button>
               </div>

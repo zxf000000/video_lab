@@ -190,6 +190,7 @@ export default function ScreenplayTab({ project, isPending, onRunAction }: any) 
         onClose={() => setRefineOpen(false)}
         title="调整剧本化文本"
         currentContent={content || ""}
+        systemPromptKey="prompt_refine_screenplay_system"
         onApply={(newContent: string) => {
           if (lang === "cn") setDraftCn(newContent);
           else setDraftEn(newContent);

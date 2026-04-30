@@ -80,6 +80,47 @@ export function restoreStoryVersion(projectId: any, versionId: any) {
   return request(`/api/projects/${projectId}/story-versions/${versionId}/restore`, { method: "POST" });
 }
 
+export function listEpisodes(projectId: any) {
+  return request(`/api/projects/${projectId}/episodes`);
+}
+
+export function createEpisode(projectId: any, data: any) {
+  return request(`/api/projects/${projectId}/episodes`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateEpisode(episodeId: any, data: any) {
+  return request(`/api/episodes/${episodeId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteEpisode(episodeId: any) {
+  return request(`/api/episodes/${episodeId}`, { method: "DELETE" });
+}
+
+export function generateEpisodeScreenplay(episodeId: any) {
+  return request(`/api/episodes/${episodeId}/screenplay`, { method: "POST" });
+}
+
+export function updateEpisodeScreenplay(episodeId: any, content: any, contentEn: any) {
+  return request(`/api/episodes/${episodeId}/screenplay`, {
+    method: "PUT",
+    body: JSON.stringify({ content, content_en: contentEn }),
+  });
+}
+
+export function getEpisodeVersions(episodeId: any) {
+  return request(`/api/episodes/${episodeId}/versions`);
+}
+
+export function restoreEpisodeVersion(episodeId: any, versionId: any) {
+  return request(`/api/episodes/${episodeId}/versions/${versionId}/restore`, { method: "POST" });
+}
+
 // Screenplay
 export function generateScreenplay(projectId: any) {
   return request(`/api/projects/${projectId}/screenplay`, { method: "POST" });
@@ -135,6 +176,24 @@ export function addShot(projectId: any, shotData: any) {
   });
 }
 
+export function generateEpisodeShots(episodeId: any) {
+  return request(`/api/episodes/${episodeId}/shots`, { method: "POST" });
+}
+
+export function addEpisodeShot(episodeId: any, shotData: any) {
+  return request(`/api/episodes/${episodeId}/shots/add`, {
+    method: "POST",
+    body: JSON.stringify(shotData),
+  });
+}
+
+export function reorderEpisodeShots(episodeId: any, shotIds: any) {
+  return request(`/api/episodes/${episodeId}/shots/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ shot_ids: shotIds }),
+  });
+}
+
 export function deleteShot(shotId: any) {
   return request(`/api/shots/${shotId}`, { method: "DELETE" });
 }
@@ -153,6 +212,14 @@ export function generateAllFrames(projectId: any) {
 
 export function generateAllVideos(projectId: any) {
   return request(`/api/projects/${projectId}/generate-all-videos`, { method: "POST" });
+}
+
+export function generateAllEpisodeFrames(episodeId: any) {
+  return request(`/api/episodes/${episodeId}/generate-all-frames`, { method: "POST" });
+}
+
+export function generateAllEpisodeVideos(episodeId: any) {
+  return request(`/api/episodes/${episodeId}/generate-all-videos`, { method: "POST" });
 }
 
 export function updateShotPrompts(shotId: any, promptFields: any) {
@@ -296,12 +363,12 @@ export function generateSceneImage(sceneId: any) {
 }
 
 // Chat streaming
-export async function streamChat(messages: any, onDelta: any, onExtracted: any, onDone: any, onError: any) {
+export async function streamChat(messages: any, onDelta: any, onExtracted: any, onDone: any, onError: any, systemPromptKey = "") {
   try {
     const response = await fetch(`${API_BASE}/api/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, system_prompt_key: systemPromptKey }),
     });
     if (!response.ok) {
       throw new Error(`Chat request failed: ${response.status}`);

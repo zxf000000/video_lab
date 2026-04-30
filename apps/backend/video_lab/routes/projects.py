@@ -8,7 +8,7 @@ from . import (
     register, respond_json, parse_json,
     serialize_project_summary, serialize_project_detail,
     serialize_shot, serialize_task, serialize_character,
-    serialize_scene, serialize_version,
+    serialize_scene, serialize_version, serialize_episode,
 )
 
 
@@ -33,15 +33,19 @@ def create_project(environ, start_response):
     story_prompt = str(payload.get("story_prompt", "")).strip()
     if not title:
         return respond_json(start_response, {"error": "title is required"}, status="400 Bad Request")
-    if not story_prompt:
-        return respond_json(start_response, {"error": "story_prompt is required"}, status="400 Bad Request")
-    target_duration = int(payload.get("target_duration", 30) or 30)
-    if target_duration < 5 or target_duration > 120:
-        return respond_json(start_response, {"error": "target_duration must be between 5 and 120"}, status="400 Bad Request")
+    raw_target_duration = payload.get("target_duration", 30)
+    try:
+        target_duration = int(raw_target_duration or 30)
+    except (TypeError, ValueError):
+        target_duration = 30
+    target_duration = max(5, min(120, target_duration))
     style = str(payload.get("style", "cinematic"))
     aspect_ratio = str(payload.get("aspect_ratio", "16:9"))
     original_story = str(payload.get("original_story", "")).strip()
     rewrite_direction = str(payload.get("rewrite_direction", "")).strip()
+    generate = payload.get("generate", True)
+    if not story_prompt:
+        story_prompt = title
     project_id = services.create_project_row(
         title=title, prompt=story_prompt, style=style,
         aspect_ratio=aspect_ratio, target_duration=target_duration,
@@ -49,7 +53,7 @@ def create_project(environ, start_response):
     if rewrite_direction:
         services.rewrite_story_for_project(project_id, original_story=original_story, rewrite_direction=rewrite_direction)
         start_rewrite_pipeline(project_id)
-    else:
+    elif generate:
         start_pipeline(project_id)
     project = repository.get_project(project_id)
     return respond_json(start_response, {"project": serialize_project_summary(project)}, status="201 Created")
@@ -90,7 +94,7 @@ def regenerate(environ, start_response, project_id: str):
     payload = parse_json(environ)
     keep_story = bool(payload.get("keep_story", False))
     if keep_story:
-        task_id = start_from_stage(pid, "generate_screenplay")
+        task_id = start_from_stage(pid, "generate_characters")
     else:
         task_id = start_pipeline(pid)
     return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
@@ -203,6 +207,124 @@ def regenerate_from_stage(environ, start_response, project_id: str):
     }
     task_id = start_from_stage(pid, stage_map[from_stage])
     return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+# ── Episodes ──────────────────────────────────────────────────────
+
+@register("GET", r"/api/projects/(?P<project_id>\d+)/episodes")
+def list_episodes(environ, start_response, project_id: str):
+    episodes = repository.list_project_episodes(int(project_id))
+    return respond_json(start_response, {"episodes": [serialize_episode(e) for e in episodes]})
+
+
+@register("POST", r"/api/projects/(?P<project_id>\d+)/episodes")
+def create_episode(environ, start_response, project_id: str):
+    payload = parse_json(environ)
+    episode_number = payload.get("episode_number")
+    if episode_number in (None, ""):
+        existing = repository.list_project_episodes(int(project_id))
+        episode_number = len(existing) + 1
+    episode_id = services.create_episode(
+        int(project_id),
+        {
+            "episode_number": episode_number,
+            "title": str(payload.get("title", "")).strip() or f"第{episode_number}集",
+            "outline_summary": str(payload.get("outline_summary", "")).strip(),
+        },
+    )
+    return respond_json(start_response, {"episode": serialize_episode(repository.get_episode(episode_id))}, status="201 Created")
+
+
+@register("PUT", r"/api/episodes/(?P<episode_id>\d+)")
+def update_episode(environ, start_response, episode_id: str):
+    payload = parse_json(environ)
+    services.update_episode(int(episode_id), payload)
+    return respond_json(start_response, {"episode": serialize_episode(repository.get_episode(int(episode_id)))})
+
+
+@register("DELETE", r"/api/episodes/(?P<episode_id>\d+)")
+def delete_episode(environ, start_response, episode_id: str):
+    services.delete_episode(int(episode_id))
+    return respond_json(start_response, {"ok": True})
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/screenplay")
+def generate_episode_screenplay(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    task_id = submit_project_task(int(episode["project_id"]), "generate_episode_screenplay", episode_id=int(episode_id))
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/shots")
+def split_episode_shots(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    task_id = submit_project_task(int(episode["project_id"]), "split_episode_shots", episode_id=int(episode_id))
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/shots/add")
+def add_episode_shot(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    payload = parse_json(environ)
+    shot_id = services.add_shot(int(episode["project_id"]), {**payload, "episode_id": int(episode_id)})
+    return respond_json(start_response, {"shot_id": shot_id}, status="201 Created")
+
+
+@register("PUT", r"/api/episodes/(?P<episode_id>\d+)/shots/reorder")
+def reorder_episode_shots(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    payload = parse_json(environ)
+    services.reorder_shots(int(episode["project_id"]), payload.get("shot_ids", []))
+    return respond_json(start_response, {"ok": True})
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/generate-all-frames")
+def generate_all_episode_frames(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    task_id = submit_project_task(int(episode["project_id"]), "generate_episode_frames", episode_id=int(episode_id))
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/generate-all-videos")
+def generate_all_episode_videos(environ, start_response, episode_id: str):
+    episode = repository.get_episode(int(episode_id))
+    if not episode:
+        return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
+    task_id = submit_project_task(int(episode["project_id"]), "generate_episode_videos", episode_id=int(episode_id))
+    return respond_json(start_response, {"task": serialize_task(repository.get_task(task_id))}, status="202 Accepted")
+
+
+@register("PUT", r"/api/episodes/(?P<episode_id>\d+)/screenplay")
+def update_episode_screenplay(environ, start_response, episode_id: str):
+    payload = parse_json(environ)
+    services.update_episode_screenplay(
+        int(episode_id),
+        str(payload.get("content", "")),
+        str(payload.get("content_en", "")),
+    )
+    return respond_json(start_response, {"episode": serialize_episode(repository.get_episode(int(episode_id)))})
+
+
+@register("GET", r"/api/episodes/(?P<episode_id>\d+)/versions")
+def list_episode_versions(environ, start_response, episode_id: str):
+    versions = repository.list_episode_versions(int(episode_id))
+    return respond_json(start_response, {"versions": [serialize_version(v) for v in versions]})
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/versions/(?P<version_id>\d+)/restore")
+def restore_episode_version(environ, start_response, episode_id: str, version_id: str):
+    services.restore_episode_version(int(episode_id), int(version_id))
+    return respond_json(start_response, {"episode": serialize_episode(repository.get_episode(int(episode_id)))})
 
 
 # ── Shots ─────────────────────────────────────────────────────────

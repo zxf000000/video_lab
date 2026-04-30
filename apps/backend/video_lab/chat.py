@@ -9,6 +9,7 @@ from .providers.chatfire import ChatfireProvider
 
 def handle_chat_stream(payload: dict, start_response):
     messages = payload.get("messages", [])
+    system_prompt_key = str(payload.get("system_prompt_key", "")).strip()
     if not messages:
         start_response("400 Bad Request", [
             ("Content-Type", "application/json"),
@@ -16,7 +17,10 @@ def handle_chat_stream(payload: dict, start_response):
         return [b'{"error":"messages is required"}']
 
     prompts = load_prompts()
-    system_prompt = prompts.get("prompt_conversation_system", "")
+    if system_prompt_key:
+        system_prompt = prompts.get(system_prompt_key) or prompts.get("prompt_conversation_system", "")
+    else:
+        system_prompt = prompts.get("prompt_conversation_system", "")
 
     config = load_config()
     provider = ChatfireProvider(config, prompts)
