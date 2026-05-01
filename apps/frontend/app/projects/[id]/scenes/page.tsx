@@ -144,12 +144,12 @@ export default function ScenesPage() {
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl rounded-[28px] border border-line bg-panel p-0">
-          <DialogHeader className="border-b border-line px-6 py-5">
+          <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle>{editing?.id ? "编辑场景" : "新增场景"}</DialogTitle>
           </DialogHeader>
           {editing ? (
             <>
-              <div className="grid gap-5 px-6 py-5 md:grid-cols-2">
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
                 <div>
                   <Label className="mb-2 block text-xs text-slate-500">场景名</Label>
                   <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
@@ -179,7 +179,7 @@ export default function ScenesPage() {
                   <Input value={editing.propList} onChange={(e) => setEditing((prev) => prev ? { ...prev, propList: e.target.value } : prev)} placeholder="门禁, 雨伞, 沙发" />
                 </div>
               </div>
-              <DialogFooter className="border-t border-line bg-panel2/60 px-6 py-4">
+              <DialogFooter className="border-t border-line bg-panel2/60 px-5 py-3">
                 <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
                   取消
                 </Button>

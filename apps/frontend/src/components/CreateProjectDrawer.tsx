@@ -72,14 +72,14 @@ export default function CreateProjectDrawer({ open, onClose }: { open: boolean; 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleDismiss()}>
       <DialogContent className="max-w-2xl rounded-[28px] border border-line bg-panel p-0" showCloseButton={!submitting}>
-        <DialogHeader className="border-b border-line px-6 py-5">
+        <DialogHeader className="border-b border-line px-5 py-4">
           <DialogTitle>新建短剧项目</DialogTitle>
           <DialogDescription>
             按新的生产 schema 创建项目。项目会先进入 Brief 阶段，后续在详情页继续补充角色、场景和分集。
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-5 px-6 py-5 md:grid-cols-2">
+        <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <Label className="mb-2 block text-xs text-slate-500">项目名称</Label>
             <Input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="例：归墟侯·都市逆袭版" />
@@ -115,7 +115,7 @@ export default function CreateProjectDrawer({ open, onClose }: { open: boolean; 
           {error ? <div className="md:col-span-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
         </div>
 
-        <DialogFooter className="rounded-b-[28px] border-t border-line bg-panel2/60 px-6 py-4">
+        <DialogFooter className="rounded-b-[28px] border-t border-line bg-panel2/60 px-5 py-3">
           <Button variant="secondary" onClick={handleDismiss} disabled={submitting}>
             取消
           </Button>

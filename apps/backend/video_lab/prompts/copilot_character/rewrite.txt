@@ -2,11 +2,13 @@
 
 改写要求：
 1. 如果 generation_stage 是 `profile_collection`，可以重构整组角色卡，但只重点输出 character_profile。
-2. 如果 generation_stage 是 `visual_refine`，只输出 1 个角色，并重点改写 image_spec。
-3. 保留已有角色的核心身份和功能定位。
-4. 强化外观辨识度、性格标签和说话方式。
-5. 保证角色与 Brief 的主冲突和世界规则一致。
-6. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+2. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 为空，只输出 1 个角色，并重点改写 image_spec。
+3. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 不为空，只输出 1 个 variant，并重点改写 image_spec_override。
+4. 保留已有角色的核心身份和功能定位。
+5. variant 模式下只改这个形态，不要把角色变成另一个人。
+6. 强化外观辨识度、性格标签和说话方式。
+7. 保证角色与 Brief 的主冲突和世界规则一致。
+8. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
 
 项目 ID: {project_id}
 实体 ID: {entity_id}

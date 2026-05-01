@@ -1,60 +1,105 @@
+"use client"
+
 import * as React from "react"
-import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { cva, type VariantProps } from "class-variance-authority";
+import { Button as ThemeButton, IconButton, type ButtonProps as ThemeButtonProps, type IconButtonProps } from "@radix-ui/themes"
 
 import { cn } from "@/src/lib/utils"
 
-const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border text-sm font-medium whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "border-mint bg-mint text-white hover:opacity-90",
-        primary: "border-mint bg-mint text-white hover:opacity-90",
-        secondary: "border-line bg-panel2 text-slate-700 hover:border-mint hover:text-mint",
-        outline: "border-border bg-background hover:bg-muted hover:text-foreground",
-        ghost: "border-transparent bg-transparent text-slate-600 hover:bg-panel2 hover:text-slate-900",
-        inverted: "border-white/20 bg-white/10 text-white hover:bg-white/15",
-        destructive: "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100",
-        link: "border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-auto px-4 py-3",
-        sm: "px-3 py-2 text-xs",
-        lg: "px-6 py-4 text-base",
-        icon: "size-8 p-0",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
+type ButtonVariant = "default" | "primary" | "secondary" | "outline" | "ghost" | "inverted" | "destructive" | "link"
+type ButtonSize = "default" | "sm" | "lg" | "icon"
 
-type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>
-type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>
-
-interface ButtonProps extends React.ComponentPropsWithoutRef<typeof ButtonPrimitive> {
+interface ButtonProps extends Omit<ThemeButtonProps, "variant" | "size" | "color"> {
   className?: string
   variant?: ButtonVariant
   size?: ButtonSize
 }
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ButtonProps) {
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
+function mapButtonProps(variant: ButtonVariant, size: ButtonSize) {
+  const sizeMap: Record<ButtonSize, NonNullable<ThemeButtonProps["size"]>> = {
+    sm: "1",
+    default: "2",
+    lg: "3",
+    icon: "2",
+  }
+
+  switch (variant) {
+    case "primary":
+    case "default":
+      return { variant: "solid" as const, color: "iris" as const, size: sizeMap[size], className: "" }
+    case "secondary":
+      return { variant: "soft" as const, color: "gray" as const, size: sizeMap[size], className: "" }
+    case "outline":
+      return { variant: "outline" as const, color: "gray" as const, size: sizeMap[size], className: "" }
+    case "ghost":
+      return { variant: "ghost" as const, color: "gray" as const, size: sizeMap[size], className: "" }
+    case "destructive":
+      return { variant: "solid" as const, color: "red" as const, size: sizeMap[size], className: "" }
+    case "link":
+      return {
+        variant: "ghost" as const,
+        color: "iris" as const,
+        size: sizeMap[size],
+        className: "px-0 underline-offset-4 hover:underline",
+      }
+    case "inverted":
+      return {
+        variant: "soft" as const,
+        color: "gray" as const,
+        size: sizeMap[size],
+        className: "bg-white/12 text-white shadow-none ring-1 ring-white/20 hover:bg-white/18",
+      }
+    default:
+      return { variant: "solid" as const, color: "iris" as const, size: sizeMap[size], className: "" }
+  }
 }
 
-export { Button, buttonVariants }
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    className,
+    variant = "default",
+    size = "default",
+    type,
+    children,
+    ...props
+  },
+  ref
+) {
+  const mapped = mapButtonProps(variant, size)
+
+  if (size === "icon") {
+    return (
+      <IconButton
+        ref={ref as React.ForwardedRef<HTMLButtonElement>}
+        data-slot="button"
+        type={type ?? "button"}
+        radius="large"
+        variant={mapped.variant as IconButtonProps["variant"]}
+        color={mapped.color}
+        size={mapped.size as IconButtonProps["size"]}
+        className={cn(mapped.className, className)}
+        {...(props as Omit<IconButtonProps, "variant" | "size" | "color">)}
+      >
+        {children}
+      </IconButton>
+    )
+  }
+
+  return (
+    <ThemeButton
+      ref={ref}
+      data-slot="button"
+      type={type ?? "button"}
+      radius="large"
+      variant={mapped.variant}
+      color={mapped.color}
+      size={mapped.size}
+      className={cn(mapped.className, className)}
+      {...props}
+    >
+      {children}
+    </ThemeButton>
+  )
+})
+
+export { Button }
 export type { ButtonProps, ButtonVariant, ButtonSize }

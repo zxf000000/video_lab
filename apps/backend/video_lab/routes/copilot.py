@@ -3,6 +3,17 @@ from __future__ import annotations
 import json
 
 from ..config import load_config, load_prompts
+from ..domain.story_dev.copilot_types import (
+    CharacterCollectionProposalPayload,
+    CharacterCopilotProposalPayload,
+    CharacterImageSpecPayload,
+    CharacterProfilePayload,
+    CharacterProposalPayload,
+    CharacterVariantCollectionProposalPayload,
+    CharacterVariantImageSpecOverridePayload,
+    CharacterVariantInheritRulesPayload,
+    CharacterVariantProposalPayload,
+)
 from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
@@ -75,7 +86,100 @@ def _extract_brief_proposal(text: str) -> dict | None:
     }
 
 
-def _extract_character_proposal(text: str) -> dict | None:
+def _normalize_character_profile(raw: dict) -> CharacterProfilePayload:
+    return {
+        "name": str(raw.get("name", "")),
+        "role_type": str(raw.get("role_type", "")),
+        "identity_summary": str(raw.get("identity_summary", "")),
+        "appearance_summary": str(raw.get("appearance_summary", "")),
+        "personality_tags": [str(item) for item in raw.get("personality_tags", []) if str(item).strip()],
+        "speech_style": str(raw.get("speech_style", "")),
+        "negative_constraints": str(raw.get("negative_constraints", "")),
+    }
+
+
+def _normalize_character_image_spec(raw: dict) -> CharacterImageSpecPayload:
+    return {
+        "gender_presentation": str(raw.get("gender_presentation", "")),
+        "age_range": str(raw.get("age_range", "")),
+        "body_type": str(raw.get("body_type", "")),
+        "face_features": str(raw.get("face_features", "")),
+        "hair_style": str(raw.get("hair_style", "")),
+        "hair_color": str(raw.get("hair_color", "")),
+        "eye_style": str(raw.get("eye_style", "")),
+        "signature_expression": str(raw.get("signature_expression", "")),
+        "signature_pose": str(raw.get("signature_pose", "")),
+        "clothing_style": str(raw.get("clothing_style", "")),
+        "color_palette": [str(item) for item in raw.get("color_palette", []) if str(item).strip()],
+        "visual_keywords": [str(item) for item in raw.get("visual_keywords", []) if str(item).strip()],
+        "negative_visual_constraints": [
+            str(item) for item in raw.get("negative_visual_constraints", []) if str(item).strip()
+        ],
+        "image_prompt": str(raw.get("image_prompt", "")),
+        "negative_prompt": str(raw.get("negative_prompt", "")),
+    }
+
+
+def _normalize_character_proposal(raw: dict) -> CharacterProposalPayload:
+    profile = raw.get("character_profile") if isinstance(raw.get("character_profile"), dict) else raw
+    image_spec = raw.get("image_spec") if isinstance(raw.get("image_spec"), dict) else {}
+    return {
+        "character_profile": _normalize_character_profile(profile),
+        "image_spec": _normalize_character_image_spec(image_spec),
+    }
+
+
+def _normalize_variant_inherit_rules(raw: dict) -> CharacterVariantInheritRulesPayload:
+    return {
+        "keep_face_identity": bool(raw.get("keep_face_identity", False)),
+        "keep_age_range": bool(raw.get("keep_age_range", False)),
+        "keep_body_type": bool(raw.get("keep_body_type", False)),
+        "keep_core_temperament": bool(raw.get("keep_core_temperament", False)),
+    }
+
+
+def _normalize_variant_image_spec_override(raw: dict) -> CharacterVariantImageSpecOverridePayload:
+    normalized: CharacterVariantImageSpecOverridePayload = {}
+    text_keys = (
+        "gender_presentation",
+        "age_range",
+        "body_type",
+        "face_features",
+        "hair_style",
+        "hair_color",
+        "eye_style",
+        "signature_expression",
+        "signature_pose",
+        "clothing_style",
+        "image_prompt",
+        "negative_prompt",
+    )
+    list_keys = ("color_palette", "visual_keywords", "negative_visual_constraints")
+    for key in text_keys:
+        if key in raw:
+            normalized[key] = str(raw.get(key, ""))
+    for key in list_keys:
+        if key in raw:
+            normalized[key] = [str(item) for item in raw.get(key, []) if str(item).strip()]
+    return normalized
+
+
+def _normalize_variant_proposal(raw: dict) -> CharacterVariantProposalPayload:
+    return {
+        "variant_name": str(raw.get("variant_name", "")),
+        "variant_type": str(raw.get("variant_type", "")),
+        "trigger_reason": str(raw.get("trigger_reason", "")),
+        "visual_changes_summary": str(raw.get("visual_changes_summary", "")),
+        "inherit_rules": _normalize_variant_inherit_rules(
+            raw.get("inherit_rules") if isinstance(raw.get("inherit_rules"), dict) else {}
+        ),
+        "image_spec_override": _normalize_variant_image_spec_override(
+            raw.get("image_spec_override") if isinstance(raw.get("image_spec_override"), dict) else {}
+        ),
+    }
+
+
+def _extract_character_proposal(text: str) -> CharacterCopilotProposalPayload | None:
     if START_MARKER not in text or END_MARKER not in text:
         return None
     start = text.index(START_MARKER) + len(START_MARKER)
@@ -87,53 +191,44 @@ def _extract_character_proposal(text: str) -> dict | None:
         return None
     if not isinstance(proposal, dict):
         return None
+    if isinstance(proposal.get("variants"), list):
+        base_character_raw = proposal.get("base_character")
+        base_character = (
+            _normalize_character_proposal(base_character_raw)
+            if isinstance(base_character_raw, dict)
+            else None
+        )
+        variants: list[CharacterVariantProposalPayload] = []
+        for raw_variant in proposal.get("variants", []):
+            if not isinstance(raw_variant, dict):
+                continue
+            variants.append(_normalize_variant_proposal(raw_variant))
+        if not variants:
+            return None
+        return {
+            "mode": "character_variant",
+            "base_character": base_character,
+            "variants": variants,
+        }
     raw_roles = proposal.get("roles")
     if isinstance(raw_roles, list):
         roles = raw_roles
     else:
         roles = [proposal]
 
-    normalized_roles = []
+    normalized_roles: list[CharacterProposalPayload] = []
     for role in roles:
         if not isinstance(role, dict):
             continue
-        profile = role.get("character_profile") if isinstance(role.get("character_profile"), dict) else role
-        image_spec = role.get("image_spec") if isinstance(role.get("image_spec"), dict) else {}
-        normalized_roles.append({
-            "character_profile": {
-                "name": str(profile.get("name", "")),
-                "role_type": str(profile.get("role_type", "")),
-                "identity_summary": str(profile.get("identity_summary", "")),
-                "appearance_summary": str(profile.get("appearance_summary", "")),
-                "personality_tags": [str(item) for item in profile.get("personality_tags", []) if str(item).strip()],
-                "speech_style": str(profile.get("speech_style", "")),
-                "negative_constraints": str(profile.get("negative_constraints", "")),
-            },
-            "image_spec": {
-                "gender_presentation": str(image_spec.get("gender_presentation", "")),
-                "age_range": str(image_spec.get("age_range", "")),
-                "body_type": str(image_spec.get("body_type", "")),
-                "face_features": str(image_spec.get("face_features", "")),
-                "hair_style": str(image_spec.get("hair_style", "")),
-                "hair_color": str(image_spec.get("hair_color", "")),
-                "eye_style": str(image_spec.get("eye_style", "")),
-                "signature_expression": str(image_spec.get("signature_expression", "")),
-                "signature_pose": str(image_spec.get("signature_pose", "")),
-                "clothing_style": str(image_spec.get("clothing_style", "")),
-                "color_palette": [str(item) for item in image_spec.get("color_palette", []) if str(item).strip()],
-                "visual_keywords": [str(item) for item in image_spec.get("visual_keywords", []) if str(item).strip()],
-                "negative_visual_constraints": [
-                    str(item) for item in image_spec.get("negative_visual_constraints", []) if str(item).strip()
-                ],
-                "image_prompt": str(image_spec.get("image_prompt", "")),
-                "negative_prompt": str(image_spec.get("negative_prompt", "")),
-            },
-        })
+        normalized_roles.append(_normalize_character_proposal(role))
 
     if not normalized_roles:
         return None
 
-    return {"roles": normalized_roles}
+    return {
+        "mode": "base_character",
+        "roles": normalized_roles,
+    }
 
 
 def _extract_proposal(module_type: str, text: str) -> dict | None:

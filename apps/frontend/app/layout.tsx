@@ -1,9 +1,12 @@
+// @ts-ignore – Radix Themes global CSS
+import "@radix-ui/themes/styles.css";
 // @ts-ignore – CSS module side-effect imports
 import "./globals.css";
 // @ts-ignore – CSS module side-effect imports
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import { Geist } from "next/font/google";
+import { Theme } from "@radix-ui/themes";
 import { cn } from "@/src/lib/utils";
 import AppShell from "@/src/components/AppShell";
 
@@ -21,16 +24,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN" className={cn("font-sans", geist.variable)}>
       <body>
-        <AppShell>{children}</AppShell>
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          theme="light"
-        />
+        <Theme appearance="light" accentColor="iris" grayColor="slate" radius="large" panelBackground="solid">
+          <AppShell>{children}</AppShell>
+          <ToastContainer
+            position="top-right"
+            autoClose={4000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            theme="light"
+          />
+        </Theme>
       </body>
     </html>
   );

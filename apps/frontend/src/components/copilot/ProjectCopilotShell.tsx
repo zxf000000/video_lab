@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { IconSparkles } from "@tabler/icons-react";
 import { streamCopilot, type CopilotIntent, type CopilotProposal } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, SectionCard } from "@/src/components/project/project-ui";
@@ -130,27 +129,21 @@ export default function ProjectCopilotShell() {
   if (!adapter) return null;
 
   return (
-    <>
-      <Button variant="inverted" size="sm" onClick={() => setIsOpen(true)}>
-        <IconSparkles size={16} stroke={2} />
-        AI Copilot
-      </Button>
-
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="right" className="w-[640px] max-w-[calc(100vw-1rem)] overflow-hidden p-0 sm:max-w-[640px]">
-          <SheetHeader className="border-b border-line bg-panel2/80 p-5">
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetContent side="right" className="w-[620px] max-w-[calc(100vw-0.75rem)] overflow-hidden p-0 sm:max-w-[620px]">
+          <SheetHeader className="border-b border-line bg-panel2/80 px-4 py-3">
             <SheetTitle>{adapter.title} Copilot</SheetTitle>
             <SheetDescription>{helperText}</SheetDescription>
           </SheetHeader>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-5">
+            <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto p-3">
               <SectionCard title="上下文摘要" description="Copilot 会基于当前模块状态生成建议，不会直接改库。">
                 {adapter.renderContextSummary()}
               </SectionCard>
 
               <SectionCard title="对话区" description="先告诉 Copilot 这次希望生成、改写、扩写还是补全。">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     {supportedIntents.map((item) => (
                       <Button key={item} type="button" variant={intent === item ? "default" : "outline"} size="sm" onClick={() => setIntent(item)}>
@@ -158,22 +151,22 @@ export default function ProjectCopilotShell() {
                       </Button>
                     ))}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="text-xs text-slate-500">{composer?.inputLabel ?? "你的目标"}</Label>
                     <Textarea
-                      className="min-h-[120px]"
+                      className="min-h-[104px] text-sm"
                       placeholder={composer?.inputPlaceholder ?? "例如：根据这个短剧创意，先生成一版更有钩子的 Brief。"}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-3 rounded-[22px] border border-line bg-panel p-4">
+                  <div className="space-y-2 rounded-[18px] border border-line bg-panel px-3 py-3">
                     {messages.length ? messages.map((message, index) => (
                       <div key={`${message.role}-${index}`} className="space-y-1">
                         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
                           {message.role === "user" ? "User" : "Copilot"}
                         </p>
-                        <div className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{message.content}</div>
+                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-slate-700">{message.content}</div>
                       </div>
                     )) : (
                       <EmptyState
@@ -184,11 +177,11 @@ export default function ProjectCopilotShell() {
                     {streamingText ? (
                       <div className="space-y-1">
                         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Copilot</p>
-                        <div className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{streamingText}</div>
+                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-slate-700">{streamingText}</div>
                       </div>
                     ) : null}
                   </div>
-                  {error ? <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
+                  {error ? <div className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-600">{error}</div> : null}
                 </div>
               </SectionCard>
 
@@ -203,8 +196,8 @@ export default function ProjectCopilotShell() {
               </div>
             </div>
 
-            <div className="border-t border-line bg-white p-5">
-              <div className="mb-4 flex flex-wrap gap-3">
+            <div className="border-t border-line bg-white px-4 py-3">
+              <div className="mb-3 flex flex-wrap gap-2">
                 <Button onClick={handleSubmit} disabled={submitting || !input.trim()}>
                   {submitting ? "生成中..." : "发送给 Copilot"}
                 </Button>
@@ -223,15 +216,14 @@ export default function ProjectCopilotShell() {
                   </>
                 ) : null}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-[11px] leading-5 text-slate-500">
                 {proposalStyle === "fieldSelection"
                   ? "应用动作只会更新当前页面表单；真正写入数据库仍需你点击页面自己的保存按钮。"
                   : "角色设计器会先生成候选角色；你可以逐个加入角色库，或载入编辑器后再保存。"}
               </div>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

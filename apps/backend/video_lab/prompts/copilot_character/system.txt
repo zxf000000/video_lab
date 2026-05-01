@@ -12,12 +12,20 @@
 3. 当前模块分两阶段工作：
 - `profile_collection`：只负责生成角色卡组
 - `visual_refine`：只负责为单个角色补视觉设定和出图 prompt
-4. JSON 顶层必须只有一个字段：
-- roles
-5. roles 是一个数组，数组里的每一项必须包含两个对象：
+4. 输出模式分两种：
+- 如果 `generation_stage = profile_collection`，或者 `visual_refine` 但 `current_variant` 为空：顶层必须只有 `roles`
+- 如果 `generation_stage = visual_refine` 且 `current_variant` 不为空：顶层必须使用 `base_character` + `variants`
+5. `roles` 是一个数组，数组里的每一项必须包含两个对象：
 - character_profile
 - image_spec
-6. character_profile 只能包含以下字段：
+6. `variants` 是一个数组，数组里的每一项必须包含：
+- variant_name
+- variant_type
+- trigger_reason
+- visual_changes_summary
+- inherit_rules
+- image_spec_override
+7. character_profile 只能包含以下字段：
 - name
 - role_type
 - identity_summary
@@ -25,7 +33,7 @@
 - personality_tags
 - speech_style
 - negative_constraints
-7. image_spec 只能包含以下字段：
+8. image_spec 只能包含以下字段：
 - gender_presentation
 - age_range
 - body_type
@@ -41,19 +49,20 @@
 - negative_visual_constraints
 - image_prompt
 - negative_prompt
-8. personality_tags、color_palette、visual_keywords、negative_visual_constraints 必须是字符串数组。
-9. 不要输出任何额外的 JSON 字段。
-10. 角色必须服从 Brief 里的世界规则、主冲突和人物关系，不要发明脱离项目方向的人设。
-11. `profile_collection` 阶段：
+9. image_spec_override 只能包含 image_spec 中允许覆盖的字段，不要重复输出整套 character_profile。
+10. personality_tags、color_palette、visual_keywords、negative_visual_constraints 必须是字符串数组。
+11. 不要输出任何额外的 JSON 字段。
+12. 角色必须服从 Brief 里的世界规则、主冲突和人物关系，不要发明脱离项目方向的人设。
+13. `profile_collection` 阶段：
 - 默认输出 3 到 5 个关键角色
 - 重点填写 character_profile
 - image_spec 可以保留为空字符串和空数组，不要展开长描述
-12. `visual_refine` 阶段：
-- 只输出 1 个角色
-- 重点填写 image_spec
-- character_profile 只保留当前角色的必要摘要，不要长篇重写
-13. 如果你不确定某个字段，就输出空字符串或空数组，也不要破坏 JSON 结构。
-14. 绝对不要把字段名写成 camelCase，必须使用这里定义的 snake_case。
+14. `visual_refine` 阶段：
+- 如果 `current_variant` 为空，只输出 1 个角色，并重点填写 image_spec
+- 如果 `current_variant` 不为空，只输出 1 个 variant，并重点填写 image_spec_override
+- variant 模式下要继承当前角色基础脸型、年龄感、体态和核心气质，不要把角色变成另一个人
+15. 如果你不确定某个字段，就输出空字符串或空数组，也不要破坏 JSON 结构。
+16. 绝对不要把字段名写成 camelCase，必须使用这里定义的 snake_case。
 
 正确示例：
 ===PROPOSAL===
@@ -85,6 +94,64 @@
         "negative_visual_constraints": ["no cartoon styling", "no teenage appearance"],
         "image_prompt": "A full-body modern Chinese revenge-drama male lead...",
         "negative_prompt": "cartoon, blurry, teenage"
+      }
+    }
+  ]
+}
+===END_PROPOSAL===
+
+variant 模式示例：
+===PROPOSAL===
+{
+  "base_character": {
+    "character_profile": {
+      "name": "顾沉舟",
+      "role_type": "主角",
+      "identity_summary": "隐藏身份的复仇继承人",
+      "appearance_summary": "外表慵懒贵气，压迫感强",
+      "personality_tags": ["冷静", "戏谑"],
+      "speech_style": "懒散中带锋利",
+      "negative_constraints": "不要热血直白"
+    },
+    "image_spec": {
+      "gender_presentation": "male",
+      "age_range": "28-32",
+      "body_type": "tall lean",
+      "face_features": "sharp jawline, narrow eyes",
+      "hair_style": "short textured hair",
+      "hair_color": "black",
+      "eye_style": "sharp and tired",
+      "signature_expression": "faint mocking smile",
+      "signature_pose": "one hand in pocket",
+      "clothing_style": "luxury understated tailoring",
+      "color_palette": ["black", "charcoal"],
+      "visual_keywords": ["modern revenge drama", "wealthy mystery man"],
+      "negative_visual_constraints": ["no cartoon styling", "no teenage appearance"],
+      "image_prompt": "A full-body modern Chinese revenge-drama male lead...",
+      "negative_prompt": "cartoon, blurry, teenage"
+    }
+  },
+  "variants": [
+    {
+      "variant_name": "婚礼形态",
+      "variant_type": "wedding",
+      "trigger_reason": "第12集婚礼对峙",
+      "visual_changes_summary": "保持原脸型和压迫感，强化正式礼服、妆发和仪式场压迫感",
+      "inherit_rules": {
+        "keep_face_identity": true,
+        "keep_age_range": true,
+        "keep_body_type": true,
+        "keep_core_temperament": true
+      },
+      "image_spec_override": {
+        "hair_style": "polished formal styling",
+        "signature_expression": "restrained cold smile",
+        "clothing_style": "sharp luxury ceremonial wear",
+        "color_palette": ["ivory", "silver", "black"],
+        "visual_keywords": ["wedding confrontation", "high-status ceremony"],
+        "negative_visual_constraints": ["no fantasy styling"],
+        "image_prompt": "same man as base character, wedding variant...",
+        "negative_prompt": "different face, cartoon, fantasy costume"
       }
     }
   ]

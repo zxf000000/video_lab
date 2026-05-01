@@ -9,12 +9,12 @@
     "start": "next start"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/themes": "^3.3.0",
     "@tabler/icons-react": "^3.41.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

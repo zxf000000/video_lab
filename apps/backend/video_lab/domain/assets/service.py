@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from ...services import _get_providers
 from ..common import DomainError, normalize_int, normalize_json_text, normalize_text
 from .repository import AssetsRepository
@@ -114,8 +116,38 @@ class AssetsService:
                 prompt_body,
                 normalize_text(project.get("genre"), "cinematic"),
             )
-        self.repository.update_character(character_id, {"image_path": image_path})
+        updated_visual_profile = self._update_variant_image_path(visual_profile, image_path)
+        self.repository.update_character(
+            character_id,
+            {
+                "image_path": image_path,
+                "visual_profile": json.dumps(updated_visual_profile, ensure_ascii=False),
+            },
+        )
         return self.repository.get_character(character_id) or {}
+
+    def _update_variant_image_path(self, visual_profile: dict, image_path: str) -> dict:
+        if not isinstance(visual_profile, dict):
+            return {"defaultImagePath": image_path}
+        updated = dict(visual_profile)
+        active_variant_id = normalize_text(updated.get("activeVariantId"), "default")
+        if active_variant_id == "default":
+            updated["defaultImagePath"] = image_path
+            return updated
+        raw_variants = updated.get("variants")
+        if not isinstance(raw_variants, list):
+            return updated
+        next_variants = []
+        for raw_variant in raw_variants:
+            if not isinstance(raw_variant, dict):
+                continue
+            variant = dict(raw_variant)
+            variant_id = normalize_text(variant.get("id") or variant.get("variantId"))
+            if variant_id == active_variant_id:
+                variant["imagePath"] = image_path
+            next_variants.append(variant)
+        updated["variants"] = next_variants
+        return updated
 
     def _build_character_image_prompt(self, character: dict, visual_profile: dict, project: dict, style_keywords: list) -> str:
         explicit_prompt = normalize_text(character.get("image_prompt"))

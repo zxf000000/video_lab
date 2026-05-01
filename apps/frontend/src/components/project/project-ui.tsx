@@ -18,11 +18,11 @@ export function StatusPill({ value, tone = "slate", className }: { value: string
 
 export function SectionCard({ title, description, children, action }: { title: string; description?: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-[24px] border border-line bg-panel p-4 shadow-glow">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          {description ? <p className="mt-1 text-[13px] leading-5 text-slate-500">{description}</p> : null}
         </div>
         {action}
       </div>
@@ -77,37 +77,59 @@ type ProjectStageNavItem = {
   description: string;
   disabled?: boolean;
   active?: boolean;
+  matchPrefixes?: string[];
 };
 
 export function ProjectStageNav({ items }: { items: ProjectStageNavItem[] }) {
   const pathname = usePathname();
+  const matchLengths = items.map((item) => {
+    const matches = [item.href, ...(item.matchPrefixes ?? [])].filter(Boolean) as string[];
+    let best = -1;
+    for (const match of matches) {
+      if (pathname === match || pathname.startsWith(match)) {
+        best = Math.max(best, match.length);
+      }
+    }
+    return best;
+  });
+  const strongestMatch = Math.max(...matchLengths, -1);
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => {
-        const active = item.active ?? (item.href ? pathname === item.href : false);
+    <div className="flex flex-wrap gap-2">
+      {items.map((item, index) => {
+        const active = item.active ?? (matchLengths[index] > -1 && matchLengths[index] === strongestMatch);
         const className = cn(
-          "rounded-[24px] border px-4 py-4 transition",
-          active ? "border-mint bg-mint/10 text-mint" : "border-line bg-panel",
+          "group inline-flex min-w-[108px] flex-1 items-center gap-3 rounded-full border px-3 py-2 transition md:flex-none",
+          active ? "border-mint bg-mint/10 text-mint shadow-[0_0_0_1px_rgba(112,209,179,0.18)]" : "border-line bg-panel text-slate-700",
           item.disabled ? "cursor-not-allowed opacity-50" : "hover:border-mint/40 hover:bg-white/80",
+        );
+        const content = (
+          <>
+            <span
+              className={cn(
+                "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                active ? "bg-mint text-white" : "bg-panel2 text-slate-500 group-hover:text-slate-700",
+              )}
+            >
+              {index + 1}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold leading-5">{item.label}</span>
+              <span className={cn("hidden text-[11px] leading-4 md:block", active ? "text-mint/80" : "text-slate-500")}>
+                {item.description}
+              </span>
+            </span>
+          </>
         );
 
         if (!item.href || item.disabled) {
           return (
-            <div key={item.id} className={className} aria-disabled="true">
-              <div className="text-sm font-semibold">{item.label}</div>
-              <p className={cn("mt-1 text-xs", active ? "text-mint/80" : "text-slate-500")}>{item.description}</p>
-            </div>
+            <div key={item.id} className={className} aria-disabled="true">{content}</div>
           );
         }
 
         return (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={className}
-          >
-            <div className="text-sm font-semibold">{item.label}</div>
-            <p className={cn("mt-1 text-xs", active ? "text-mint/80" : "text-slate-500")}>{item.description}</p>
+          <Link key={item.id} href={item.href} className={className}>
+            {content}
           </Link>
         );
       })}

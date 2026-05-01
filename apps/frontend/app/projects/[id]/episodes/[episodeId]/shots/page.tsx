@@ -222,12 +222,12 @@ export default function EpisodeShotsPage() {
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-4xl rounded-[28px] border border-line bg-panel p-0">
-          <DialogHeader className="border-b border-line px-6 py-5">
+          <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle>{editing?.id ? "编辑镜头" : "新增镜头"}</DialogTitle>
           </DialogHeader>
           {editing ? (
             <>
-              <div className="grid gap-5 px-6 py-5 md:grid-cols-2">
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
                 <div>
                   <Label className="mb-2 block text-xs text-slate-500">镜头号</Label>
                   <Input type="number" value={String(editing.shotNo)} onChange={(e) => setEditing((prev) => prev ? { ...prev, shotNo: Number(e.target.value || 1) } : prev)} />
@@ -270,7 +270,7 @@ export default function EpisodeShotsPage() {
                 <div><Label className="mb-2 block text-xs text-slate-500">运镜</Label><Input value={editing.cameraMotion} onChange={(e) => setEditing((prev) => prev ? { ...prev, cameraMotion: e.target.value } : prev)} /></div>
                 <div className="md:col-span-2"><Label className="mb-2 block text-xs text-slate-500">对白摘要</Label><Textarea value={editing.dialogueExcerpt} onChange={(e) => setEditing((prev) => prev ? { ...prev, dialogueExcerpt: e.target.value } : prev)} /></div>
               </div>
-              <DialogFooter className="border-t border-line bg-panel2/60 px-6 py-4">
+              <DialogFooter className="border-t border-line bg-panel2/60 px-5 py-3">
                 <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
                   取消
                 </Button>

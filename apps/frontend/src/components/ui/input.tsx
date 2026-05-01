@@ -1,19 +1,31 @@
+"use client"
+
 import * as React from "react"
-import { Input as InputPrimitive } from "@base-ui/react/input"
+import { TextField } from "@radix-ui/themes"
+
 import { cn } from "@/src/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentPropsWithoutRef<typeof InputPrimitive> & { className?: string; type?: string }) {
+type InputProps = React.ComponentPropsWithoutRef<typeof TextField.Root> & {
+  className?: string
+  type?: "date" | "datetime-local" | "email" | "hidden" | "month" | "number" | "password" | "search" | "tel" | "text" | "time" | "url" | "week"
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
+  { className, type = "text", ...props },
+  ref
+) {
   return (
-    <InputPrimitive
+    <TextField.Root
+      ref={ref}
       type={type}
       data-slot="input"
-      className={cn(
-        "w-full min-w-0 rounded-xl border border-line bg-panel2 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-mint disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
+      radius="large"
+      variant="surface"
+      size="3"
+      className={cn("w-full", className)}
       {...props}
     />
-  );
-}
+  )
+})
 
 export { Input }

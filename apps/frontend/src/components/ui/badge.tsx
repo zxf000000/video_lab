@@ -1,55 +1,40 @@
+"use client"
+
 import * as React from "react"
-import { mergeProps } from "@base-ui/react/merge-props"
-import { useRender } from "@base-ui/react/use-render"
-import { cva, type VariantProps } from "class-variance-authority";
+import { Badge as ThemeBadge, type BadgeProps as ThemeBadgeProps } from "@radix-ui/themes"
 
 import { cn } from "@/src/lib/utils"
 
-const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full px-3 py-1 text-[11px] font-medium whitespace-nowrap transition-all [&>svg]:pointer-events-none [&>svg]:size-3",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground",
-        secondary: "bg-secondary text-secondary-foreground",
-        destructive: "bg-rose-100 text-rose-600",
-        outline: "border border-border text-foreground",
-        ghost: "hover:bg-muted hover:text-muted-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-)
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "ghost"
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>
-
-interface BadgeProps {
+interface BadgeProps extends Omit<ThemeBadgeProps, "variant" | "color"> {
   className?: string
   variant?: BadgeVariant
-  render?: React.ReactElement
-  children?: React.ReactNode
 }
 
-function Badge({
-  className,
-  variant = "default",
-  render,
-  ...props
-}: BadgeProps) {
-  return useRender({
-    defaultTagName: "span",
-    props: mergeProps({
-      className: cn(badgeVariants({ variant }), className),
-    }, props),
-    render,
-    state: {
-      slot: "badge",
-      variant,
-    },
-  });
+function mapBadgeProps(variant: BadgeVariant) {
+  switch (variant) {
+    case "secondary":
+      return { variant: "soft" as const, color: "gray" as const }
+    case "destructive":
+      return { variant: "soft" as const, color: "red" as const }
+    case "outline":
+      return { variant: "outline" as const, color: "gray" as const }
+    case "ghost":
+      return { variant: "surface" as const, color: "gray" as const }
+    default:
+      return { variant: "solid" as const, color: "iris" as const }
+  }
 }
 
-export { Badge, badgeVariants }
+function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
+  const mapped = mapBadgeProps(variant)
+  return (
+    <ThemeBadge data-slot="badge" radius="full" {...mapped} className={cn(className)} {...props}>
+      {children}
+    </ThemeBadge>
+  )
+}
+
+export { Badge }
 export type { BadgeProps, BadgeVariant }

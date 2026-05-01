@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import type { BriefProposal, CopilotProposal, ProjectDetail } from "@/src/api";
 import { updateProjectBrief } from "@/src/api";
+import ProjectCopilotButton from "@/src/components/copilot/ProjectCopilotButton";
 import { useProjectCopilotModule } from "@/src/components/copilot/ProjectCopilotContext";
 import type { CopilotFieldDescriptor, CopilotModuleAdapter } from "@/src/components/copilot/types";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
@@ -196,7 +197,11 @@ export default function ProjectBriefPage() {
   }
 
   return (
-    <SectionCard title="项目 Brief" description="先把项目级约束定义清楚，后续角色、场景、分集和镜头都会从这里读取。">
+    <SectionCard
+      title="项目 Brief"
+      description="先把项目级约束定义清楚，后续角色、场景、分集和镜头都会从这里读取。"
+      action={<ProjectCopilotButton label="生成 Brief" />}
+    >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <Label className="mb-2 block text-xs text-slate-500">一句话钩子</Label>

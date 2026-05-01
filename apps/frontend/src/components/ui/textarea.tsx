@@ -1,16 +1,17 @@
+"use client"
+
+import * as React from "react"
+import { TextArea as ThemeTextArea } from "@radix-ui/themes"
+
 import { cn } from "@/src/lib/utils"
 
-function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { className?: string }) {
-  return (
-    <textarea
-      data-slot="textarea"
-      className={cn(
-        "flex min-h-16 w-full rounded-xl border border-line bg-panel2 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-mint disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      {...props}
-    />
-  );
-}
+type TextareaProps = React.ComponentPropsWithoutRef<typeof ThemeTextArea> & { className?: string }
+
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { className, ...props },
+  ref
+) {
+  return <ThemeTextArea ref={ref} data-slot="textarea" radius="large" variant="surface" size="3" className={cn("w-full", className)} {...props} />
+})
 
 export { Textarea }

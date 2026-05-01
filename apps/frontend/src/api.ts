@@ -109,10 +109,69 @@ export interface CharacterProposal {
 }
 
 export interface CharacterCollectionProposal {
+  mode?: "base_character";
   roles: CharacterProposal[];
 }
 
-export type CopilotProposal = BriefProposal | CharacterCollectionProposal;
+export type CharacterVariantMode = "base_character" | "character_variant";
+
+export type CharacterVariantType =
+  | "default"
+  | "battle"
+  | "disguise"
+  | "flashback"
+  | "wedding"
+  | "injured"
+  | "darkened"
+  | "young_version"
+  | "work_uniform"
+  | "casual_home"
+  | (string & {});
+
+export interface CharacterVariantInheritRules {
+  keepFaceIdentity: boolean;
+  keepAgeRange: boolean;
+  keepBodyType: boolean;
+  keepCoreTemperament: boolean;
+}
+
+export interface CharacterVariantImageSpecOverride {
+  genderPresentation?: string;
+  ageRange?: string;
+  bodyType?: string;
+  faceFeatures?: string;
+  hairStyle?: string;
+  hairColor?: string;
+  eyeStyle?: string;
+  signatureExpression?: string;
+  signaturePose?: string;
+  clothingStyle?: string;
+  colorPalette?: string[];
+  visualKeywords?: string[];
+  negativeVisualConstraints?: string[];
+  imagePrompt?: string;
+  negativePrompt?: string;
+}
+
+export interface CharacterVariantProposal {
+  variantName: string;
+  variantType: CharacterVariantType;
+  triggerReason: string;
+  visualChangesSummary: string;
+  inheritRules: CharacterVariantInheritRules;
+  imageSpecOverride: CharacterVariantImageSpecOverride;
+}
+
+export interface CharacterVariantCollectionProposal {
+  mode: "character_variant";
+  baseCharacter?: CharacterProposal | null;
+  variants: CharacterVariantProposal[];
+}
+
+export type CopilotProposal =
+  | BriefProposal
+  | CharacterCollectionProposal
+  | CharacterVariantCollectionProposal;
 
 export interface CopilotStreamRequest {
   moduleType: CopilotModuleType;
@@ -386,9 +445,97 @@ function normalizeCharacterCollectionProposal(raw: Record<string, unknown>): Cha
       ? raw.characters
       : [];
   return {
+    mode: "base_character",
     roles: roles
       .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
       .map(normalizeCharacterProposal),
+  };
+}
+
+function normalizeCharacterVariantProposal(raw: Record<string, unknown>): CharacterVariantProposal {
+  const inheritRules = typeof raw.inherit_rules === "object" && raw.inherit_rules !== null
+    ? raw.inherit_rules as Record<string, unknown>
+    : {};
+  const override = typeof raw.image_spec_override === "object" && raw.image_spec_override !== null
+    ? raw.image_spec_override as Record<string, unknown>
+    : {};
+  return {
+    variantName: asString(raw.variant_name ?? raw.variantName),
+    variantType: asString(raw.variant_type ?? raw.variantType) as CharacterVariantType,
+    triggerReason: asString(raw.trigger_reason ?? raw.triggerReason),
+    visualChangesSummary: asString(raw.visual_changes_summary ?? raw.visualChangesSummary),
+    inheritRules: {
+      keepFaceIdentity: Boolean(inheritRules.keep_face_identity ?? inheritRules.keepFaceIdentity),
+      keepAgeRange: Boolean(inheritRules.keep_age_range ?? inheritRules.keepAgeRange),
+      keepBodyType: Boolean(inheritRules.keep_body_type ?? inheritRules.keepBodyType),
+      keepCoreTemperament: Boolean(inheritRules.keep_core_temperament ?? inheritRules.keepCoreTemperament),
+    },
+    imageSpecOverride: {
+      ...(override.gender_presentation !== undefined || override.genderPresentation !== undefined
+        ? { genderPresentation: asString(override.gender_presentation ?? override.genderPresentation) }
+        : {}),
+      ...(override.age_range !== undefined || override.ageRange !== undefined
+        ? { ageRange: asString(override.age_range ?? override.ageRange) }
+        : {}),
+      ...(override.body_type !== undefined || override.bodyType !== undefined
+        ? { bodyType: asString(override.body_type ?? override.bodyType) }
+        : {}),
+      ...(override.face_features !== undefined || override.faceFeatures !== undefined
+        ? { faceFeatures: asString(override.face_features ?? override.faceFeatures) }
+        : {}),
+      ...(override.hair_style !== undefined || override.hairStyle !== undefined
+        ? { hairStyle: asString(override.hair_style ?? override.hairStyle) }
+        : {}),
+      ...(override.hair_color !== undefined || override.hairColor !== undefined
+        ? { hairColor: asString(override.hair_color ?? override.hairColor) }
+        : {}),
+      ...(override.eye_style !== undefined || override.eyeStyle !== undefined
+        ? { eyeStyle: asString(override.eye_style ?? override.eyeStyle) }
+        : {}),
+      ...(override.signature_expression !== undefined || override.signatureExpression !== undefined
+        ? { signatureExpression: asString(override.signature_expression ?? override.signatureExpression) }
+        : {}),
+      ...(override.signature_pose !== undefined || override.signaturePose !== undefined
+        ? { signaturePose: asString(override.signature_pose ?? override.signaturePose) }
+        : {}),
+      ...(override.clothing_style !== undefined || override.clothingStyle !== undefined
+        ? { clothingStyle: asString(override.clothing_style ?? override.clothingStyle) }
+        : {}),
+      ...(override.color_palette !== undefined || override.colorPalette !== undefined
+        ? { colorPalette: parseJsonValue<string[]>(override.color_palette ?? override.colorPalette, []) }
+        : {}),
+      ...(override.visual_keywords !== undefined || override.visualKeywords !== undefined
+        ? { visualKeywords: parseJsonValue<string[]>(override.visual_keywords ?? override.visualKeywords, []) }
+        : {}),
+      ...(override.negative_visual_constraints !== undefined || override.negativeVisualConstraints !== undefined
+        ? {
+            negativeVisualConstraints: parseJsonValue<string[]>(
+              override.negative_visual_constraints ?? override.negativeVisualConstraints,
+              [],
+            ),
+          }
+        : {}),
+      ...(override.image_prompt !== undefined || override.imagePrompt !== undefined
+        ? { imagePrompt: asString(override.image_prompt ?? override.imagePrompt) }
+        : {}),
+      ...(override.negative_prompt !== undefined || override.negativePrompt !== undefined
+        ? { negativePrompt: asString(override.negative_prompt ?? override.negativePrompt) }
+        : {}),
+    },
+  };
+}
+
+function normalizeCharacterVariantCollectionProposal(raw: Record<string, unknown>): CharacterVariantCollectionProposal {
+  const baseCharacterRaw = typeof raw.base_character === "object" && raw.base_character !== null
+    ? raw.base_character as Record<string, unknown>
+    : null;
+  const variants = Array.isArray(raw.variants) ? raw.variants : [];
+  return {
+    mode: "character_variant",
+    baseCharacter: baseCharacterRaw ? normalizeCharacterProposal(baseCharacterRaw) : null,
+    variants: variants
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map(normalizeCharacterVariantProposal),
   };
 }
 
@@ -1080,7 +1227,9 @@ export async function streamCopilot(
           handlers.onDelta?.({ type: "delta", content: event.content ?? "" });
         } else if (event.type === "proposal" && event.proposal) {
           const normalizedProposal = requestPayload.moduleType === "character"
-            ? normalizeCharacterCollectionProposal(event.proposal)
+            ? Array.isArray((event.proposal as Record<string, unknown>).variants)
+              ? normalizeCharacterVariantCollectionProposal(event.proposal)
+              : normalizeCharacterCollectionProposal(event.proposal)
             : normalizeBriefProposal(event.proposal);
           handlers.onProposal?.({ type: "proposal", proposal: normalizedProposal });
         } else if (event.type === "error") {
