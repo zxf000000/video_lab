@@ -807,6 +807,15 @@ class ChatfireProvider:
 
     # --- Internal ---
 
+    def _chat_with_trace(self, system: str, user: str, stage: str, timeout: int | None = None) -> str:
+        """_chat wrapper that records the assembled prompt for tracing."""
+        self._last_prompt_trace = {
+            "stage": stage,
+            "system": system,
+            "user": user,
+        }
+        return self._chat(system, user, timeout=timeout)
+
     def _parse_bilingual_json(self, raw: str, fallback_cn: str = "") -> tuple[str, str]:
         """Parse LLM response expecting {"cn": "...", "en": "..."} JSON."""
         try:
