@@ -95,6 +95,18 @@ def parse_qs_param(environ, key: str, default: str = "") -> str:
 def serialize_project_summary(project: dict[str, object] | None) -> dict[str, object]:
     if not project:
         return {}
+    if "name" in project:
+        return {
+            "id": project["id"],
+            "name": project["name"],
+            "genre": project.get("genre", ""),
+            "target_platform": project.get("target_platform", ""),
+            "episode_count_planned": project.get("episode_count_planned", 0),
+            "current_stage": project.get("current_stage", "draft"),
+            "status": project.get("status", "draft"),
+            "created_at": project["created_at"],
+            "updated_at": project["updated_at"],
+        }
     return {
         "id": project["id"],
         "title": project["title"],
@@ -116,6 +128,28 @@ def serialize_project_summary(project: dict[str, object] | None) -> dict[str, ob
 def serialize_shot(shot: dict[str, object] | None) -> dict[str, object]:
     if not shot:
         return {}
+    if "visual_goal" in shot:
+        return {
+            "id": shot["id"],
+            "episode_id": shot["episode_id"],
+            "scene_block": shot.get("scene_block", ""),
+            "shot_no": shot.get("shot_no", 0),
+            "visual_goal": shot.get("visual_goal", ""),
+            "character_ids": shot.get("character_ids", "[]"),
+            "scene_preset_id": shot.get("scene_preset_id"),
+            "shot_size": shot.get("shot_size", ""),
+            "camera_angle": shot.get("camera_angle", ""),
+            "composition": shot.get("composition", ""),
+            "action_description": shot.get("action_description", ""),
+            "facial_emotion": shot.get("facial_emotion", ""),
+            "camera_motion": shot.get("camera_motion", ""),
+            "dialogue_excerpt": shot.get("dialogue_excerpt", ""),
+            "estimated_duration_ms": shot.get("estimated_duration_ms", 0),
+            "status": shot.get("status", "draft"),
+            "sort_order": shot.get("sort_order", 0),
+            "created_at": shot["created_at"],
+            "updated_at": shot["updated_at"],
+        }
     return {
         "id": shot["id"],
         "project_id": shot["project_id"],
@@ -147,6 +181,39 @@ def serialize_shot(shot: dict[str, object] | None) -> dict[str, object]:
 def serialize_task(task: dict[str, object] | None) -> dict[str, object]:
     if not task:
         return {}
+    if "input_payload" in task:
+        params = {}
+        output_assets = []
+        raw_params = task.get("input_payload")
+        raw_output_assets = task.get("output_assets")
+        if raw_params:
+            try:
+                params = json.loads(raw_params) if isinstance(raw_params, str) else raw_params
+            except (ValueError, TypeError):
+                params = {}
+        if raw_output_assets:
+            try:
+                output_assets = json.loads(raw_output_assets) if isinstance(raw_output_assets, str) else raw_output_assets
+            except (ValueError, TypeError):
+                output_assets = []
+        return {
+            "id": task["id"],
+            "project_id": task["project_id"],
+            "episode_id": task.get("episode_id"),
+            "shot_id": task.get("shot_id"),
+            "shot_prompt_id": task.get("shot_prompt_id"),
+            "provider": task.get("provider", ""),
+            "model_name": task.get("model_name", ""),
+            "status": task.get("status", "queued"),
+            "input_payload": params,
+            "output_assets": output_assets,
+            "retry_count": task.get("retry_count", 0),
+            "error_message": task.get("error_message", ""),
+            "cost_amount": task.get("cost_amount", 0),
+            "duration_ms": task.get("duration_ms", 0),
+            "submitted_at": task.get("submitted_at"),
+            "finished_at": task.get("finished_at"),
+        }
     params = {}
     raw_params = task.get("params")
     if raw_params:
@@ -170,6 +237,29 @@ def serialize_task(task: dict[str, object] | None) -> dict[str, object]:
 def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
     if not char:
         return {}
+    if "appearance_summary" in char:
+        return {
+            "id": char["id"],
+            "project_id": char["project_id"],
+            "name": char["name"],
+            "role_type": char.get("role_type", ""),
+            "identity_summary": char.get("identity_summary", ""),
+            "appearance_summary": char.get("appearance_summary", ""),
+            "personality_tags": char.get("personality_tags", "[]"),
+            "speech_style": char.get("speech_style", ""),
+            "visual_profile": char.get("visual_profile", "{}"),
+            "image_prompt": char.get("image_prompt", ""),
+            "negative_prompt": char.get("negative_prompt", ""),
+            "voice_profile": char.get("voice_profile", "{}"),
+            "outfit_presets": char.get("outfit_presets", "[]"),
+            "negative_constraints": char.get("negative_constraints", ""),
+            "reference_asset_ids": char.get("reference_asset_ids", "[]"),
+            "status": char.get("status", "draft"),
+            "version_no": char.get("version_no", 1),
+            "image_path": char.get("image_path", ""),
+            "created_at": char["created_at"],
+            "updated_at": char["updated_at"],
+        }
     return {
         "id": char["id"],
         "project_id": char["project_id"],
@@ -187,6 +277,24 @@ def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
 def serialize_scene(scene: dict[str, object] | None) -> dict[str, object]:
     if not scene:
         return {}
+    if "space_description" in scene:
+        return {
+            "id": scene["id"],
+            "project_id": scene["project_id"],
+            "name": scene["name"],
+            "scene_type": scene.get("scene_type", ""),
+            "space_description": scene.get("space_description", ""),
+            "lighting_style": scene.get("lighting_style", ""),
+            "time_of_day": scene.get("time_of_day", ""),
+            "weather": scene.get("weather", ""),
+            "prop_list": scene.get("prop_list", "[]"),
+            "reference_asset_ids": scene.get("reference_asset_ids", "[]"),
+            "variants": scene.get("variants", "[]"),
+            "status": scene.get("status", "draft"),
+            "version_no": scene.get("version_no", 1),
+            "created_at": scene["created_at"],
+            "updated_at": scene["updated_at"],
+        }
     return {
         "id": scene["id"],
         "project_id": scene["project_id"],
@@ -202,6 +310,23 @@ def serialize_scene(scene: dict[str, object] | None) -> dict[str, object]:
 def serialize_episode(episode: dict[str, object] | None) -> dict[str, object]:
     if not episode:
         return {}
+    if "episode_no" in episode:
+        return {
+            "id": episode["id"],
+            "project_id": episode["project_id"],
+            "episode_no": episode["episode_no"],
+            "title": episode["title"],
+            "summary": episode.get("summary", ""),
+            "goal": episode.get("goal", ""),
+            "core_conflict": episode.get("core_conflict", ""),
+            "opening_hook": episode.get("opening_hook", ""),
+            "climax": episode.get("climax", ""),
+            "ending_hook": episode.get("ending_hook", ""),
+            "status": episode.get("status", "draft"),
+            "sort_order": episode.get("sort_order", 0),
+            "created_at": episode["created_at"],
+            "updated_at": episode["updated_at"],
+        }
     return {
         "id": episode["id"],
         "project_id": episode["project_id"],
@@ -227,6 +352,62 @@ def serialize_version(version: dict[str, object] | None) -> dict[str, object]:
         "content_en": version.get("content_en", ""),
         "version": version["version"],
         "created_at": version["created_at"],
+    }
+
+
+def serialize_prompt(prompt: dict[str, object] | None) -> dict[str, object]:
+    if not prompt:
+        return {}
+    return {
+        "id": prompt["id"],
+        "shot_id": prompt["shot_id"],
+        "version_no": prompt.get("version_no", 1),
+        "prompt_text": prompt.get("prompt_text", ""),
+        "negative_prompt": prompt.get("negative_prompt", ""),
+        "model_params": prompt.get("model_params", "{}"),
+        "reference_asset_ids": prompt.get("reference_asset_ids", "[]"),
+        "status": prompt.get("status", "draft"),
+        "is_active": bool(prompt.get("is_active", 0)),
+        "created_at": prompt.get("created_at"),
+        "updated_at": prompt.get("updated_at"),
+    }
+
+
+def serialize_review_issue(issue: dict[str, object] | None) -> dict[str, object]:
+    if not issue:
+        return {}
+    return {
+        "id": issue["id"],
+        "project_id": issue["project_id"],
+        "episode_id": issue.get("episode_id"),
+        "shot_id": issue.get("shot_id"),
+        "generation_task_id": issue.get("generation_task_id"),
+        "issue_type": issue.get("issue_type", ""),
+        "severity": issue.get("severity", "medium"),
+        "description": issue.get("description", ""),
+        "rework_target_type": issue.get("rework_target_type", "shot_prompt"),
+        "resolution_status": issue.get("resolution_status", "open"),
+        "created_at": issue.get("created_at"),
+        "resolved_at": issue.get("resolved_at"),
+    }
+
+
+def serialize_episode_export(export: dict[str, object] | None) -> dict[str, object]:
+    if not export:
+        return {}
+    return {
+        "id": export["id"],
+        "episode_id": export["episode_id"],
+        "version_no": export.get("version_no", 1),
+        "selected_task_ids": export.get("selected_task_ids", "[]"),
+        "timeline_data": export.get("timeline_data", "{}"),
+        "subtitle_data": export.get("subtitle_data", "{}"),
+        "audio_data": export.get("audio_data", "{}"),
+        "preview_url": export.get("preview_url", ""),
+        "export_url": export.get("export_url", ""),
+        "status": export.get("status", "draft"),
+        "created_at": export.get("created_at"),
+        "updated_at": export.get("updated_at"),
     }
 
 
@@ -283,5 +464,16 @@ def dispatch(environ, start_response) -> list[bytes] | None:
 
 # ── Import all route modules to populate ROUTES ──────────────────
 def register_all_routes():
-    from . import projects, config as cfg, seedance, kling, generate, assets
+    from . import (
+        projects,
+        copilot,
+        prompts,
+        generation_tasks,
+        review_export,
+        config as cfg,
+        seedance,
+        kling,
+        generate,
+        assets,
+    )
     # Each module's @register decorators have already populated ROUTES

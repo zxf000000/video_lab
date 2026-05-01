@@ -8,9 +8,7 @@ import {
   IconLayoutDashboard,
   IconWand,
   IconSparkles,
-  IconFileText,
   IconSettings,
-  IconTrash,
   IconChevronLeft,
   IconChevronRight,
   IconMenu2,
@@ -23,9 +21,7 @@ const NAV_ITEMS = [
   { label: "快速生成", icon: IconWand, href: "/generate-video" },
   { label: "Seedance", icon: IconSparkles, href: "/seedance2" },
   { label: "可灵 Kling", icon: IconSparkles, href: "/kling" },
-  { label: "提示词", icon: IconFileText, href: "/prompts" },
   { label: "配置", icon: IconSettings, href: "/config" },
-  { label: "回收站", icon: IconTrash, href: "/recycle-bin" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -78,7 +74,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             {!collapsed && (
               <span className="text-sm font-semibold tracking-tight text-slate-900">
-                Video Lab
+                AI Drama Lab
               </span>
             )}
           </div>
@@ -132,7 +128,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <IconVideo size={18} stroke={2} />
                 </div>
                 <span className="text-sm font-semibold tracking-tight text-slate-900">
-                  Video Lab
+                  AI Drama Lab
                 </span>
               </div>
               <nav className="space-y-1">
@@ -180,7 +176,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </button>
             <span className="text-sm font-semibold tracking-tight text-slate-900">
-              Video Lab
+              AI Drama Lab
             </span>
           </header>
 

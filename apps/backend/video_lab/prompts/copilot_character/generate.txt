@@ -1,0 +1,17 @@
+请基于下面的上下文生成一组可直接回填的角色资产草稿。
+
+要求：
+1. 如果 generation_stage 是 `profile_collection`，生成当前项目最重要的 3-5 个关键角色，尽量覆盖主角、反派、盟友、关键配角。
+2. 在 `profile_collection` 阶段，只重点输出 character_profile；image_spec 保持最小占位，不要展开长 prompt。
+3. 如果 generation_stage 是 `visual_refine`，只生成 1 个角色，并重点补全 image_spec。
+4. 如果上下文里已有 current_character，就把它视为当前角色草稿或既定角色方向。
+5. 角色必须服务于短剧爽点和冲突，不要空泛。
+6. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}

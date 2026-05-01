@@ -1,463 +1,129 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "react-toastify";
-import { createProject } from "../api";
-import { ActionButton, StatusBadge } from "./ui-legacy";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
-import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
-import { IconCheck, IconX } from "@tabler/icons-react";
-
-const STYLE_PRESETS = [
-  { id: "cinematic", label: "电影感", emoji: "🎬" },
-  { id: "anime", label: "动漫风", emoji: "🎨" },
-  { id: "documentary", label: "纪录片", emoji: "📹" },
-  { id: "neo-noir", label: "赛博朋克", emoji: "🌃" },
-  { id: "watercolor", label: "水彩画", emoji: "🖼" },
-  { id: "realistic", label: "写实风", emoji: "📷" },
-];
-
-const RATIOS = ["16:9", "9:16", "1:1", "4:3"];
-
-const CREATE_STEP_LABELS = ["基本信息", "生成参数", "确认创建"];
-const REWRITE_STEP_LABELS = ["改写信息", "确认创建"];
+import { createProject } from "@/src/api";
+import { Button } from "@/src/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/src/components/ui/dialog";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import { Textarea } from "@/src/components/ui/textarea";
 
 const defaultForm = {
-  title: "",
-  story_prompt: "",
-  style: "cinematic",
-  aspect_ratio: "16:9",
-  original_story: "",
-  rewrite_direction: "",
+  name: "",
+  genre: "",
+  targetPlatform: "",
+  episodeCountPlanned: 30,
+  logline: "",
+  targetAudience: "",
+  genreTags: "",
+  styleKeywords: "",
 };
 
-export default function CreateProjectDrawer({ open, onClose }: any) {
+function parseCommaList(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+export default function CreateProjectDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
-  const [mode, setMode] = useState("create"); // "create" | "rewrite"
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState(defaultForm);
-  const [creating, setCreating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function reset() {
-    setStep(1);
-    setForm(defaultForm);
-    setCreating(false);
-    setError("");
+  function update<K extends keyof typeof defaultForm>(key: K, value: (typeof defaultForm)[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleClose() {
-    if (creating) return;
-    reset();
+  function handleDismiss() {
+    if (submitting) return;
+    setError("");
+    setForm(defaultForm);
     onClose();
   }
 
-  function switchMode(newMode: any) {
-    if (creating) return;
-    setMode(newMode);
-    setStep(1);
-    setForm(defaultForm);
-    setCreating(false);
-    setError("");
-  }
-
-  function set(field: any, value: any) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-
-  const isRewrite = mode === "rewrite";
-  const hasPrompt = !isRewrite && !!form.story_prompt.trim();
-  const stepLabels = isRewrite ? REWRITE_STEP_LABELS : hasPrompt ? CREATE_STEP_LABELS : CREATE_STEP_LABELS.slice(0, 1);
-  const maxStep = stepLabels.length;
-
-  const canNext = isRewrite
-    ? step === 1
-      ? form.title.trim() && form.rewrite_direction.trim()
-      : true
-    : step === 1
-      ? form.title.trim()
-      : step === 2
-        ? form.style.trim() && form.aspect_ratio
-        : true;
-
-  async function handleCreate() {
-    setCreating(true);
+  async function handleSubmit() {
+    if (!form.name.trim()) {
+      setError("项目名称不能为空");
+      return;
+    }
+    setSubmitting(true);
     setError("");
     try {
       const payload = await createProject({
-        title: form.title,
-        story_prompt: form.story_prompt || form.original_story || form.rewrite_direction,
-        style: form.style,
-        aspect_ratio: form.aspect_ratio,
-        generate: hasPrompt || isRewrite,
-        ...(isRewrite && {
-          original_story: form.original_story,
-          rewrite_direction: form.rewrite_direction,
-        }),
+        name: form.name.trim(),
+        genre: form.genre.trim(),
+        targetPlatform: form.targetPlatform.trim(),
+        episodeCountPlanned: Math.max(1, form.episodeCountPlanned || 30),
+        logline: form.logline.trim(),
+        targetAudience: form.targetAudience.trim(),
+        genreTags: parseCommaList(form.genreTags),
+        styleKeywords: parseCommaList(form.styleKeywords),
       });
-      reset();
-      onClose();
-      toast.success(hasPrompt || isRewrite ? "项目已创建，AI 正在生成大纲和角色卡..." : "项目已创建");
-      router.push(`/projects/${payload.project.id}?tab=overview`);
-    } catch (err: any) {
-      setError(String(err.message || err));
-      setCreating(false);
+      toast.success("项目已创建");
+      handleDismiss();
+      router.push(`/projects/${payload.project.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSubmitting(false);
     }
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o: any) => { if (!o) handleClose(); }}>
-      <SheetContent side="right" showCloseButton={false} className="w-full max-w-3xl border-l border-line bg-panel p-0">
-        <SheetTitle className="sr-only">
-          {isRewrite ? "改写故事" : "新建视频项目"}
-        </SheetTitle>
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">Create Project</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">
-              {isRewrite ? "改写故事" : "新建视频项目"}
-            </h2>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleDismiss()}>
+      <DialogContent className="max-w-2xl rounded-[28px] border border-line bg-panel p-0" showCloseButton={!submitting}>
+        <DialogHeader className="border-b border-line px-6 py-5">
+          <DialogTitle>新建短剧项目</DialogTitle>
+          <DialogDescription>
+            按新的生产 schema 创建项目。项目会先进入 Brief 阶段，后续在详情页继续补充角色、场景和分集。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-5 px-6 py-5 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Label className="mb-2 block text-xs text-slate-500">项目名称</Label>
+            <Input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="例：归墟侯·都市逆袭版" />
           </div>
-          {/* Mode tabs */}
-          <div className="flex items-center gap-1 rounded-full bg-panel2 p-1">
-            <button
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                !isRewrite ? "bg-mint text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
-              }`}
-              onClick={() => switchMode("create")}
-              disabled={creating}
-            >
-              新建
-            </button>
-            <button
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                isRewrite ? "bg-mint text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
-              }`}
-              onClick={() => switchMode("rewrite")}
-              disabled={creating}
-            >
-              改写
-            </button>
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">题材</Label>
+            <Input value={form.genre} onChange={(e) => update("genre", e.target.value)} placeholder="都市逆袭 / 古风复仇 / 悬疑" />
           </div>
-          {/* Step indicator */}
-          <div className="flex items-center gap-1">
-            {stepLabels.map((label: any, i: number) => {
-              const num = i + 1;
-              const done = step > num;
-              const active = step === num;
-              return (
-                <div key={num} className="flex items-center gap-1">
-                  {i > 0 && (
-                    <div className={`h-px w-4 ${done ? "bg-mint/40" : "bg-line"}`} />
-                  )}
-                  <div className="flex items-center gap-1">
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium ${
-                        done
-                            ? "bg-mint/20 text-mint"
-                            : active
-                              ? "bg-mint text-white"
-                              : "bg-line text-slate-500"
-                      }`}
-                    >
-                      {done ? <IconCheck size={10} stroke={2.5} /> : num}
-                    </span>
-                    <span className={`hidden text-[11px] sm:inline ${active ? "text-mint" : done ? "text-mint/70" : "text-slate-500"}`}>
-                      {label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">目标平台</Label>
+            <Input value={form.targetPlatform} onChange={(e) => update("targetPlatform", e.target.value)} placeholder="抖音 / 快手 / 微信小程序" />
           </div>
-          <button
-            className="shrink-0 rounded-full bg-panel2 px-2.5 py-1 text-xs text-slate-500 transition hover:text-slate-900 disabled:opacity-30"
-            onClick={handleClose}
-            disabled={creating}
-          >
-            <IconX size={14} stroke={2} />
-          </button>
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">计划集数</Label>
+            <Input type="number" value={String(form.episodeCountPlanned)} onChange={(e) => update("episodeCountPlanned", Number(e.target.value || 30))} placeholder="30" />
+          </div>
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">目标受众</Label>
+            <Input value={form.targetAudience} onChange={(e) => update("targetAudience", e.target.value)} placeholder="女频爽剧 / 通勤刷剧用户" />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="mb-2 block text-xs text-slate-500">一句话钩子</Label>
+            <Textarea value={form.logline} onChange={(e) => update("logline", e.target.value)} placeholder="一句话说明这部剧的核心冲突和上头点" className="min-h-[110px]" />
+          </div>
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">题材标签</Label>
+            <Input value={form.genreTags} onChange={(e) => update("genreTags", e.target.value)} placeholder="甜宠, 逆袭, 复仇" />
+          </div>
+          <div>
+            <Label className="mb-2 block text-xs text-slate-500">风格关键词</Label>
+            <Input value={form.styleKeywords} onChange={(e) => update("styleKeywords", e.target.value)} placeholder="高饱和, 强反差, 快节奏" />
+          </div>
+          {error ? <div className="md:col-span-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
         </div>
 
-        {/* Error */}
-        {error ? (
-          <div className="mx-5 mt-4 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-            {error}
-          </div>
-        ) : null}
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {/* ====== CREATE MODE ====== */}
-
-          {/* Create Step 1: Basic Info */}
-          {!isRewrite && step === 1 && !creating && (
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs text-slate-500">项目名</label>
-                <Input
-                  className="rounded-xl"
-                  type="text"
-                  placeholder="例：雨夜追逐"
-                  value={form.title}
-                  onChange={(e: any) => set("title", e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs text-slate-500">剧情需求（可选）</label>
-                <Textarea
-                  className="min-h-[180px] resize-y"
-                  placeholder="描述你想要的剧情，越详细越好。留空则由 AI 根据项目名自动构思..."
-                  value={form.story_prompt}
-                  onChange={(e: any) => set("story_prompt", e.target.value)}
-                />
-              </div>
-              <p className="text-[11px] text-slate-500">
-                填写剧情需求后 AI 会自动构思并生成内容；只填项目名则创建空项目
-              </p>
-            </div>
-          )}
-
-          {/* Create Step 2: Parameters */}
-          {!isRewrite && step === 2 && !creating && (
-            <div className="flex flex-col gap-5">
-              {/* Style presets */}
-              <div>
-                <label className="mb-2 block text-xs text-slate-500">风格</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {STYLE_PRESETS.map((s) => {
-                    const active = form.style === s.id;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs transition ${
-                          active
-                            ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
-                        }`}
-                        onClick={() => set("style", s.id)}
-                      >
-                        <span className="text-base">{s.emoji}</span>
-                        <span className="font-medium">{s.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <Input
-                  className="mt-2 rounded-xl px-3 py-2 text-xs font-mono"
-                  type="text"
-                  placeholder="或输入自定义风格..."
-                  value={STYLE_PRESETS.some((s) => s.id === form.style) ? "" : form.style}
-                  onChange={(e: any) => set("style", e.target.value)}
-                />
-              </div>
-
-              {/* Aspect ratio */}
-              <div>
-                <label className="mb-2 block text-xs text-slate-500">画面比例</label>
-                <div className="flex gap-2">
-                  {RATIOS.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      className={`flex-1 rounded-xl border py-2 text-sm font-medium transition ${
-                        form.aspect_ratio === r
-                          ? "border-mint bg-mint/10 text-mint"
-                          : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
-                      }`}
-                      onClick={() => set("aspect_ratio", r)}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-dashed border-line bg-panel2 px-4 py-4 text-sm leading-6 text-slate-500">
-                创建后系统会先生成项目级大纲和角色卡，不再要求预先设置目标时长。后续由你手动选择分集并逐集生成剧本。
-              </div>
-            </div>
-          )}
-
-          {/* Create Step 3: Summary */}
-          {!isRewrite && step === 3 && !creating && (
-            <CreateSummary form={form} />
-          )}
-
-          {/* ====== REWRITE MODE ====== */}
-
-          {/* Rewrite Step 1 */}
-          {isRewrite && step === 1 && !creating && (
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs text-slate-500">项目名</label>
-                <Input
-                  className="rounded-xl"
-                  type="text"
-                  placeholder="例：雨夜追逐-喜剧版"
-                  value={form.title}
-                  onChange={(e: any) => set("title", e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">原始故事（可选）</label>
-                  <Textarea
-                    className="min-h-[140px] resize-y"
-                    placeholder="粘贴一段已有故事，或留空由 AI 根据改写方向从零创作..."
-                    value={form.original_story}
-                    onChange={(e: any) => set("original_story", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">改写方向</label>
-                  <Textarea
-                    className="min-h-[140px] resize-y"
-                    placeholder="描述你希望如何改写。例如：改成喜剧风格、增加悬疑感、换一个温暖的结局、加入更多动作场面..."
-                    value={form.rewrite_direction}
-                    onChange={(e: any) => set("rewrite_direction", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs text-slate-500">视觉风格</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {STYLE_PRESETS.map((s) => {
-                      const active = form.style === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs transition ${
-                            active
-                              ? "border-mint bg-mint/10 text-mint"
-                              : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
-                          }`}
-                          onClick={() => set("style", s.id)}
-                        >
-                          <span className="text-base">{s.emoji}</span>
-                          <span className="font-medium">{s.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs text-slate-500">画面比例</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {RATIOS.map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        className={`rounded-xl border py-2 text-sm font-medium transition ${
-                          form.aspect_ratio === r
-                            ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
-                        }`}
-                        onClick={() => set("aspect_ratio", r)}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Rewrite Step 2: Summary */}
-          {isRewrite && step === 2 && !creating && (
-            <RewriteSummary form={form} />
-          )}
-
-          {/* Creating progress */}
-          {creating && (
-            <div className="flex flex-col items-center justify-center gap-4 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-mint border-t-transparent" />
-              <p className="text-sm text-mint">正在提交...</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer buttons */}
-        {!creating && (
-          <div className="flex gap-3 border-t border-line px-5 py-3">
-            {step > 1 ? (
-              <ActionButton label="上一步" onClick={() => setStep((s) => s - 1)} />
-            ) : (
-              <div />
-            )}
-            {step < maxStep ? (
-              <div className="ml-auto">
-                <ActionButton label="下一步" disabled={!canNext} onClick={() => setStep((s) => s + 1)} variant="primary" />
-              </div>
-            ) : (
-              <div className="ml-auto">
-                <ActionButton label={isRewrite ? "开始改写" : hasPrompt ? "开始生成" : "创建项目"} onClick={handleCreate} variant="primary" />
-              </div>
-            )}
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function CreateSummary({ form }: any) {
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">确认以下信息，点击开始生成</p>
-        <StatusBadge status="ready" className="bg-[#f2efff] text-mint" />
-      </div>
-      <div className="flex flex-col gap-3 rounded-[24px] border border-line bg-panel2 p-4">
-        <SummaryRow label="项目名" value={form.title} />
-        <SummaryRow label="剧情需求" value={form.story_prompt || "由 AI 根据项目名自动构思"} truncate />
-        <SummaryRow label="风格" value={STYLE_PRESETS.find((s) => s.id === form.style)?.label || form.style} />
-        <SummaryRow label="画面比例" value={form.aspect_ratio} />
-      </div>
-      <p className="text-[11px] text-slate-500">
-        {form.story_prompt
-          ? "AI 将先生成项目大纲和角色卡，后续由你手动按集生成剧本"
-          : "将创建一个空项目，你可以后续手动添加故事和镜头"}
-      </p>
-    </div>
-  );
-}
-
-function RewriteSummary({ form }: any) {
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">确认以下信息，点击开始改写</p>
-        <StatusBadge status="ready" className="bg-[#f2efff] text-mint" />
-      </div>
-      <div className="flex flex-col gap-3 rounded-[24px] border border-line bg-panel2 p-4">
-        <SummaryRow label="项目名" value={form.title} />
-        {form.original_story && <SummaryRow label="原始故事" value={form.original_story} truncate />}
-        <SummaryRow label="改写方向" value={form.rewrite_direction} truncate />
-        <SummaryRow label="风格" value={STYLE_PRESETS.find((s) => s.id === form.style)?.label || form.style} />
-        <SummaryRow label="画面比例" value={form.aspect_ratio} />
-      </div>
-      <p className="text-[11px] text-slate-500">
-        AI 将根据改写方向生成项目大纲和角色卡，后续由你逐集生成剧本
-      </p>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value, truncate = false }: any) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="shrink-0 text-[11px] text-slate-500">{label}</span>
-      <span className={`text-sm text-slate-700 ${truncate ? "line-clamp-3" : ""}`}>{value}</span>
-    </div>
+        <DialogFooter className="rounded-b-[28px] border-t border-line bg-panel2/60 px-6 py-4">
+          <Button variant="secondary" onClick={handleDismiss} disabled={submitting}>
+            取消
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "创建中..." : "创建项目"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,8 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
 
-async function request(path: string, options: RequestInit & { headers?: Record<string, string> } = {}): Promise<any> {
+type JsonObject = Record<string, unknown>;
+
+async function request<T>(path: string, options: RequestInit & { headers?: Record<string, string> } = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
@@ -13,378 +15,1137 @@ async function request(path: string, options: RequestInit & { headers?: Record<s
   const payload = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(payload?.error || `Request failed: ${response.status}`);
+    throw new Error((payload as { error?: string } | null)?.error || `Request failed: ${response.status}`);
   }
 
-  return payload;
+  return payload as T;
+}
+
+function parseJsonValue<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value !== "string") return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+export interface ProjectSummary {
+  id: number;
+  name: string;
+  genre: string;
+  targetPlatform: string;
+  episodeCountPlanned: number;
+  currentStage: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectBrief {
+  logline: string;
+  targetAudience: string;
+  genreTags: string[];
+  styleKeywords: string[];
+  worldRules: string;
+  mainConflict: string;
+  relationshipSummary: string;
+  reversalRules: string;
+  forbiddenRules: string;
+  status: string;
+}
+
+export type CopilotModuleType = "brief" | "character";
+export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing";
+
+export interface BriefProposal {
+  logline: string;
+  targetAudience: string;
+  genreTags: string[];
+  styleKeywords: string[];
+  worldRules: string;
+  mainConflict: string;
+  relationshipSummary: string;
+  reversalRules: string;
+  forbiddenRules: string;
+}
+
+export interface CharacterProposal {
+  characterProfile: {
+    name: string;
+    roleType: string;
+    identitySummary: string;
+    appearanceSummary: string;
+    personalityTags: string[];
+    speechStyle: string;
+    negativeConstraints: string;
+  };
+  imageSpec: {
+    genderPresentation: string;
+    ageRange: string;
+    bodyType: string;
+    faceFeatures: string;
+    hairStyle: string;
+    hairColor: string;
+    eyeStyle: string;
+    signatureExpression: string;
+    signaturePose: string;
+    clothingStyle: string;
+    colorPalette: string[];
+    visualKeywords: string[];
+    negativeVisualConstraints: string[];
+    imagePrompt: string;
+    negativePrompt: string;
+  };
+}
+
+export interface CharacterCollectionProposal {
+  roles: CharacterProposal[];
+}
+
+export type CopilotProposal = BriefProposal | CharacterCollectionProposal;
+
+export interface CopilotStreamRequest {
+  moduleType: CopilotModuleType;
+  projectId: number;
+  entityId?: number | null;
+  intent: CopilotIntent;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  context: JsonObject;
+}
+
+export interface CopilotDeltaEvent {
+  type: "delta";
+  content: string;
+}
+
+export interface CopilotProposalEvent<TProposal> {
+  type: "proposal";
+  proposal: TProposal;
+}
+
+export interface CharacterAsset {
+  id: number;
+  projectId: number;
+  name: string;
+  roleType: string;
+  appearanceSummary: string;
+  personalityTags: string[];
+  speechStyle: string;
+  identitySummary: string;
+  visualProfile: JsonObject;
+  imagePrompt: string;
+  negativePrompt: string;
+  imagePath: string;
+  voiceProfile: JsonObject;
+  outfitPresets: unknown[];
+  negativeConstraints: string;
+  referenceAssetIds: unknown[];
+  status: string;
+  versionNo: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScenePreset {
+  id: number;
+  projectId: number;
+  name: string;
+  sceneType: string;
+  spaceDescription: string;
+  lightingStyle: string;
+  timeOfDay: string;
+  weather: string;
+  propList: string[];
+  referenceAssetIds: unknown[];
+  variants: unknown[];
+  status: string;
+  versionNo: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Episode {
+  id: number;
+  projectId: number;
+  episodeNo: number;
+  title: string;
+  summary: string;
+  goal: string;
+  coreConflict: string;
+  openingHook: string;
+  climax: string;
+  endingHook: string;
+  status: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Shot {
+  id: number;
+  episodeId: number;
+  sceneBlock: string;
+  shotNo: number;
+  visualGoal: string;
+  characterIds: number[];
+  scenePresetId: number | null;
+  shotSize: string;
+  cameraAngle: string;
+  composition: string;
+  actionDescription: string;
+  facialEmotion: string;
+  cameraMotion: string;
+  dialogueExcerpt: string;
+  estimatedDurationMs: number;
+  status: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShotPrompt {
+  id: number;
+  shotId: number;
+  versionNo: number;
+  promptText: string;
+  negativePrompt: string;
+  modelParams: JsonObject;
+  referenceAssetIds: unknown[];
+  status: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GenerationTask {
+  id: number;
+  projectId: number;
+  episodeId: number | null;
+  shotId: number | null;
+  shotPromptId: number | null;
+  provider: string;
+  modelName: string;
+  status: string;
+  inputPayload: JsonObject;
+  outputAssets: unknown[];
+  retryCount: number;
+  errorMessage: string;
+  costAmount: number;
+  durationMs: number;
+  submittedAt: string;
+  finishedAt: string | null;
+}
+
+export interface ReviewIssue {
+  id: number;
+  projectId: number;
+  episodeId: number | null;
+  shotId: number | null;
+  generationTaskId: number | null;
+  issueType: string;
+  severity: string;
+  description: string;
+  reworkTargetType: string;
+  resolutionStatus: string;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface EpisodeExport {
+  id: number;
+  episodeId: number;
+  versionNo: number;
+  selectedTaskIds: number[];
+  timelineData: JsonObject;
+  subtitleData: JsonObject;
+  audioData: JsonObject;
+  previewUrl: string;
+  exportUrl: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectDetail extends ProjectSummary {
+  brief: ProjectBrief;
+  episodes: Episode[];
+  characters: CharacterAsset[];
+  scenes: ScenePreset[];
+  tasks: GenerationTask[];
+}
+
+export interface CreateProjectInput {
+  name: string;
+  genre: string;
+  targetPlatform: string;
+  episodeCountPlanned: number;
+  logline: string;
+  targetAudience: string;
+  genreTags: string[];
+  styleKeywords: string[];
+}
+
+function normalizeProjectSummary(raw: Record<string, unknown>): ProjectSummary {
+  return {
+    id: asNumber(raw.id),
+    name: asString(raw.name),
+    genre: asString(raw.genre),
+    targetPlatform: asString(raw.target_platform),
+    episodeCountPlanned: asNumber(raw.episode_count_planned, 0),
+    currentStage: asString(raw.current_stage, "draft"),
+    status: asString(raw.status, "draft"),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizeBrief(raw: Record<string, unknown> | undefined): ProjectBrief {
+  const brief = raw ?? {};
+  return {
+    logline: asString(brief.logline),
+    targetAudience: asString(brief.target_audience),
+    genreTags: parseJsonValue<string[]>(brief.genre_tags, []),
+    styleKeywords: parseJsonValue<string[]>(brief.style_keywords, []),
+    worldRules: asString(brief.world_rules),
+    mainConflict: asString(brief.main_conflict),
+    relationshipSummary: asString(brief.relationship_summary),
+    reversalRules: asString(brief.reversal_rules),
+    forbiddenRules: asString(brief.forbidden_rules),
+    status: asString(brief.status, "draft"),
+  };
+}
+
+function normalizeBriefProposal(raw: Record<string, unknown>): BriefProposal {
+  return {
+    logline: asString(raw.logline),
+    targetAudience: asString(raw.target_audience ?? raw.targetAudience),
+    genreTags: parseJsonValue<string[]>(raw.genre_tags ?? raw.genreTags, []),
+    styleKeywords: parseJsonValue<string[]>(raw.style_keywords ?? raw.styleKeywords, []),
+    worldRules: asString(raw.world_rules ?? raw.worldRules),
+    mainConflict: asString(raw.main_conflict ?? raw.mainConflict),
+    relationshipSummary: asString(raw.relationship_summary ?? raw.relationshipSummary),
+    reversalRules: asString(raw.reversal_rules ?? raw.reversalRules),
+    forbiddenRules: asString(raw.forbidden_rules ?? raw.forbiddenRules),
+  };
+}
+
+function normalizeCharacterProposal(raw: Record<string, unknown>): CharacterProposal {
+  const profile = typeof raw.character_profile === "object" && raw.character_profile !== null
+    ? raw.character_profile as Record<string, unknown>
+    : raw;
+  const imageSpec = typeof raw.image_spec === "object" && raw.image_spec !== null
+    ? raw.image_spec as Record<string, unknown>
+    : {};
+  return {
+    characterProfile: {
+      name: asString(profile.name),
+      roleType: asString(profile.role_type ?? profile.roleType),
+      identitySummary: asString(profile.identity_summary ?? profile.identitySummary),
+      appearanceSummary: asString(profile.appearance_summary ?? profile.appearanceSummary),
+      personalityTags: parseJsonValue<string[]>(profile.personality_tags ?? profile.personalityTags, []),
+      speechStyle: asString(profile.speech_style ?? profile.speechStyle),
+      negativeConstraints: asString(profile.negative_constraints ?? profile.negativeConstraints),
+    },
+    imageSpec: {
+      genderPresentation: asString(imageSpec.gender_presentation ?? imageSpec.genderPresentation),
+      ageRange: asString(imageSpec.age_range ?? imageSpec.ageRange),
+      bodyType: asString(imageSpec.body_type ?? imageSpec.bodyType),
+      faceFeatures: asString(imageSpec.face_features ?? imageSpec.faceFeatures),
+      hairStyle: asString(imageSpec.hair_style ?? imageSpec.hairStyle),
+      hairColor: asString(imageSpec.hair_color ?? imageSpec.hairColor),
+      eyeStyle: asString(imageSpec.eye_style ?? imageSpec.eyeStyle),
+      signatureExpression: asString(imageSpec.signature_expression ?? imageSpec.signatureExpression),
+      signaturePose: asString(imageSpec.signature_pose ?? imageSpec.signaturePose),
+      clothingStyle: asString(imageSpec.clothing_style ?? imageSpec.clothingStyle),
+      colorPalette: parseJsonValue<string[]>(imageSpec.color_palette ?? imageSpec.colorPalette, []),
+      visualKeywords: parseJsonValue<string[]>(imageSpec.visual_keywords ?? imageSpec.visualKeywords, []),
+      negativeVisualConstraints: parseJsonValue<string[]>(
+        imageSpec.negative_visual_constraints ?? imageSpec.negativeVisualConstraints,
+        [],
+      ),
+      imagePrompt: asString(imageSpec.image_prompt ?? imageSpec.imagePrompt),
+      negativePrompt: asString(imageSpec.negative_prompt ?? imageSpec.negativePrompt),
+    },
+  };
+}
+
+function normalizeCharacterCollectionProposal(raw: Record<string, unknown>): CharacterCollectionProposal {
+  const roles = Array.isArray(raw.roles)
+    ? raw.roles
+    : Array.isArray(raw.characters)
+      ? raw.characters
+      : [];
+  return {
+    roles: roles
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map(normalizeCharacterProposal),
+  };
+}
+
+function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
+  return {
+    id: asNumber(raw.id),
+    projectId: asNumber(raw.project_id),
+    name: asString(raw.name),
+    roleType: asString(raw.role_type),
+    identitySummary: asString(raw.identity_summary),
+    appearanceSummary: asString(raw.appearance_summary),
+    personalityTags: parseJsonValue<string[]>(raw.personality_tags, []),
+    speechStyle: asString(raw.speech_style),
+    visualProfile: parseJsonValue<JsonObject>(raw.visual_profile, {}),
+    imagePrompt: asString(raw.image_prompt),
+    negativePrompt: asString(raw.negative_prompt),
+    imagePath: asString(raw.image_path),
+    voiceProfile: parseJsonValue<JsonObject>(raw.voice_profile, {}),
+    outfitPresets: parseJsonValue<unknown[]>(raw.outfit_presets, []),
+    negativeConstraints: asString(raw.negative_constraints),
+    referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
+    status: asString(raw.status, "draft"),
+    versionNo: asNumber(raw.version_no, 1),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizeScene(raw: Record<string, unknown>): ScenePreset {
+  return {
+    id: asNumber(raw.id),
+    projectId: asNumber(raw.project_id),
+    name: asString(raw.name),
+    sceneType: asString(raw.scene_type),
+    spaceDescription: asString(raw.space_description),
+    lightingStyle: asString(raw.lighting_style),
+    timeOfDay: asString(raw.time_of_day),
+    weather: asString(raw.weather),
+    propList: parseJsonValue<string[]>(raw.prop_list, []),
+    referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
+    variants: parseJsonValue<unknown[]>(raw.variants, []),
+    status: asString(raw.status, "draft"),
+    versionNo: asNumber(raw.version_no, 1),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizeEpisode(raw: Record<string, unknown>): Episode {
+  return {
+    id: asNumber(raw.id),
+    projectId: asNumber(raw.project_id),
+    episodeNo: asNumber(raw.episode_no, asNumber(raw.episode_number, 1)),
+    title: asString(raw.title),
+    summary: asString(raw.summary),
+    goal: asString(raw.goal),
+    coreConflict: asString(raw.core_conflict),
+    openingHook: asString(raw.opening_hook),
+    climax: asString(raw.climax),
+    endingHook: asString(raw.ending_hook),
+    status: asString(raw.status, "draft"),
+    sortOrder: asNumber(raw.sort_order, 0),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizeShot(raw: Record<string, unknown>): Shot {
+  return {
+    id: asNumber(raw.id),
+    episodeId: asNumber(raw.episode_id),
+    sceneBlock: asString(raw.scene_block),
+    shotNo: asNumber(raw.shot_no, 1),
+    visualGoal: asString(raw.visual_goal),
+    characterIds: parseJsonValue<number[]>(raw.character_ids, []),
+    scenePresetId: raw.scene_preset_id == null ? null : asNumber(raw.scene_preset_id),
+    shotSize: asString(raw.shot_size),
+    cameraAngle: asString(raw.camera_angle),
+    composition: asString(raw.composition),
+    actionDescription: asString(raw.action_description),
+    facialEmotion: asString(raw.facial_emotion),
+    cameraMotion: asString(raw.camera_motion),
+    dialogueExcerpt: asString(raw.dialogue_excerpt),
+    estimatedDurationMs: asNumber(raw.estimated_duration_ms, 0),
+    status: asString(raw.status, "draft"),
+    sortOrder: asNumber(raw.sort_order, 0),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizePrompt(raw: Record<string, unknown>): ShotPrompt {
+  return {
+    id: asNumber(raw.id),
+    shotId: asNumber(raw.shot_id),
+    versionNo: asNumber(raw.version_no, 1),
+    promptText: asString(raw.prompt_text),
+    negativePrompt: asString(raw.negative_prompt),
+    modelParams: parseJsonValue<JsonObject>(raw.model_params, {}),
+    referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
+    status: asString(raw.status, "draft"),
+    isActive: Boolean(raw.is_active),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+function normalizeTask(raw: Record<string, unknown>): GenerationTask {
+  return {
+    id: asNumber(raw.id),
+    projectId: asNumber(raw.project_id),
+    episodeId: raw.episode_id == null ? null : asNumber(raw.episode_id),
+    shotId: raw.shot_id == null ? null : asNumber(raw.shot_id),
+    shotPromptId: raw.shot_prompt_id == null ? null : asNumber(raw.shot_prompt_id),
+    provider: asString(raw.provider),
+    modelName: asString(raw.model_name),
+    status: asString(raw.status, "queued"),
+    inputPayload: typeof raw.input_payload === "object" && raw.input_payload !== null
+      ? (raw.input_payload as JsonObject)
+      : parseJsonValue<JsonObject>(raw.input_payload, {}),
+    outputAssets: Array.isArray(raw.output_assets) ? raw.output_assets : parseJsonValue<unknown[]>(raw.output_assets, []),
+    retryCount: asNumber(raw.retry_count, 0),
+    errorMessage: asString(raw.error_message),
+    costAmount: asNumber(raw.cost_amount, 0),
+    durationMs: asNumber(raw.duration_ms, 0),
+    submittedAt: asString(raw.submitted_at),
+    finishedAt: raw.finished_at == null ? null : asString(raw.finished_at),
+  };
+}
+
+function normalizeReviewIssue(raw: Record<string, unknown>): ReviewIssue {
+  return {
+    id: asNumber(raw.id),
+    projectId: asNumber(raw.project_id),
+    episodeId: raw.episode_id == null ? null : asNumber(raw.episode_id),
+    shotId: raw.shot_id == null ? null : asNumber(raw.shot_id),
+    generationTaskId: raw.generation_task_id == null ? null : asNumber(raw.generation_task_id),
+    issueType: asString(raw.issue_type),
+    severity: asString(raw.severity),
+    description: asString(raw.description),
+    reworkTargetType: asString(raw.rework_target_type),
+    resolutionStatus: asString(raw.resolution_status),
+    createdAt: asString(raw.created_at),
+    resolvedAt: raw.resolved_at == null ? null : asString(raw.resolved_at),
+  };
+}
+
+function normalizeEpisodeExport(raw: Record<string, unknown>): EpisodeExport {
+  return {
+    id: asNumber(raw.id),
+    episodeId: asNumber(raw.episode_id),
+    versionNo: asNumber(raw.version_no, 1),
+    selectedTaskIds: parseJsonValue<number[]>(raw.selected_task_ids, []),
+    timelineData: parseJsonValue<JsonObject>(raw.timeline_data, {}),
+    subtitleData: parseJsonValue<JsonObject>(raw.subtitle_data, {}),
+    audioData: parseJsonValue<JsonObject>(raw.audio_data, {}),
+    previewUrl: asString(raw.preview_url),
+    exportUrl: asString(raw.export_url),
+    status: asString(raw.status, "draft"),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
 }
 
 export function getApiBase() {
   return API_BASE;
 }
 
-export function listProjects() {
-  return request("/api/projects");
+export async function listProjects(): Promise<{ projects: ProjectSummary[] }> {
+  const payload = await request<{ projects: Record<string, unknown>[] }>("/api/projects");
+  return { projects: payload.projects.map(normalizeProjectSummary) };
 }
 
-export function createProject(input: any) {
-  return request("/api/projects", {
+export async function createProject(input: CreateProjectInput) {
+  const payload = await request<{ project: Record<string, unknown> }>("/api/projects", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      name: input.name,
+      genre: input.genre,
+      target_platform: input.targetPlatform,
+      episode_count_planned: input.episodeCountPlanned,
+      logline: input.logline,
+      target_audience: input.targetAudience,
+      genre_tags: input.genreTags,
+      style_keywords: input.styleKeywords,
+      current_stage: "brief_ready",
+      status: "brief_ready",
+      brief_status: "draft",
+    }),
   });
+  return { project: normalizeProjectSummary(payload.project) };
 }
 
-export function getProject(projectId: any) {
-  return request(`/api/projects/${projectId}`);
+export async function getProject(projectId: number): Promise<{ project: ProjectDetail }> {
+  const payload = await request<{ project: Record<string, unknown> & {
+    brief?: Record<string, unknown>;
+    episodes?: Record<string, unknown>[];
+    characters?: Record<string, unknown>[];
+    scenes?: Record<string, unknown>[];
+    tasks?: Record<string, unknown>[];
+  } }>(`/api/projects/${projectId}`);
+  const project = payload.project;
+  return {
+    project: {
+      ...normalizeProjectSummary(project),
+      brief: normalizeBrief(project.brief),
+      episodes: (project.episodes ?? []).map(normalizeEpisode),
+      characters: (project.characters ?? []).map(normalizeCharacter),
+      scenes: (project.scenes ?? []).map(normalizeScene),
+      tasks: (project.tasks ?? []).map(normalizeTask),
+    },
+  };
 }
 
-export function regenerateProject(projectId: any, keepStory = false) {
-  return request(`/api/projects/${projectId}/regenerate`, {
+export async function updateProject(projectId: number, data: Partial<CreateProjectInput> & { currentStage?: string; status?: string }) {
+  const payload = await request<{ project: Record<string, unknown> }>(`/api/projects/${projectId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.genre !== undefined ? { genre: data.genre } : {}),
+      ...(data.targetPlatform !== undefined ? { target_platform: data.targetPlatform } : {}),
+      ...(data.episodeCountPlanned !== undefined ? { episode_count_planned: data.episodeCountPlanned } : {}),
+      ...(data.currentStage !== undefined ? { current_stage: data.currentStage } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+    }),
+  });
+  return { project: normalizeProjectSummary(payload.project) };
+}
+
+export function deleteProject(projectId: number) {
+  return request<{ ok: boolean }>(`/api/projects/${projectId}`, { method: "DELETE" });
+}
+
+export async function getProjectBrief(projectId: number): Promise<{ brief: ProjectBrief }> {
+  const payload = await request<{ brief: Record<string, unknown> }>(`/api/projects/${projectId}/brief`);
+  return { brief: normalizeBrief(payload.brief) };
+}
+
+export async function updateProjectBrief(projectId: number, data: ProjectBrief) {
+  const payload = await request<{ brief: Record<string, unknown> }>(`/api/projects/${projectId}/brief`, {
+    method: "PUT",
+    body: JSON.stringify({
+      logline: data.logline,
+      target_audience: data.targetAudience,
+      genre_tags: data.genreTags,
+      style_keywords: data.styleKeywords,
+      world_rules: data.worldRules,
+      main_conflict: data.mainConflict,
+      relationship_summary: data.relationshipSummary,
+      reversal_rules: data.reversalRules,
+      forbidden_rules: data.forbiddenRules,
+      status: data.status,
+    }),
+  });
+  return { brief: normalizeBrief(payload.brief) };
+}
+
+export async function listCharacters(projectId: number) {
+  const payload = await request<{ characters: Record<string, unknown>[] }>(`/api/projects/${projectId}/characters`);
+  return { characters: payload.characters.map(normalizeCharacter) };
+}
+
+export async function createCharacter(projectId: number, data: Partial<CharacterAsset> & { name: string }) {
+  const payload = await request<{ character: Record<string, unknown> }>(`/api/projects/${projectId}/characters`, {
     method: "POST",
-    body: JSON.stringify({ keep_story: keepStory }),
+    body: JSON.stringify({
+      name: data.name,
+      role_type: data.roleType ?? "",
+      identity_summary: data.identitySummary ?? "",
+      appearance_summary: data.appearanceSummary ?? "",
+      personality_tags: data.personalityTags ?? [],
+      speech_style: data.speechStyle ?? "",
+      visual_profile: data.visualProfile ?? {},
+      image_prompt: data.imagePrompt ?? "",
+      negative_prompt: data.negativePrompt ?? "",
+      image_path: data.imagePath ?? "",
+      voice_profile: data.voiceProfile ?? {},
+      outfit_presets: data.outfitPresets ?? [],
+      negative_constraints: data.negativeConstraints ?? "",
+      reference_asset_ids: data.referenceAssetIds ?? [],
+      status: data.status ?? "draft",
+      version_no: data.versionNo ?? 1,
+    }),
   });
+  return { character: normalizeCharacter(payload.character) };
 }
 
-export function deleteProject(projectId: any) {
-  return request(`/api/projects/${projectId}`, { method: "DELETE" });
+export async function updateCharacter(characterId: number, projectId: number, data: Partial<CharacterAsset>) {
+  const payload = await request<{ character: Record<string, unknown> }>(`/api/characters/${characterId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      id: characterId,
+      project_id: projectId,
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.roleType !== undefined ? { role_type: data.roleType } : {}),
+      ...(data.identitySummary !== undefined ? { identity_summary: data.identitySummary } : {}),
+      ...(data.appearanceSummary !== undefined ? { appearance_summary: data.appearanceSummary } : {}),
+      ...(data.personalityTags !== undefined ? { personality_tags: data.personalityTags } : {}),
+      ...(data.speechStyle !== undefined ? { speech_style: data.speechStyle } : {}),
+      ...(data.visualProfile !== undefined ? { visual_profile: data.visualProfile } : {}),
+      ...(data.imagePrompt !== undefined ? { image_prompt: data.imagePrompt } : {}),
+      ...(data.negativePrompt !== undefined ? { negative_prompt: data.negativePrompt } : {}),
+      ...(data.imagePath !== undefined ? { image_path: data.imagePath } : {}),
+      ...(data.voiceProfile !== undefined ? { voice_profile: data.voiceProfile } : {}),
+      ...(data.outfitPresets !== undefined ? { outfit_presets: data.outfitPresets } : {}),
+      ...(data.negativeConstraints !== undefined ? { negative_constraints: data.negativeConstraints } : {}),
+      ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.versionNo !== undefined ? { version_no: data.versionNo } : {}),
+    }),
+  });
+  return { character: normalizeCharacter(payload.character) };
 }
 
-export function listDeletedProjects() {
+export function deleteCharacter(characterId: number) {
+  return request<{ ok: boolean }>(`/api/characters/${characterId}`, { method: "DELETE" });
+}
+
+export async function generateCharacterImage(characterId: number) {
+  const payload = await request<{ character: Record<string, unknown> }>(`/api/characters/${characterId}/generate-image`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return { character: normalizeCharacter(payload.character) };
+}
+
+export async function listScenes(projectId: number) {
+  const payload = await request<{ scenes: Record<string, unknown>[] }>(`/api/projects/${projectId}/scenes`);
+  return { scenes: payload.scenes.map(normalizeScene) };
+}
+
+export async function createScene(projectId: number, data: Partial<ScenePreset> & { name: string }) {
+  const payload = await request<{ scene: Record<string, unknown> }>(`/api/projects/${projectId}/scenes`, {
+    method: "POST",
+    body: JSON.stringify({
+      name: data.name,
+      scene_type: data.sceneType ?? "",
+      space_description: data.spaceDescription ?? "",
+      lighting_style: data.lightingStyle ?? "",
+      time_of_day: data.timeOfDay ?? "",
+      weather: data.weather ?? "",
+      prop_list: data.propList ?? [],
+      reference_asset_ids: data.referenceAssetIds ?? [],
+      variants: data.variants ?? [],
+      status: data.status ?? "draft",
+      version_no: data.versionNo ?? 1,
+    }),
+  });
+  return { scene: normalizeScene(payload.scene) };
+}
+
+export async function updateScene(sceneId: number, projectId: number, data: Partial<ScenePreset>) {
+  const payload = await request<{ scene: Record<string, unknown> }>(`/api/scenes/${sceneId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      id: sceneId,
+      project_id: projectId,
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.sceneType !== undefined ? { scene_type: data.sceneType } : {}),
+      ...(data.spaceDescription !== undefined ? { space_description: data.spaceDescription } : {}),
+      ...(data.lightingStyle !== undefined ? { lighting_style: data.lightingStyle } : {}),
+      ...(data.timeOfDay !== undefined ? { time_of_day: data.timeOfDay } : {}),
+      ...(data.weather !== undefined ? { weather: data.weather } : {}),
+      ...(data.propList !== undefined ? { prop_list: data.propList } : {}),
+      ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
+      ...(data.variants !== undefined ? { variants: data.variants } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.versionNo !== undefined ? { version_no: data.versionNo } : {}),
+    }),
+  });
+  return { scene: normalizeScene(payload.scene) };
+}
+
+export function deleteScene(sceneId: number) {
+  return request<{ ok: boolean }>(`/api/scenes/${sceneId}`, { method: "DELETE" });
+}
+
+export async function listEpisodes(projectId: number) {
+  const payload = await request<{ episodes: Record<string, unknown>[] }>(`/api/projects/${projectId}/episodes`);
+  return { episodes: payload.episodes.map(normalizeEpisode) };
+}
+
+export async function createEpisode(projectId: number, data: Partial<Episode> & { title?: string }) {
+  const payload = await request<{ episode: Record<string, unknown> }>(`/api/projects/${projectId}/episodes`, {
+    method: "POST",
+    body: JSON.stringify({
+      episode_no: data.episodeNo,
+      title: data.title,
+      summary: data.summary,
+      goal: data.goal,
+      core_conflict: data.coreConflict,
+      opening_hook: data.openingHook,
+      climax: data.climax,
+      ending_hook: data.endingHook,
+      status: data.status,
+      sort_order: data.sortOrder,
+    }),
+  });
+  return { episode: normalizeEpisode(payload.episode) };
+}
+
+export async function updateEpisode(episodeId: number, data: Partial<Episode>) {
+  const payload = await request<{ episode: Record<string, unknown> }>(`/api/episodes/${episodeId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.episodeNo !== undefined ? { episode_no: data.episodeNo } : {}),
+      ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.summary !== undefined ? { summary: data.summary } : {}),
+      ...(data.goal !== undefined ? { goal: data.goal } : {}),
+      ...(data.coreConflict !== undefined ? { core_conflict: data.coreConflict } : {}),
+      ...(data.openingHook !== undefined ? { opening_hook: data.openingHook } : {}),
+      ...(data.climax !== undefined ? { climax: data.climax } : {}),
+      ...(data.endingHook !== undefined ? { ending_hook: data.endingHook } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.sortOrder !== undefined ? { sort_order: data.sortOrder } : {}),
+    }),
+  });
+  return { episode: normalizeEpisode(payload.episode) };
+}
+
+export function deleteEpisode(episodeId: number) {
+  return request<{ ok: boolean }>(`/api/episodes/${episodeId}`, { method: "DELETE" });
+}
+
+export async function listShots(episodeId: number) {
+  const payload = await request<{ shots: Record<string, unknown>[] }>(`/api/episodes/${episodeId}/shots`);
+  return { shots: payload.shots.map(normalizeShot) };
+}
+
+export async function createShot(episodeId: number, data: Partial<Shot>) {
+  const payload = await request<{ shot: Record<string, unknown> }>(`/api/episodes/${episodeId}/shots`, {
+    method: "POST",
+    body: JSON.stringify({
+      scene_block: data.sceneBlock ?? "",
+      shot_no: data.shotNo ?? 1,
+      visual_goal: data.visualGoal ?? "",
+      character_ids: data.characterIds ?? [],
+      scene_preset_id: data.scenePresetId,
+      shot_size: data.shotSize ?? "",
+      camera_angle: data.cameraAngle ?? "",
+      composition: data.composition ?? "",
+      action_description: data.actionDescription ?? "",
+      facial_emotion: data.facialEmotion ?? "",
+      camera_motion: data.cameraMotion ?? "",
+      dialogue_excerpt: data.dialogueExcerpt ?? "",
+      estimated_duration_ms: data.estimatedDurationMs ?? 0,
+      status: data.status ?? "draft",
+      sort_order: data.sortOrder ?? data.shotNo ?? 1,
+    }),
+  });
+  return { shot: normalizeShot(payload.shot) };
+}
+
+export async function getShot(shotId: number) {
+  const payload = await request<{ shot: Record<string, unknown> }>(`/api/shots/${shotId}`);
+  return { shot: normalizeShot(payload.shot) };
+}
+
+export async function updateShot(shotId: number, data: Partial<Shot>) {
+  const payload = await request<{ shot: Record<string, unknown> }>(`/api/shots/${shotId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.sceneBlock !== undefined ? { scene_block: data.sceneBlock } : {}),
+      ...(data.shotNo !== undefined ? { shot_no: data.shotNo } : {}),
+      ...(data.visualGoal !== undefined ? { visual_goal: data.visualGoal } : {}),
+      ...(data.characterIds !== undefined ? { character_ids: data.characterIds } : {}),
+      ...(data.scenePresetId !== undefined ? { scene_preset_id: data.scenePresetId } : {}),
+      ...(data.shotSize !== undefined ? { shot_size: data.shotSize } : {}),
+      ...(data.cameraAngle !== undefined ? { camera_angle: data.cameraAngle } : {}),
+      ...(data.composition !== undefined ? { composition: data.composition } : {}),
+      ...(data.actionDescription !== undefined ? { action_description: data.actionDescription } : {}),
+      ...(data.facialEmotion !== undefined ? { facial_emotion: data.facialEmotion } : {}),
+      ...(data.cameraMotion !== undefined ? { camera_motion: data.cameraMotion } : {}),
+      ...(data.dialogueExcerpt !== undefined ? { dialogue_excerpt: data.dialogueExcerpt } : {}),
+      ...(data.estimatedDurationMs !== undefined ? { estimated_duration_ms: data.estimatedDurationMs } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.sortOrder !== undefined ? { sort_order: data.sortOrder } : {}),
+    }),
+  });
+  return { shot: normalizeShot(payload.shot) };
+}
+
+export function deleteShot(shotId: number) {
+  return request<{ ok: boolean }>(`/api/shots/${shotId}`, { method: "DELETE" });
+}
+
+export async function listShotPrompts(shotId: number) {
+  const payload = await request<{ prompts: Record<string, unknown>[] }>(`/api/shots/${shotId}/prompts`);
+  return { prompts: payload.prompts.map(normalizePrompt) };
+}
+
+export async function createShotPrompt(shotId: number, data: Partial<ShotPrompt> & { promptText: string }) {
+  const payload = await request<{ prompt: Record<string, unknown> }>(`/api/shots/${shotId}/prompts`, {
+    method: "POST",
+    body: JSON.stringify({
+      prompt_text: data.promptText,
+      negative_prompt: data.negativePrompt ?? "",
+      model_params: data.modelParams ?? {},
+      reference_asset_ids: data.referenceAssetIds ?? [],
+      status: data.status ?? "draft",
+      is_active: data.isActive ?? false,
+    }),
+  });
+  return { prompt: normalizePrompt(payload.prompt) };
+}
+
+export async function updateShotPromptVersion(promptId: number, data: Partial<ShotPrompt>) {
+  const payload = await request<{ prompt: Record<string, unknown> }>(`/api/prompts/${promptId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.promptText !== undefined ? { prompt_text: data.promptText } : {}),
+      ...(data.negativePrompt !== undefined ? { negative_prompt: data.negativePrompt } : {}),
+      ...(data.modelParams !== undefined ? { model_params: data.modelParams } : {}),
+      ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.isActive !== undefined ? { is_active: data.isActive } : {}),
+    }),
+  });
+  return { prompt: normalizePrompt(payload.prompt) };
+}
+
+export async function activateShotPrompt(promptId: number) {
+  const payload = await request<{ prompt: Record<string, unknown> }>(`/api/prompts/${promptId}/activate`, {
+    method: "POST",
+  });
+  return { prompt: normalizePrompt(payload.prompt) };
+}
+
+export async function generateShot(shotId: number, data: { provider?: string; modelName?: string; shotPromptId?: number }) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/shots/${shotId}/generate`, {
+    method: "POST",
+    body: JSON.stringify({
+      provider: data.provider,
+      model_name: data.modelName,
+      shot_prompt_id: data.shotPromptId,
+    }),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function generateEpisodeBatch(episodeId: number, data: { provider?: string; modelName?: string } = {}) {
+  const payload = await request<{ tasks: Record<string, unknown>[] }>(`/api/episodes/${episodeId}/generate-batch`, {
+    method: "POST",
+    body: JSON.stringify({
+      provider: data.provider,
+      model_name: data.modelName,
+    }),
+  });
+  return { tasks: payload.tasks.map(normalizeTask) };
+}
+
+export async function getTask(taskId: number) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/tasks/${taskId}`);
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function retryTask(taskId: number) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/tasks/${taskId}/retry`, {
+    method: "POST",
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function listReviewIssues(episodeId: number) {
+  const payload = await request<{ review_issues: Record<string, unknown>[] }>(`/api/episodes/${episodeId}/review-issues`);
+  return { reviewIssues: payload.review_issues.map(normalizeReviewIssue) };
+}
+
+export async function createReviewIssue(data: {
+  projectId: number;
+  episodeId?: number | null;
+  shotId?: number | null;
+  generationTaskId?: number | null;
+  issueType: string;
+  severity?: string;
+  description?: string;
+  reworkTargetType?: string;
+  resolutionStatus?: string;
+}) {
+  const payload = await request<{ review_issue: Record<string, unknown> }>("/api/review-issues", {
+    method: "POST",
+    body: JSON.stringify({
+      project_id: data.projectId,
+      episode_id: data.episodeId,
+      shot_id: data.shotId,
+      generation_task_id: data.generationTaskId,
+      issue_type: data.issueType,
+      severity: data.severity ?? "medium",
+      description: data.description ?? "",
+      rework_target_type: data.reworkTargetType ?? "shot_prompt",
+      resolution_status: data.resolutionStatus ?? "open",
+    }),
+  });
+  return { reviewIssue: normalizeReviewIssue(payload.review_issue) };
+}
+
+export async function resolveReviewIssue(issueId: number, resolutionStatus = "resolved") {
+  const payload = await request<{ review_issue: Record<string, unknown> }>(`/api/review-issues/${issueId}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ resolution_status: resolutionStatus }),
+  });
+  return { reviewIssue: normalizeReviewIssue(payload.review_issue) };
+}
+
+export async function listEpisodeExports(episodeId: number) {
+  const payload = await request<{ exports: Record<string, unknown>[] }>(`/api/episodes/${episodeId}/exports`);
+  return { exports: payload.exports.map(normalizeEpisodeExport) };
+}
+
+export async function createEpisodeExport(episodeId: number, data: Partial<EpisodeExport> = {}) {
+  const payload = await request<{ export: Record<string, unknown> }>(`/api/episodes/${episodeId}/exports`, {
+    method: "POST",
+    body: JSON.stringify({
+      selected_task_ids: data.selectedTaskIds ?? [],
+      timeline_data: data.timelineData ?? {},
+      subtitle_data: data.subtitleData ?? {},
+      audio_data: data.audioData ?? {},
+      preview_url: data.previewUrl ?? "",
+      export_url: data.exportUrl ?? "",
+      status: data.status ?? "draft",
+    }),
+  });
+  return { export: normalizeEpisodeExport(payload.export) };
+}
+
+export async function renderEpisodeExport(exportId: number, data: { previewUrl?: string; exportUrl?: string; status?: string }) {
+  const payload = await request<{ export: Record<string, unknown> }>(`/api/exports/${exportId}/render`, {
+    method: "POST",
+    body: JSON.stringify({
+      preview_url: data.previewUrl ?? "",
+      export_url: data.exportUrl ?? "",
+      status: data.status ?? "exported",
+    }),
+  });
+  return { export: normalizeEpisodeExport(payload.export) };
+}
+
+export async function streamCopilot(
+  requestPayload: CopilotStreamRequest,
+  handlers: {
+    onDelta?: (event: CopilotDeltaEvent) => void;
+    onProposal?: (event: CopilotProposalEvent<CopilotProposal>) => void;
+    onError?: (error: string) => void;
+    onDone?: () => void;
+  },
+) {
+  const response = await fetch(`${API_BASE}/api/copilot/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      module_type: requestPayload.moduleType,
+      project_id: requestPayload.projectId,
+      entity_id: requestPayload.entityId ?? null,
+      intent: requestPayload.intent,
+      messages: requestPayload.messages,
+      context: requestPayload.context,
+    }),
+  });
+
+  if (!response.ok) {
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    const payload = isJson ? await response.json() : null;
+    throw new Error((payload as { error?: string } | null)?.error || `Copilot request failed: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Missing response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (!raw) continue;
+      try {
+        const event = JSON.parse(raw) as {
+          type?: string;
+          content?: string;
+          proposal?: Record<string, unknown>;
+          error?: string;
+        };
+        if (event.type === "delta") {
+          handlers.onDelta?.({ type: "delta", content: event.content ?? "" });
+        } else if (event.type === "proposal" && event.proposal) {
+          const normalizedProposal = requestPayload.moduleType === "character"
+            ? normalizeCharacterCollectionProposal(event.proposal)
+            : normalizeBriefProposal(event.proposal);
+          handlers.onProposal?.({ type: "proposal", proposal: normalizedProposal });
+        } else if (event.type === "error") {
+          handlers.onError?.(event.error ?? "Unknown copilot error");
+        } else if (event.type === "done") {
+          handlers.onDone?.();
+          return;
+        }
+      } catch {
+        // Ignore malformed SSE events.
+      }
+    }
+  }
+  handlers.onDone?.();
+}
+
+// Legacy / tooling exports kept for non-project utility pages
+export function listDeletedProjects(): Promise<any> {
   return request("/api/projects/deleted");
 }
-
-export function restoreProject(projectId: any) {
+export function restoreProject(projectId: number): Promise<any> {
   return request(`/api/projects/${projectId}/restore`, { method: "POST" });
 }
-
-export function permanentDeleteProject(projectId: any) {
+export function permanentDeleteProject(projectId: number): Promise<any> {
   return request(`/api/projects/${projectId}/permanent`, { method: "DELETE" });
 }
-
-export function getShot(shotId: any) {
-  return request(`/api/shots/${shotId}`);
-}
-
-export function updateStory(projectId: any, content: any) {
-  return request(`/api/projects/${projectId}/story`, {
-    method: "PUT",
-    body: JSON.stringify({ content }),
-  });
-}
-
-export function getStoryVersions(projectId: any) {
-  return request(`/api/projects/${projectId}/story-versions`);
-}
-
-export function restoreStoryVersion(projectId: any, versionId: any) {
-  return request(`/api/projects/${projectId}/story-versions/${versionId}/restore`, { method: "POST" });
-}
-
-export function listEpisodes(projectId: any) {
-  return request(`/api/projects/${projectId}/episodes`);
-}
-
-export function createEpisode(projectId: any, data: any) {
-  return request(`/api/projects/${projectId}/episodes`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function updateEpisode(episodeId: any, data: any) {
-  return request(`/api/episodes/${episodeId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export function deleteEpisode(episodeId: any) {
-  return request(`/api/episodes/${episodeId}`, { method: "DELETE" });
-}
-
-export function generateEpisodeScreenplay(episodeId: any) {
-  return request(`/api/episodes/${episodeId}/screenplay`, { method: "POST" });
-}
-
-export function updateEpisodeScreenplay(episodeId: any, content: any, contentEn: any) {
-  return request(`/api/episodes/${episodeId}/screenplay`, {
-    method: "PUT",
-    body: JSON.stringify({ content, content_en: contentEn }),
-  });
-}
-
-export function getEpisodeVersions(episodeId: any) {
-  return request(`/api/episodes/${episodeId}/versions`);
-}
-
-export function restoreEpisodeVersion(episodeId: any, versionId: any) {
-  return request(`/api/episodes/${episodeId}/versions/${versionId}/restore`, { method: "POST" });
-}
-
-// Screenplay
-export function generateScreenplay(projectId: any) {
-  return request(`/api/projects/${projectId}/screenplay`, { method: "POST" });
-}
-
-export function updateScreenplay(projectId: any, content: any, contentEn: any) {
-  return request(`/api/projects/${projectId}/screenplay`, {
-    method: "PUT",
-    body: JSON.stringify({ content, content_en: contentEn }),
-  });
-}
-
-export function getScreenplayVersions(projectId: any) {
-  return request(`/api/projects/${projectId}/screenplay-versions`);
-}
-
-export function restoreScreenplayVersion(projectId: any, versionId: any) {
-  return request(`/api/projects/${projectId}/screenplay-versions/${versionId}/restore`, { method: "POST" });
-}
-
-// Beats
-export function generateBeats(projectId: any) {
-  return request(`/api/projects/${projectId}/beats`, { method: "POST" });
-}
-
-export function updateBeats(projectId: any, content: any, contentEn: any) {
-  return request(`/api/projects/${projectId}/beats`, {
-    method: "PUT",
-    body: JSON.stringify({ content, content_en: contentEn }),
-  });
-}
-
-export function getBeatsVersions(projectId: any) {
-  return request(`/api/projects/${projectId}/beats-versions`);
-}
-
-export function restoreBeatsVersion(projectId: any, versionId: any) {
-  return request(`/api/projects/${projectId}/beats-versions/${versionId}/restore`, { method: "POST" });
-}
-
-// Partial regeneration
-export function regenerateFromStage(projectId: any, fromStage: any) {
-  return request(`/api/projects/${projectId}/regenerate-from`, {
-    method: "POST",
-    body: JSON.stringify({ from_stage: fromStage }),
-  });
-}
-
-export function addShot(projectId: any, shotData: any) {
-  return request(`/api/projects/${projectId}/shots/add`, {
-    method: "POST",
-    body: JSON.stringify(shotData),
-  });
-}
-
-export function generateEpisodeShots(episodeId: any) {
-  return request(`/api/episodes/${episodeId}/shots`, { method: "POST" });
-}
-
-export function addEpisodeShot(episodeId: any, shotData: any) {
-  return request(`/api/episodes/${episodeId}/shots/add`, {
-    method: "POST",
-    body: JSON.stringify(shotData),
-  });
-}
-
-export function reorderEpisodeShots(episodeId: any, shotIds: any) {
-  return request(`/api/episodes/${episodeId}/shots/reorder`, {
-    method: "PUT",
-    body: JSON.stringify({ shot_ids: shotIds }),
-  });
-}
-
-export function deleteShot(shotId: any) {
-  return request(`/api/shots/${shotId}`, { method: "DELETE" });
-}
-
-export function reorderShots(projectId: any, shotIds: any) {
-  return request(`/api/projects/${projectId}/shots/reorder`, {
-    method: "PUT",
-    body: JSON.stringify({ shot_ids: shotIds }),
-  });
-}
-
-// Frame & video generation
-export function generateAllFrames(projectId: any) {
-  return request(`/api/projects/${projectId}/generate-all-frames`, { method: "POST" });
-}
-
-export function generateAllVideos(projectId: any) {
-  return request(`/api/projects/${projectId}/generate-all-videos`, { method: "POST" });
-}
-
-export function generateAllEpisodeFrames(episodeId: any) {
-  return request(`/api/episodes/${episodeId}/generate-all-frames`, { method: "POST" });
-}
-
-export function generateAllEpisodeVideos(episodeId: any) {
-  return request(`/api/episodes/${episodeId}/generate-all-videos`, { method: "POST" });
-}
-
-export function updateShotPrompts(shotId: any, promptFields: any) {
-  return request(`/api/shots/${shotId}/prompt`, {
-    method: "POST",
-    body: JSON.stringify(promptFields),
-  });
-}
-
-export function updateShotPrompt(shotId: any, shotPrompt: any) {
-  return updateShotPrompts(shotId, { shot_prompt: shotPrompt });
-}
-
-export function updateShotDuration(shotId: any, durationSeconds: any) {
-  return request(`/api/shots/${shotId}/duration`, {
-    method: "PUT",
-    body: JSON.stringify({ duration_seconds: durationSeconds }),
-  });
-}
-
-export function generateShotFrames(shotId: any) {
-  return request(`/api/shots/${shotId}/frames`, { method: "POST" });
-}
-
-export function generateSingleFrame(shotId: any, frameType: any) {
-  return request(`/api/shots/${shotId}/frames/${frameType}`, { method: "POST" });
-}
-
-export function generateShotVideo(shotId: any) {
-  return request(`/api/shots/${shotId}/video`, { method: "POST" });
-}
-
-// Config
-export function getConfig() {
+export function getConfig(): Promise<any> {
   return request("/api/config");
 }
-
-export function updateConfig(data: any) {
-  return request("/api/config", {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+export function updateConfig(data: unknown): Promise<any> {
+  return request("/api/config", { method: "PUT", body: JSON.stringify(data) });
 }
-
-export function getModels() {
+export function getModels(): Promise<any> {
   return request("/api/models");
 }
-
-export function addModel(category: any, id: any, label: any) {
-  return request(`/api/models/${category}`, {
-    method: "PUT",
-    body: JSON.stringify({ id, label: label || id }),
-  });
+export function addModel(category: string, id: string, label: string): Promise<any> {
+  return request(`/api/models/${category}`, { method: "PUT", body: JSON.stringify({ id, label: label || id }) });
 }
-
-export function deleteModel(category: any, id: any) {
-  return request(`/api/models/${category}?id=${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+export function deleteModel(category: string, id: string): Promise<any> {
+  return request(`/api/models/${category}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
 }
-
-// Prompts
-export function getPrompts() {
+export function getPrompts(): Promise<any> {
   return request("/api/prompts");
 }
-
-export function updatePrompts(data: any) {
-  return request("/api/prompts", {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+export function updatePrompts(data: unknown): Promise<any> {
+  return request("/api/prompts", { method: "PUT", body: JSON.stringify(data) });
 }
-
-// Characters
-export function generateCharacters(projectId: any) {
-  return request(`/api/projects/${projectId}/characters/generate`, { method: "POST" });
-}
-
-export function listCharacters(projectId: any) {
-  return request(`/api/projects/${projectId}/characters`);
-}
-
-export function createCharacter(projectId: any, data: any) {
-  return request(`/api/projects/${projectId}/characters`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function updateCharacter(charId: any, data: any) {
-  return request(`/api/characters/${charId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export function deleteCharacter(charId: any) {
-  return request(`/api/characters/${charId}`, { method: "DELETE" });
-}
-
-export function generateCharacterImage(charId: any) {
-  return request(`/api/characters/${charId}/image`, { method: "POST" });
-}
-
-export function lockCharacter(charId: any, locked: any) {
-  return request(`/api/characters/${charId}/lock`, {
-    method: "POST",
-    body: JSON.stringify({ locked }),
-  });
-}
-
-// Scenes
-export function generateScenes(projectId: any) {
-  return request(`/api/projects/${projectId}/scenes/generate`, { method: "POST" });
-}
-
-export function listScenes(projectId: any) {
-  return request(`/api/projects/${projectId}/scenes`);
-}
-
-export function createScene(projectId: any, data: any) {
-  return request(`/api/projects/${projectId}/scenes`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function updateScene(sceneId: any, data: any) {
-  return request(`/api/scenes/${sceneId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export function deleteScene(sceneId: any) {
-  return request(`/api/scenes/${sceneId}`, { method: "DELETE" });
-}
-
-export function generateSceneImage(sceneId: any) {
-  return request(`/api/scenes/${sceneId}/image`, { method: "POST" });
-}
-
-// Chat streaming
-export async function streamChat(messages: any, onDelta: any, onExtracted: any, onDone: any, onError: any, systemPromptKey = "") {
+export async function streamChat(messages: unknown, onDelta?: (content: string) => void, onExtracted?: (projectParams: unknown) => void, onDone?: () => void, onError?: (error: unknown) => void, systemPromptKey = "") {
   try {
     const response = await fetch(`${API_BASE}/api/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages, system_prompt_key: systemPromptKey }),
     });
-    if (!response.ok) {
-      throw new Error(`Chat request failed: ${response.status}`);
-    }
-    const reader = response.body!.getReader();
+    if (!response.ok) throw new Error(`Chat request failed: ${response.status}`);
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Missing response body");
     const decoder = new TextDecoder();
     let buffer = "";
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
-
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
         const data = line.slice(6);
@@ -393,138 +1154,76 @@ export async function streamChat(messages: any, onDelta: any, onExtracted: any, 
           return;
         }
         try {
-          const event = JSON.parse(data);
-          if (event.type === "delta") {
-            onDelta?.(event.content);
-          } else if (event.type === "extracted") {
-            onExtracted?.(event.project_params);
-          }
+          const event = JSON.parse(data) as { type?: string; content?: string; project_params?: unknown };
+          if (event.type === "delta") onDelta?.(event.content ?? "");
+          if (event.type === "extracted") onExtracted?.(event.project_params);
         } catch {
-          // Skip malformed JSON
+          // Ignore malformed events.
         }
       }
     }
     onDone?.();
-  } catch (err) {
-    onError?.(err);
+  } catch (error) {
+    onError?.(error);
   }
 }
-
-// Quick video generation
-export function generateQuickVideo({ prompt, style, aspect_ratio, target_duration, image_urls, image_b64s, reference_image_urls, resolution, video_model }: any) {
-  return request("/api/generate-video", {
-    method: "POST",
-    body: JSON.stringify({ prompt, style, aspect_ratio, target_duration, image_urls, image_b64s, reference_image_urls, resolution, video_model }),
-  });
+export function generateQuickVideo(input: unknown): Promise<any> {
+  return request("/api/generate-video", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function getQuickVideoStatus(taskId: any) {
+export function getQuickVideoStatus(taskId: number): Promise<any> {
   return request(`/api/generate-video/status?task_id=${taskId}`);
 }
-
-export function listQuickVideoTasks() {
+export function listQuickVideoTasks(): Promise<any> {
   return request("/api/generate-video/tasks");
 }
-
-export function generateImage({ prompt, aspect_ratio, reference_image }: any) {
-  return request("/api/generate-image", {
-    method: "POST",
-    body: JSON.stringify({ prompt, aspect_ratio, reference_image }),
-  });
+export function generateImage(input: unknown): Promise<any> {
+  return request("/api/generate-image", { method: "POST", body: JSON.stringify(input) });
 }
-
-// Seedance 2.0
-export function getSeedanceConfig() {
+export function getSeedanceConfig(): Promise<any> {
   return request("/api/seedance/config");
 }
-
-export function updateSeedanceConfig(data: any) {
-  return request("/api/seedance/config", {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+export function updateSeedanceConfig(data: unknown): Promise<any> {
+  return request("/api/seedance/config", { method: "PUT", body: JSON.stringify(data) });
 }
-
-export function seedanceT2V({ prompt, aspect_ratio, resolution, duration, remove_watermark }: any) {
-  return request("/api/seedance/t2v", {
-    method: "POST",
-    body: JSON.stringify({ prompt, aspect_ratio, resolution, duration, remove_watermark }),
-  });
+export function seedanceT2V(input: unknown): Promise<any> {
+  return request("/api/seedance/t2v", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function seedanceI2V({ prompt, images_list, aspect_ratio, resolution, duration, remove_watermark }: any) {
-  return request("/api/seedance/i2v", {
-    method: "POST",
-    body: JSON.stringify({ prompt, images_list, aspect_ratio, resolution, duration, remove_watermark }),
-  });
+export function seedanceI2V(input: unknown): Promise<any> {
+  return request("/api/seedance/i2v", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function seedanceCharacter({ images_list, prompt, aspect_ratio, resolution, duration, remove_watermark }: any) {
-  return request("/api/seedance/character", {
-    method: "POST",
-    body: JSON.stringify({ images_list, prompt, aspect_ratio, resolution, duration, remove_watermark }),
-  });
+export function seedanceCharacter(input: unknown): Promise<any> {
+  return request("/api/seedance/character", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function getSeedanceStatus(taskId: any) {
+export function getSeedanceStatus(taskId: number): Promise<any> {
   return request(`/api/seedance/status?task_id=${taskId}`);
 }
-
-export function listSeedanceTasks() {
+export function listSeedanceTasks(): Promise<any> {
   return request("/api/seedance/tasks");
 }
-
-// Kling 可灵
-export function getKlingConfig() {
+export function getKlingConfig(): Promise<any> {
   return request("/api/kling/config");
 }
-
-export function updateKlingConfig(data: any) {
-  return request("/api/kling/config", {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+export function updateKlingConfig(data: unknown): Promise<any> {
+  return request("/api/kling/config", { method: "PUT", body: JSON.stringify(data) });
 }
-
-export function klingT2V({ prompt, model_name, aspect_ratio, duration, mode, negative_prompt, sound }: any) {
-  return request("/api/kling/t2v", {
-    method: "POST",
-    body: JSON.stringify({ prompt, model_name, aspect_ratio, duration, mode, negative_prompt, sound }),
-  });
+export function klingT2V(input: unknown): Promise<any> {
+  return request("/api/kling/t2v", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function klingI2V({ prompt, image, image_tail, model_name, aspect_ratio, duration, mode, negative_prompt, sound }: any) {
-  return request("/api/kling/i2v", {
-    method: "POST",
-    body: JSON.stringify({ prompt, image, image_tail, model_name, aspect_ratio, duration, mode, negative_prompt, sound }),
-  });
+export function klingI2V(input: unknown): Promise<any> {
+  return request("/api/kling/i2v", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function klingGenerateImage({ prompt, model_name, aspect_ratio, negative_prompt }: any) {
-  return request("/api/kling/image", {
-    method: "POST",
-    body: JSON.stringify({ prompt, model_name, aspect_ratio, negative_prompt }),
-  });
+export function klingGenerateImage(input: unknown): Promise<any> {
+  return request("/api/kling/image", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function klingOmniImage({ prompt, negative_prompt, image_list, model_name, aspect_ratio, resolution, n }: any) {
-  return request("/api/kling/omni-image", {
-    method: "POST",
-    body: JSON.stringify({ prompt, negative_prompt, image_list, model_name, aspect_ratio, resolution, n }),
-  });
+export function klingOmniImage(input: unknown): Promise<any> {
+  return request("/api/kling/omni-image", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function klingOmniVideo({ prompt, image_list, model_name, aspect_ratio, duration, mode }: any) {
-  return request("/api/kling/omni-video", {
-    method: "POST",
-    body: JSON.stringify({ prompt, image_list, model_name, aspect_ratio, duration, mode }),
-  });
+export function klingOmniVideo(input: unknown): Promise<any> {
+  return request("/api/kling/omni-video", { method: "POST", body: JSON.stringify(input) });
 }
-
-export function getKlingStatus(taskId: any) {
+export function getKlingStatus(taskId: number): Promise<any> {
   return request(`/api/kling/status?task_id=${taskId}`);
 }
-
-export function listKlingTasks() {
+export function listKlingTasks(): Promise<any> {
   return request("/api/kling/tasks");
 }

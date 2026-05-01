@@ -49,7 +49,7 @@ export default function ConfigPage() {
 
   function loadAll() {
     Promise.all([getConfig(), getModels(), getVendors(), getSeedanceConfig(), getKlingConfig()])
-      .then(([cfgRes, modelsRes, vendorsRes, sdRes, klingRes]) => {
+      .then(([cfgRes, modelsRes, vendorsRes, sdRes, klingRes]: any[]) => {
         setConfig(cfgRes.config);
         setModels(modelsRes.models);
         setVendors(vendorsRes.vendors);

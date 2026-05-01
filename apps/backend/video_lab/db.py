@@ -2,6 +2,8 @@ import sqlite3
 import os
 from pathlib import Path
 
+from .mvp_schema import init_additive_schema
+
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 if BACKEND_DIR.name == "backend" and BACKEND_DIR.parent.name == "apps":
@@ -166,6 +168,7 @@ def init_db() -> None:
             """
         )
         _migrate_schema(conn)
+        init_additive_schema(conn)
         conn.commit()
     finally:
         conn.close()
@@ -203,6 +206,22 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     existing_chars = {row[1] for row in conn.execute("PRAGMA table_info(characters)").fetchall()}
     if "image_path" not in existing_chars:
         conn.execute("ALTER TABLE characters ADD COLUMN image_path TEXT DEFAULT ''")
+    for col, col_def in [
+        ("role_type", "TEXT NOT NULL DEFAULT ''"),
+        ("identity_summary", "TEXT NOT NULL DEFAULT ''"),
+        ("appearance_summary", "TEXT NOT NULL DEFAULT ''"),
+        ("speech_style", "TEXT NOT NULL DEFAULT ''"),
+        ("visual_profile", "TEXT NOT NULL DEFAULT '{}'"),
+        ("image_prompt", "TEXT NOT NULL DEFAULT ''"),
+        ("negative_prompt", "TEXT NOT NULL DEFAULT ''"),
+        ("outfit_presets", "TEXT NOT NULL DEFAULT '[]'"),
+        ("negative_constraints", "TEXT NOT NULL DEFAULT ''"),
+        ("reference_asset_ids", "TEXT NOT NULL DEFAULT '[]'"),
+        ("status", "TEXT NOT NULL DEFAULT 'draft'"),
+        ("version_no", "INTEGER NOT NULL DEFAULT 1"),
+    ]:
+        if col not in existing_chars:
+            conn.execute(f"ALTER TABLE characters ADD COLUMN {col} {col_def}")
 
     existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
     if "deleted_at" not in existing_projects:
@@ -212,15 +231,74 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         ("screenplay_content_en", "TEXT NOT NULL DEFAULT ''"),
         ("beats_content", "TEXT NOT NULL DEFAULT ''"),
         ("beats_content_en", "TEXT NOT NULL DEFAULT ''"),
+        ("name", "TEXT NOT NULL DEFAULT ''"),
+        ("genre", "TEXT NOT NULL DEFAULT ''"),
+        ("target_platform", "TEXT NOT NULL DEFAULT ''"),
+        ("episode_count_planned", "INTEGER NOT NULL DEFAULT 30"),
+        ("current_stage", "TEXT NOT NULL DEFAULT 'draft'"),
     ]:
         if col not in existing_projects:
             conn.execute(f"ALTER TABLE projects ADD COLUMN {col} {col_def}")
+    conn.execute("UPDATE projects SET name = title WHERE name = ''")
+    conn.execute("UPDATE projects SET current_stage = status WHERE current_stage = 'draft' AND status <> ''")
 
     existing_episodes = {row[1] for row in conn.execute("PRAGMA table_info(episodes)").fetchall()}
     if existing_episodes:
         for col, col_def in [
             ("screenplay_content_en", "TEXT NOT NULL DEFAULT ''"),
             ("status", "TEXT NOT NULL DEFAULT 'draft'"),
+            ("episode_no", "INTEGER NOT NULL DEFAULT 1"),
+            ("summary", "TEXT NOT NULL DEFAULT ''"),
+            ("goal", "TEXT NOT NULL DEFAULT ''"),
+            ("core_conflict", "TEXT NOT NULL DEFAULT ''"),
+            ("opening_hook", "TEXT NOT NULL DEFAULT ''"),
+            ("climax", "TEXT NOT NULL DEFAULT ''"),
+            ("ending_hook", "TEXT NOT NULL DEFAULT ''"),
+            ("sort_order", "INTEGER NOT NULL DEFAULT 0"),
         ]:
             if col not in existing_episodes:
                 conn.execute(f"ALTER TABLE episodes ADD COLUMN {col} {col_def}")
+        conn.execute("UPDATE episodes SET episode_no = episode_number WHERE episode_no = 1 AND episode_number IS NOT NULL")
+        conn.execute("UPDATE episodes SET summary = outline_summary WHERE summary = ''")
+        conn.execute("UPDATE episodes SET sort_order = episode_number WHERE sort_order = 0 AND episode_number IS NOT NULL")
+
+    existing_scenes = {row[1] for row in conn.execute("PRAGMA table_info(scenes)").fetchall()}
+    if existing_scenes:
+        for col, col_def in [
+            ("scene_type", "TEXT NOT NULL DEFAULT ''"),
+            ("space_description", "TEXT NOT NULL DEFAULT ''"),
+            ("lighting_style", "TEXT NOT NULL DEFAULT ''"),
+            ("time_of_day", "TEXT NOT NULL DEFAULT ''"),
+            ("weather", "TEXT NOT NULL DEFAULT ''"),
+            ("prop_list", "TEXT NOT NULL DEFAULT '[]'"),
+            ("reference_asset_ids", "TEXT NOT NULL DEFAULT '[]'"),
+            ("variants", "TEXT NOT NULL DEFAULT '[]'"),
+            ("status", "TEXT NOT NULL DEFAULT 'draft'"),
+            ("version_no", "INTEGER NOT NULL DEFAULT 1"),
+        ]:
+            if col not in existing_scenes:
+                conn.execute(f"ALTER TABLE scenes ADD COLUMN {col} {col_def}")
+        conn.execute("UPDATE scenes SET space_description = description WHERE space_description = ''")
+
+    existing_shots = {row[1] for row in conn.execute("PRAGMA table_info(shots)").fetchall()}
+    for col, col_def in [
+        ("scene_block", "TEXT NOT NULL DEFAULT ''"),
+        ("shot_no", "INTEGER NOT NULL DEFAULT 1"),
+        ("visual_goal", "TEXT NOT NULL DEFAULT ''"),
+        ("scene_preset_id", "INTEGER"),
+        ("shot_size", "TEXT NOT NULL DEFAULT ''"),
+        ("camera_angle", "TEXT NOT NULL DEFAULT ''"),
+        ("composition", "TEXT NOT NULL DEFAULT ''"),
+        ("action_description", "TEXT NOT NULL DEFAULT ''"),
+        ("facial_emotion", "TEXT NOT NULL DEFAULT ''"),
+        ("estimated_duration_ms", "INTEGER NOT NULL DEFAULT 0"),
+        ("sort_order", "INTEGER NOT NULL DEFAULT 0"),
+    ]:
+        if col not in existing_shots:
+            conn.execute(f"ALTER TABLE shots ADD COLUMN {col} {col_def}")
+    conn.execute("UPDATE shots SET shot_no = order_index WHERE shot_no = 1 AND order_index IS NOT NULL")
+    conn.execute("UPDATE shots SET sort_order = order_index WHERE sort_order = 0 AND order_index IS NOT NULL")
+    conn.execute("UPDATE shots SET visual_goal = shot_description WHERE visual_goal = ''")
+    conn.execute("UPDATE shots SET action_description = character_action WHERE action_description = ''")
+    conn.execute("UPDATE shots SET camera_angle = camera_movement WHERE camera_angle = ''")
+    conn.execute("UPDATE shots SET estimated_duration_ms = duration_seconds * 1000 WHERE estimated_duration_ms = 0 AND duration_seconds IS NOT NULL")
