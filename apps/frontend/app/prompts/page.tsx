@@ -131,7 +131,7 @@ export default function PromptsPage() {
 
   if (!data) {
     return (
-      <p className="text-slate-500 text-sm">加载中...</p>
+      <p className="text-gray-500 text-sm">加载中...</p>
     );
   }
 
@@ -142,21 +142,21 @@ export default function PromptsPage() {
     <>
 
         {/* Header */}
-        <div className="flex flex-wrap items-center gap-3 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">Prompt Console</p>
-            <h1 className="mt-1 text-lg font-semibold text-slate-900">提示词配置</h1>
-            <p className="text-[11px] text-slate-500">编辑各环节 AI 提示词，并让修改即时作用于项目生成链路。</p>
+            <h1 className="mt-1 text-lg font-semibold text-gray-100">提示词配置</h1>
+            <p className="text-[11px] text-gray-500">编辑各环节 AI 提示词，并让修改即时作用于项目生成链路。</p>
           </div>
-          {message ? <StatusBadge status="saved" className="ml-auto bg-emerald-100 text-emerald-600" /> : null}
+          {message ? <StatusBadge status="saved" className="ml-auto bg-emerald-100 text-emerald-400" /> : null}
         </div>
 
         {message ? (
-          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{message}</div>
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">{message}</div>
         ) : null}
 
         {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto rounded-[24px] border border-line bg-panel px-3 py-3 shadow-glow">
+        <div className="flex gap-2 overflow-x-auto rounded-lg border border-line bg-panel px-3 py-3 shadow-glow">
           {TABS.map((tab) => {
             const active = activeTab === tab.key;
             const hasCustom = tab.fields.some((f) => isModified(f.key));
@@ -166,7 +166,7 @@ export default function PromptsPage() {
                 className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition ${
                   active
                     ? "bg-mint text-white shadow-[0_8px_20px_rgba(111,103,216,0.24)]"
-                    : "bg-panel2 text-slate-500 hover:text-slate-900"
+                    : "bg-panel2 text-gray-500 hover:text-gray-100"
                 }`}
                 onClick={() => setActiveTab(tab.key)}
               >
@@ -180,20 +180,20 @@ export default function PromptsPage() {
         {/* Content */}
         {currentTab && (
           <div className="flex flex-col gap-4">
-            <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
+            <section className="rounded-lg border border-line bg-panel p-6 shadow-glow">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">{currentTab.label}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{currentTab.desc}</p>
+                  <h2 className="text-xl font-semibold text-gray-100">{currentTab.label}</h2>
+                  <p className="mt-1 text-sm text-gray-500">{currentTab.desc}</p>
                 </div>
                 <StatusBadge status={activeTab} />
               </div>
 
               <div className="mt-5 grid gap-4">
                 {currentTab.fields.map((field) => (
-                  <section key={field.key} className="rounded-[24px] border border-line bg-panel2">
+                  <section key={field.key} className="rounded-lg border border-line bg-panel2">
                     <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-                      <span className="text-sm font-medium text-slate-800">{field.label}</span>
+                      <span className="text-sm font-medium text-gray-200">{field.label}</span>
                       {isModified(field.key) ? (
                         <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] text-amber-700">
                           已修改
@@ -212,11 +212,11 @@ export default function PromptsPage() {
 
               {vars.length > 0 && (
                 <div className="mt-5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] text-slate-500">可用变量：</span>
+                  <span className="text-[10px] text-gray-500">可用变量：</span>
                   {vars.map((v: any) => (
                     <code
                       key={v}
-                      className="cursor-pointer rounded-full bg-[#f2efff] px-2.5 py-1 font-mono text-[10px] text-mint transition hover:bg-mint/10"
+                      className="cursor-pointer rounded-full bg-purple-500/10 px-2.5 py-1 font-mono text-[10px] text-mint transition hover:bg-mint/10"
                       title="点击复制"
                       onClick={() => navigator.clipboard?.writeText(`{${v}}`)}
                     >

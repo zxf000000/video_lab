@@ -131,7 +131,7 @@ export default function ConfigPage() {
   if (!form || !models || !vendors || !sdForm || !klingForm) {
     return (
       <div className="flex flex-col gap-5">
-        <p className="text-slate-500 text-sm">加载中...</p>
+        <p className="text-gray-500 text-sm">加载中...</p>
       </div>
     );
   }
@@ -139,14 +139,14 @@ export default function ConfigPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">Model Config</p>
-          <h1 className="mt-1 text-lg font-semibold text-slate-900">模型配置</h1>
+          <h1 className="mt-1 text-lg font-semibold text-gray-100">模型配置</h1>
         </div>
-        <ApiBaseBadge className="hidden rounded-full border border-line bg-panel2 px-3 py-1.5 text-[11px] font-medium text-slate-500 sm:inline" />
+        <ApiBaseBadge className="hidden rounded-full border border-line bg-panel2 px-3 py-1.5 text-[11px] font-medium text-gray-500 sm:inline" />
         {config ? (
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="ml-auto flex items-center gap-2 text-[11px] text-gray-500">
             <span>{config.text_model}</span>
             <span className="text-line">·</span>
             <span>{config.image_model}</span>
@@ -164,26 +164,26 @@ export default function ConfigPage() {
       <div className="flex flex-col gap-5">
         {/* Toast */}
         {message ? (
-          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{message}</div>
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">{message}</div>
         ) : null}
         {error ? (
-          <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
         ) : null}
 
         <form className="flex flex-col gap-2" onSubmit={onSave}>
 
           {/* API Connection */}
-          <section className="rounded-[28px] border border-line bg-panel px-5 py-5 shadow-glow">
+          <section className="rounded-lg border border-line bg-panel px-5 py-5 shadow-glow">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">连接配置</h2>
-                <p className="mt-1 text-sm text-slate-500">设置 API 地址、密钥，以及当前工作区默认使用的模型路由。</p>
+                <h2 className="text-xl font-semibold text-gray-100">连接配置</h2>
+                <p className="mt-1 text-sm text-gray-500">设置 API 地址、密钥，以及当前工作区默认使用的模型路由。</p>
               </div>
-              <StatusBadge status={config?.has_api_key ? "connected" : "pending"} className={config?.has_api_key ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-700"} />
+              <StatusBadge status={config?.has_api_key ? "connected" : "pending"} className={config?.has_api_key ? "bg-emerald-100 text-emerald-400" : "bg-amber-100 text-amber-700"} />
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">API Base</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">API Base</span>
                 <Input
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
                   value={form.api_base}
@@ -192,7 +192,7 @@ export default function ConfigPage() {
                 />
               </label>
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">API Key</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">API Key</span>
                 <Input
                   type="password"
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
@@ -249,7 +249,7 @@ export default function ConfigPage() {
             <div className="flex-1">
               <ActionButton icon={saving ? undefined : IconDeviceFloppy} label={saving ? "保存中..." : "保存配置"} disabled={saving} type="submit" variant="primary" />
             </div>
-            <p className="hidden text-[11px] text-slate-500 sm:block">
+            <p className="hidden text-[11px] text-gray-500 sm:block">
               环境变量优先级最高 · 数据库存储 · 即时生效
             </p>
           </div>
@@ -257,14 +257,14 @@ export default function ConfigPage() {
 
         {/* Seedance 2.0 配置 */}
         <form onSubmit={onSaveSeedance} className="flex flex-col gap-5">
-          <section className="rounded-[28px] border border-line bg-panel px-5 py-5 shadow-glow">
+          <section className="rounded-lg border border-line bg-panel px-5 py-5 shadow-glow">
             <div className="mb-4">
-              <h2 className="text-xl font-semibold text-slate-900">Seedance 2.0 配置</h2>
-              <p className="mt-1 text-sm text-slate-500">基于火山引擎 Ark 平台的视频生成服务（画质、时长等参数在生成页面设置）</p>
+              <h2 className="text-xl font-semibold text-gray-100">Seedance 2.0 配置</h2>
+              <p className="mt-1 text-sm text-gray-500">基于火山引擎 Ark 平台的视频生成服务（画质、时长等参数在生成页面设置）</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">API Base</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">API Base</span>
                 <Input
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
                   value={sdForm.seedance_api_base}
@@ -273,7 +273,7 @@ export default function ConfigPage() {
                 />
               </label>
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">API Key</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">API Key</span>
                 <Input
                   type="password"
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
@@ -291,14 +291,14 @@ export default function ConfigPage() {
 
         {/* Kling 可灵 配置 */}
         <form onSubmit={onSaveKling} className="flex flex-col gap-5">
-          <section className="rounded-[28px] border border-line bg-panel px-5 py-5 shadow-glow">
+          <section className="rounded-lg border border-line bg-panel px-5 py-5 shadow-glow">
             <div className="mb-4">
-              <h2 className="text-xl font-semibold text-slate-900">Kling 可灵配置</h2>
-              <p className="mt-1 text-sm text-slate-500">基于快手可灵 API 的视频/图片生成服务，使用 JWT 认证（画质、模型等参数在生成页面设置）</p>
+              <h2 className="text-xl font-semibold text-gray-100">Kling 可灵配置</h2>
+              <p className="mt-1 text-sm text-gray-500">基于快手可灵 API 的视频/图片生成服务，使用 JWT 认证（画质、模型等参数在生成页面设置）</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">API Base</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">API Base</span>
                 <Input
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
                   value={klingForm.kling_api_base}
@@ -307,7 +307,7 @@ export default function ConfigPage() {
                 />
               </label>
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">Access Key</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">Access Key</span>
                 <Input
                   type="password"
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
@@ -317,7 +317,7 @@ export default function ConfigPage() {
                 />
               </label>
               <label className="flex items-center gap-2">
-                <span className="shrink-0 text-[11px] text-slate-500 w-16">Secret Key</span>
+                <span className="shrink-0 text-[11px] text-gray-500 w-16">Secret Key</span>
                 <Input
                   type="password"
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
@@ -381,12 +381,12 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
   const selectedLabel = modelList.find((m: any) => m.id === value)?.label || value || "未选择";
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-[28px] border border-line bg-panel shadow-glow">
+    <section className="flex flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-glow">
       {/* Section header */}
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
-          <span className="text-sm font-semibold text-slate-900">{title}</span>
-          <span className="ml-1.5 text-[10px] text-slate-500">{desc}</span>
+          <span className="text-sm font-semibold text-gray-100">{title}</span>
+          <span className="ml-1.5 text-[10px] text-gray-500">{desc}</span>
         </div>
         <span className="shrink-0 rounded-full bg-mint/10 px-2.5 py-1 text-[10px] font-medium text-mint max-w-[200px] truncate">
           {selectedLabel}
@@ -408,7 +408,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
                     ? "bg-mint/10 text-mint font-medium"
                     : hasSelected
                       ? "text-mint/70 hover:bg-panel2"
-                      : "text-slate-500 hover:bg-panel2 hover:text-slate-900"
+                      : "text-gray-500 hover:bg-panel2 hover:text-gray-100"
                 }`}
                 onClick={() => setSelectedVendor(name)}
               >
@@ -441,7 +441,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
                 <div
                   key={m.id}
                   className={`group flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs transition ${
-                    isSelected ? "bg-mint/10 text-mint" : "text-slate-600 hover:bg-panel2 hover:text-slate-900"
+                    isSelected ? "bg-mint/10 text-mint" : "text-gray-400 hover:bg-panel2 hover:text-gray-100"
                   }`}
                   onClick={() => onChange(m.id)}
                 >
@@ -451,11 +451,11 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
                     {isSelected ? <span className="h-1.5 w-1.5 rounded-full bg-mint" /> : null}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{m.label}</span>
-                  <span className="hidden truncate text-[10px] text-slate-400 sm:inline">{m.id}</span>
+                  <span className="hidden truncate text-[10px] text-gray-500 sm:inline">{m.id}</span>
                   {isCustom ? (
                     <button
                       type="button"
-                      className="hidden shrink-0 rounded p-0.5 text-[10px] text-slate-400 transition hover:bg-rose-100 hover:text-rose-500 group-hover:block"
+                      className="hidden shrink-0 rounded p-0.5 text-[10px] text-gray-500 transition hover:bg-red-500/10 hover:text-red-400 group-hover:block"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteModel(category, m.id).catch(() => {});
@@ -468,7 +468,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
               );
             })}
             {activeVendor && activeVendor !== "__custom" && vendorModels.length === 0 ? (
-              <p className="px-2 py-2 text-[11px] text-slate-500">暂无模型</p>
+              <p className="px-2 py-2 text-[11px] text-gray-500">暂无模型</p>
             ) : null}
           </div>
 
@@ -477,7 +477,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
             {!adding ? (
               <button
                 type="button"
-                className="w-full px-2 py-2 text-[10px] text-slate-500 transition hover:text-mint"
+                className="w-full px-2 py-2 text-[10px] text-gray-500 transition hover:text-mint"
                 onClick={() => setAdding(true)}
               >
                 <IconPlus size={12} stroke={2} className="inline" /> 自定义模型

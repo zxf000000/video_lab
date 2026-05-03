@@ -86,12 +86,12 @@ export default function HomePage() {
 
   return (
     <>
-      {error ? <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
+      {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div> : null}
 
       <section className="grid gap-4 xl:grid-cols-[1.8fr_1fr]">
-        <div className="rounded-[28px] bg-gradient-to-r from-[#6f67d8] to-[#8b85f3] px-6 py-6 text-white shadow-glow">
+        <div className="rounded-lg bg-gradient-to-r from-[#0a2a3a] to-[#1a0a2e] px-6 py-6 text-white shadow-glow border border-cyan-500/30">
           <p className="text-sm font-medium text-white/80">AI Short Drama Workspace</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">把短剧生产流程变成可操作的工作台</h2>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight neon-text">把短剧生产流程变成可操作的工作台</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
             这里聚合项目、Brief、角色、场景、分集、镜头、Prompt、生成任务与审核导出，把 AI 短剧流水线落到一个后台里。
           </p>
@@ -131,12 +131,12 @@ export default function HomePage() {
           </div>
         }
       >
-        <div className="overflow-hidden rounded-[22px] border border-line bg-panel2">
-          <div className="hidden grid-cols-[40px_1.3fr_1fr_1fr_140px_120px] gap-4 border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:grid">
+        <div className="overflow-hidden rounded-lg border border-line bg-panel2">
+          <div className="hidden grid-cols-[40px_1.3fr_1fr_1fr_140px_120px] gap-4 border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 lg:grid">
             <span className="flex items-center justify-center">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-line accent-[#6f67d8] cursor-pointer"
+                className="h-4 w-4 rounded border-line accent-[#00f0ff] cursor-pointer"
                 checked={projects.length > 0 && selectedIds.size === projects.length}
                 ref={(el) => {
                   if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < projects.length;
@@ -155,35 +155,35 @@ export default function HomePage() {
             {projects.map((project) => (
               <div
                 key={project.id}
-                className={`grid gap-3 px-5 py-4 transition hover:bg-white/70 lg:grid-cols-[40px_1.3fr_1fr_1fr_140px_120px] lg:items-center ${selectedIds.has(project.id) ? "bg-violet-50/60" : ""}`}
+                className={`grid gap-3 px-5 py-4 transition hover:bg-panel/5 lg:grid-cols-[40px_1.3fr_1fr_1fr_140px_120px] lg:items-center ${selectedIds.has(project.id) ? "bg-purple-500/10" : ""}`}
               >
                 <span className="flex items-center justify-center">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-line accent-[#6f67d8] cursor-pointer"
+                    className="h-4 w-4 rounded border-line accent-[#00f0ff] cursor-pointer"
                     checked={selectedIds.has(project.id)}
                     onChange={() => toggleSelect(project.id)}
                   />
                 </span>
                 <Link href={`/projects/${project.id}`}>
-                  <strong className="block truncate text-sm font-semibold text-slate-900">{project.name}</strong>
-                  <span className="mt-1 block text-xs text-slate-500">#{project.id}</span>
+                  <strong className="block truncate text-sm font-semibold text-gray-100">{project.name}</strong>
+                  <span className="mt-1 block text-xs text-gray-500">#{project.id}</span>
                 </Link>
-                <div className="text-sm text-slate-500">
+                <div className="text-sm text-gray-500">
                   <div>{project.genre || "未填写题材"}</div>
                   <div className="mt-1 text-xs">{project.targetPlatform || "未填写平台"}</div>
                 </div>
                 <StatusPill value={project.currentStage} tone="blue" className="w-fit" />
                 <StatusPill value={project.status} tone="purple" className="w-fit" />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-slate-700">{project.episodeCountPlanned}</span>
+                  <span className="text-sm font-medium text-gray-300">{project.episodeCountPlanned}</span>
                   <div className="flex items-center gap-2">
                     <Link href={`/projects/${project.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-mint transition hover:text-mint/80">
                       进入
                       <IconArrowRight size={14} stroke={2} />
                     </Link>
                     <button
-                      className="inline-flex items-center gap-1 text-xs font-medium text-rose-400 transition hover:text-rose-600"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-rose-400 transition hover:text-red-400"
                       onClick={(event) => handleDeleteProject(event, project.id, project.name)}
                     >
                       <IconTrash size={14} stroke={2} />
@@ -203,7 +203,7 @@ export default function HomePage() {
 
           {selectedIds.size > 0 ? (
             <div className="flex items-center justify-between border-t border-line bg-panel px-5 py-3">
-              <span className="text-sm text-slate-500">已选 {selectedIds.size} 项</span>
+              <span className="text-sm text-gray-400">已选 {selectedIds.size} 项</span>
               <Button variant="destructive" size="sm" onClick={handleBatchDelete}>
                 <IconTrash size={14} stroke={2} />
                 批量删除

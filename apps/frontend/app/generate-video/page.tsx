@@ -353,10 +353,10 @@ export default function GenerateVideoPage() {
 
   return (
     <>
-          <div className="flex flex-wrap items-center gap-4 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+          <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-mint">Quick Generate</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">快速生成视频</h1>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-100">快速生成视频</h1>
             </div>
             {activeTask ? (
               <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5">
@@ -367,16 +367,16 @@ export default function GenerateVideoPage() {
           </div>
 
           {/* Reference Images */}
-          <section className="rounded-[28px] border border-line bg-panel p-5 shadow-glow">
+          <section className="rounded-lg border border-line bg-panel p-5 shadow-glow">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <label className="text-xs font-medium text-slate-500">生成引用图</label>
-                <span className="ml-2 text-[11px] text-slate-400">
+                <label className="text-xs font-medium text-gray-500">生成引用图</label>
+                <span className="ml-2 text-[11px] text-gray-500">
                   最多 {modelConfig.maxRefImages} 张，比例 {modelConfig.refAspect}
                 </span>
               </div>
               <button
-                className="inline-flex items-center gap-1 rounded-full bg-panel2 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:text-slate-900"
+                className="inline-flex items-center gap-1 rounded-full bg-panel2 px-3 py-1.5 text-xs font-medium text-gray-400 transition hover:text-gray-100"
                 onClick={addCharacter}
                 disabled={characters.length >= 4}
               >
@@ -386,7 +386,7 @@ export default function GenerateVideoPage() {
             </div>
 
             {characters.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-400">添加引用图后，生成视频时会自动作为参考输入</p>
+              <p className="py-4 text-center text-xs text-gray-500">添加引用图后，生成视频时会自动作为参考输入</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {characters.map((char, i) => (
@@ -394,13 +394,13 @@ export default function GenerateVideoPage() {
                     <div className="mb-2 flex items-center gap-2">
                       <input
                         type="text"
-                        className="flex-1 bg-transparent text-xs font-medium outline-none placeholder:text-slate-400"
+                        className="flex-1 bg-transparent text-xs font-medium outline-none placeholder:text-gray-500"
                         placeholder="引用图名称（可选）"
                         value={char.name}
                         onChange={(e) => updateCharacter(i, "name", e.target.value)}
                       />
                       <button
-                        className="text-slate-400 transition hover:text-rose-500"
+                        className="text-gray-500 transition hover:text-red-400"
                         onClick={() => removeCharacter(i)}
                       >
                         <IconX size={14} stroke={2} />
@@ -408,7 +408,7 @@ export default function GenerateVideoPage() {
                     </div>
                     <input
                       type="text"
-                      className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-mint"
+                      className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-xs outline-none placeholder:text-gray-500 focus:border-mint"
                       placeholder="描述（可选）"
                       value={char.description}
                       onChange={(e) => updateCharacter(i, "description", e.target.value)}
@@ -429,7 +429,7 @@ export default function GenerateVideoPage() {
                       ) : (
                         <button
                           type="button"
-                          className="flex h-[32px] w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                          className="flex h-[32px] w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                           onClick={() => setRefPickerIdx(i)}
                         >
                           <IconUpload size={10} stroke={1.5} />
@@ -479,7 +479,7 @@ export default function GenerateVideoPage() {
                         />
                         <label
                           htmlFor={`ref-upload-${i}`}
-                          className="mb-1.5 flex h-[60px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                          className="mb-1.5 flex h-[60px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                         >
                           <IconUpload size={16} stroke={1.5} />
                           <span className="mt-0.5 text-[10px]">本地上传</span>
@@ -487,7 +487,7 @@ export default function GenerateVideoPage() {
                         <div className="flex gap-1.5">
                           <input
                             type="text"
-                            className="flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-[10px] outline-none placeholder:text-slate-400 focus:border-mint"
+                            className="flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-[10px] outline-none placeholder:text-gray-500 focus:border-mint"
                             placeholder="或粘贴图片 URL"
                             id={`ref-url-${i}`}
                             onKeyDown={(e: any) => {
@@ -515,7 +515,7 @@ export default function GenerateVideoPage() {
               </div>
             )}
             {refImageCount > 0 ? (
-              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-500">
                 <span>已设置 {refImageCount} 张引用图，生成视频时将自动作为参考</span>
               </div>
             ) : null}
@@ -523,11 +523,11 @@ export default function GenerateVideoPage() {
 
           <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
             {/* Left: Form */}
-            <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">生成参数</h2>
+            <section className="rounded-lg border border-line bg-panel p-6 shadow-glow">
+              <h2 className="mb-4 text-lg font-semibold text-gray-100">生成参数</h2>
               <div className="flex flex-col gap-5">
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">视频描述提示词</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">视频描述提示词</label>
                   <Textarea
                     className="min-h-[120px] resize-y"
                     placeholder="描述你想要生成的视频内容，例如：一只猫在城市屋顶上奔跑，夕阳西下，电影感光影..."
@@ -539,7 +539,7 @@ export default function GenerateVideoPage() {
                 {/* Model selector */}
                 {videoModels.length > 0 ? (
                   <div>
-                    <label className="mb-2 block text-xs text-slate-500">视频模型</label>
+                    <label className="mb-2 block text-xs text-gray-500">视频模型</label>
                     <div className="flex flex-wrap gap-2">
                       {videoModels.map((m: any) => (
                         <button
@@ -548,7 +548,7 @@ export default function GenerateVideoPage() {
                           className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
                             videoModel === m.id
                               ? "border-mint bg-mint/10 text-mint"
-                              : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                              : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                           }`}
                           onClick={() => {
                             setVideoModel(m.id);
@@ -568,7 +568,7 @@ export default function GenerateVideoPage() {
 
                 {/* Style presets */}
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">风格</label>
+                  <label className="mb-2 block text-xs text-gray-500">风格</label>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                     {STYLE_PRESETS.map((s) => {
                       const active = style === s.id;
@@ -579,7 +579,7 @@ export default function GenerateVideoPage() {
                           className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs transition ${
                             active
                               ? "border-mint bg-mint/10 text-mint"
-                              : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                              : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                           }`}
                           onClick={() => setStyle(s.id)}
                         >
@@ -593,11 +593,11 @@ export default function GenerateVideoPage() {
 
                 {/* Duration */}
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">视频时长（秒）</label>
+                  <label className="mb-2 block text-xs text-gray-500">视频时长（秒）</label>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-slate-600 transition hover:border-mint/40 hover:text-slate-900"
+                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-gray-400 transition hover:border-mint/40 hover:text-gray-100"
                       onClick={() => setDuration(Math.max(modelConfig.durationRange[0], duration - 1))}
                     >
                       <IconMinus size={16} stroke={2} />
@@ -612,12 +612,12 @@ export default function GenerateVideoPage() {
                     />
                     <button
                       type="button"
-                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-slate-600 transition hover:border-mint/40 hover:text-slate-900"
+                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-line bg-panel2 text-gray-400 transition hover:border-mint/40 hover:text-gray-100"
                       onClick={() => setDuration(Math.min(modelConfig.durationRange[1], duration + 1))}
                     >
                       <IconPlus size={16} stroke={2} />
                     </button>
-                    <span className="text-xs text-slate-500">秒（{modelConfig.durationRange[0]}-{modelConfig.durationRange[1]}）</span>
+                    <span className="text-xs text-gray-500">秒（{modelConfig.durationRange[0]}-{modelConfig.durationRange[1]}）</span>
                   </div>
                   <div className="mt-2 flex gap-2">
                     {modelConfig.durationPresets.map((d) => (
@@ -627,7 +627,7 @@ export default function GenerateVideoPage() {
                         className={`rounded-lg border px-3 py-1 text-[11px] transition ${
                           duration === d
                             ? "border-mint/40 bg-mint/10 text-mint"
-                            : "border-line text-slate-500 hover:text-slate-800"
+                            : "border-line text-gray-500 hover:text-gray-200"
                         }`}
                         onClick={() => setDuration(d)}
                       >
@@ -638,7 +638,7 @@ export default function GenerateVideoPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">画面比例</label>
+                  <label className="mb-2 block text-xs text-gray-500">画面比例</label>
                   <div className="flex gap-2">
                     {modelConfig.ratios.map((r) => (
                       <button
@@ -647,7 +647,7 @@ export default function GenerateVideoPage() {
                         className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
                           aspectRatio === r
                             ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                            : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                         }`}
                         onClick={() => setAspectRatio(r)}
                       >
@@ -658,7 +658,7 @@ export default function GenerateVideoPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">画质</label>
+                  <label className="mb-2 block text-xs text-gray-500">画质</label>
                   <div className="flex gap-2">
                     {modelConfig.resolutions.map((res) => (
                       <button
@@ -667,7 +667,7 @@ export default function GenerateVideoPage() {
                         className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
                           resolution === res
                             ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                            : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                         }`}
                         onClick={() => setResolution(res)}
                       >
@@ -679,7 +679,7 @@ export default function GenerateVideoPage() {
 
                 {/* Reference Images */}
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">引用图片（可选，支持多张）</label>
+                  <label className="mb-2 block text-xs text-gray-500">引用图片（可选，支持多张）</label>
 
                   {imagePreviews.length > 0 ? (
                     <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -692,12 +692,12 @@ export default function GenerateVideoPage() {
                           >
                             <IconX size={14} stroke={2} />
                           </button>
-                          <p className="mt-1 truncate text-[11px] text-slate-400">{img.name}</p>
+                          <p className="mt-1 truncate text-[11px] text-gray-500">{img.name}</p>
                         </div>
                       ))}
                       <button
                         type="button"
-                        className="flex h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                        className="flex h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <IconPlus size={20} stroke={2} />
@@ -707,7 +707,7 @@ export default function GenerateVideoPage() {
                   ) : (
                     <button
                       type="button"
-                      className="mb-3 flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                      className="mb-3 flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <IconUpload size={24} stroke={1.5} />
@@ -724,22 +724,22 @@ export default function GenerateVideoPage() {
                   />
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-[11px] text-slate-400">或填写图片链接</label>
+                    <label className="text-[11px] text-gray-500">或填写图片链接</label>
                     {imageUrls.map((url: any, i: any) => (
                       <div key={i} className="flex gap-2">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-panel2 text-slate-400">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-panel2 text-gray-500">
                           <IconLink size={16} stroke={2} />
                         </div>
                         <input
                           type="text"
-                          className="flex-1 rounded-xl border border-line bg-panel2 px-4 text-sm outline-none placeholder:text-slate-400 focus:border-mint"
+                          className="flex-1 rounded-xl border border-line bg-panel2 px-4 text-sm outline-none placeholder:text-gray-500 focus:border-mint"
                           placeholder="https://example.com/image.png"
                           value={url}
                           onChange={(e) => updateUrl(i, e.target.value)}
                         />
                         {imageUrls.length > 1 ? (
                           <button
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-50 hover:text-rose-500"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-500 transition hover:bg-red-500/10 hover:text-red-400"
                             onClick={() => removeUrl(i)}
                           >
                             <IconX size={16} stroke={2} />
@@ -760,7 +760,7 @@ export default function GenerateVideoPage() {
               </div>
 
               {error ? (
-                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+                <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
               ) : null}
 
               <div className="mt-5">
@@ -771,9 +771,9 @@ export default function GenerateVideoPage() {
             {/* Right: Task Feed */}
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-900">生成记录</h2>
+                <h2 className="text-sm font-semibold text-gray-100">生成记录</h2>
                 <button
-                  className="rounded-full bg-panel2 p-2 text-slate-400 transition hover:text-slate-700"
+                  className="rounded-full bg-panel2 p-2 text-gray-500 transition hover:text-gray-300"
                   onClick={refreshTasks}
                 >
                   <IconRefresh size={14} stroke={2} />
@@ -781,10 +781,10 @@ export default function GenerateVideoPage() {
               </div>
 
               {tasks.length === 0 ? (
-                <div className="rounded-[24px] border border-line bg-panel p-8 text-center shadow-glow">
+                <div className="rounded-lg border border-line bg-panel p-8 text-center shadow-glow">
                   <IconClock size={32} className="mx-auto text-slate-300" />
-                  <p className="mt-3 text-sm text-slate-500">还没有生成记录</p>
-                  <p className="mt-1 text-xs text-slate-400">提交任务后将在此显示</p>
+                  <p className="mt-3 text-sm text-gray-500">还没有生成记录</p>
+                  <p className="mt-1 text-xs text-gray-500">提交任务后将在此显示</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -866,22 +866,22 @@ function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onVi
     return (
       <div className="rounded-[20px] border border-line bg-panel p-4 shadow-glow transition hover:border-mint/40">
         <div className="mb-2 flex items-center gap-2">
-          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-medium text-emerald-600">已完成</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
+          <span className="text-[11px] font-medium text-emerald-400">已完成</span>
           {totalDuration > 0 ? (
-            <span className="text-[10px] text-slate-400">耗时 {formatElapsed(totalDuration)}</span>
+            <span className="text-[10px] text-gray-500">耗时 {formatElapsed(totalDuration)}</span>
           ) : null}
-          <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+          <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
         </div>
-        <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+        <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           {styleLabel ? (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{styleLabel}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{styleLabel}</span>
           ) : null}
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>
           {task.created_at ? (
-            <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+            <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
         <button
@@ -913,37 +913,37 @@ function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onVi
           </>
         ) : isFailed ? (
           <>
-            <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-medium text-rose-600">失败</span>
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500/100" />
+            <span className="text-[11px] font-medium text-red-400">失败</span>
           </>
         ) : (
           <>
             <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-            <span className="text-[11px] font-medium text-slate-500">排队中</span>
+            <span className="text-[11px] font-medium text-gray-500">排队中</span>
           </>
         )}
-        <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+        <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
       </div>
 
-      <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+      <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
         {styleLabel ? (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{styleLabel}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{styleLabel}</span>
         ) : null}
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>
         {task.created_at ? (
-          <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+          <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
         ) : null}
       </div>
 
       {isActive ? (
         <div className="mt-1">
           {progressStep ? (
-            <p className="mb-1 text-[11px] text-slate-500">{progressStep}</p>
+            <p className="mb-1 text-[11px] text-gray-500">{progressStep}</p>
           ) : null}
-          <p className="text-[11px] text-slate-400">已用 {formatElapsed(elapsed)}</p>
+          <p className="text-[11px] text-gray-500">已用 {formatElapsed(elapsed)}</p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               className="h-full w-1/3 rounded-full bg-mint"
@@ -954,10 +954,10 @@ function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onVi
       ) : null}
 
       {isFailed && task.error_message ? (
-        <div className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{task.error_message}</div>
+        <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{task.error_message}</div>
       ) : null}
       {isFailed && totalDuration > 0 ? (
-        <p className="mt-2 text-[10px] text-slate-400">耗时 {formatElapsed(totalDuration)}</p>
+        <p className="mt-2 text-[10px] text-gray-500">耗时 {formatElapsed(totalDuration)}</p>
       ) : null}
     </div>
   );
@@ -976,26 +976,19 @@ function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
   return (
     <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
       <DialogContent
-        showCloseButton={false}
-        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
+        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>任务详情</DialogTitle>
           <DialogDescription>查看生成任务的视频、提示词和元数据。</DialogDescription>
         </DialogHeader>
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center">
           <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
             <span className="text-sm font-semibold text-white">任务 #{task.id}</span>
-            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
+            <span className="rounded-full bg-emerald-500/100/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
           </div>
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 transition hover:bg-white/20 hover:text-white"
-            onClick={onClose}
-          >
-            <IconX size={16} stroke={2} />
-          </button>
         </div>
 
         {/* Video */}
@@ -1008,18 +1001,18 @@ function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
         {/* Prompt */}
         <div className="mb-4">
           <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-white/40">提示词</label>
-          <p className="rounded-xl bg-white/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText}</p>
+          <p className="rounded-xl bg-panel/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText}</p>
         </div>
 
         {/* Meta */}
         <div className="mb-5 flex flex-wrap gap-2">
           {styleLabel ? (
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">风格: {styleLabel}</span>
+            <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">风格: {styleLabel}</span>
           ) : null}
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>
           {task.created_at ? (
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
+            <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
 
@@ -1058,22 +1051,15 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
   return (
     <Dialog open={open} onOpenChange={(nextOpen: any) => { if (!nextOpen) onClose(); }}>
       <DialogContent
-        showCloseButton={false}
-        className="max-h-[80vh] max-w-lg overflow-y-auto rounded-[24px] border border-line bg-panel p-5"
+        className="max-h-[80vh] max-w-lg overflow-y-auto rounded-lg border border-line bg-panel p-5"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>选择参考图</DialogTitle>
           <DialogDescription>上传或选择历史参考图。</DialogDescription>
         </DialogHeader>
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">选择参考图</h3>
-          <button
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-panel2 text-slate-400 transition hover:text-slate-700"
-            onClick={onClose}
-          >
-            <IconX size={14} stroke={2} />
-          </button>
+        <div className="mb-4 flex items-center">
+          <h3 className="text-sm font-semibold text-gray-100">选择参考图</h3>
         </div>
 
         {/* Upload button */}
@@ -1087,7 +1073,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
           />
           <button
             type="button"
-            className="flex h-[80px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+            className="flex h-[80px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
             onClick={() => fileInputRef.current?.click()}
           >
             <IconUpload size={20} stroke={1.5} />
@@ -1098,7 +1084,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
         {/* History */}
         {history.length > 0 ? (
           <div>
-            <p className="mb-2 text-[11px] text-slate-400">历史参考图</p>
+            <p className="mb-2 text-[11px] text-gray-500">历史参考图</p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
               {history.map((url: any, idx: any) => (
                 <div key={idx} className="group relative">
@@ -1123,7 +1109,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
             </div>
           </div>
         ) : (
-          <p className="py-4 text-center text-xs text-slate-400">暂无历史参考图</p>
+          <p className="py-4 text-center text-xs text-gray-500">暂无历史参考图</p>
         )}
       </DialogContent>
     </Dialog>

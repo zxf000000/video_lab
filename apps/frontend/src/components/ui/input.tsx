@@ -22,7 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
       radius="large"
       variant="surface"
       size="3"
-      className={cn("w-full", className)}
+      className={cn("w-full focus:shadow-[0_0_12px_rgba(0,240,255,0.3)] transition-shadow", className)}
       {...props}
     />
   )

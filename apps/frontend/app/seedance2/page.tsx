@@ -188,10 +188,10 @@ export default function Seedance2Page() {
 
   return (
     <>
-        <div className="flex flex-wrap items-center gap-4 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-mint">Seedance 2.0</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Seedance 视频生成</h1>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-100">Seedance 视频生成</h1>
           </div>
           {activeTask ? (
             <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5">
@@ -203,7 +203,7 @@ export default function Seedance2Page() {
 
         <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
             {/* Left: Form */}
-            <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
+            <section className="rounded-lg border border-line bg-panel p-6 shadow-glow">
               {/* Mode tabs */}
               <div className="mb-5 flex gap-2">
                 {MODES.map((m) => (
@@ -217,15 +217,15 @@ export default function Seedance2Page() {
                     }`}
                     onClick={() => { setMode(m.id); resetForm(); }}
                   >
-                    <p className={`text-sm font-medium ${mode === m.id ? "text-mint" : "text-slate-700"}`}>{m.label}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">{m.desc}</p>
+                    <p className={`text-sm font-medium ${mode === m.id ? "text-mint" : "text-gray-300"}`}>{m.label}</p>
+                    <p className="mt-0.5 text-[11px] text-gray-500">{m.desc}</p>
                   </button>
                 ))}
               </div>
 
               {/* Prompt */}
               <div className="mb-4">
-                <label className="mb-1.5 block text-xs text-slate-500">
+                <label className="mb-1.5 block text-xs text-gray-500">
                   {mode === "i2v" ? "首帧描述提示词" : "参考图描述提示词"}
                 </label>
                 <Textarea
@@ -243,7 +243,7 @@ export default function Seedance2Page() {
               {/* Image upload (for i2v and character) */}
               {(mode === "i2v" || mode === "character") && (
                 <div className="mb-4">
-                  <label className="mb-1.5 block text-xs text-slate-500">
+                  <label className="mb-1.5 block text-xs text-gray-500">
                     {mode === "i2v" ? "首帧图片（1-3张）" : "参考图片（1-3张）"}
                   </label>
                   {imagePreviews.length > 0 ? (
@@ -261,7 +261,7 @@ export default function Seedance2Page() {
                       ))}
                       <button
                         type="button"
-                        className="flex h-[100px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40"
+                        className="flex h-[100px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <IconPlus size={18} stroke={2} />
@@ -271,7 +271,7 @@ export default function Seedance2Page() {
                   ) : (
                     <button
                       type="button"
-                      className="mb-2 flex h-[100px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40"
+                      className="mb-2 flex h-[100px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <IconUpload size={20} stroke={1.5} />
@@ -285,7 +285,7 @@ export default function Seedance2Page() {
               {/* Parameters */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">画面比例</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">画面比例</label>
                   <div className="flex gap-1.5">
                     {RATIOS.map((r) => (
                       <button
@@ -294,7 +294,7 @@ export default function Seedance2Page() {
                         className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                           aspectRatio === r
                             ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-500 hover:text-slate-800"
+                            : "border-line bg-panel2 text-gray-500 hover:text-gray-200"
                         }`}
                         onClick={() => setAspectRatio(r)}
                       >
@@ -304,7 +304,7 @@ export default function Seedance2Page() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">分辨率</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">分辨率</label>
                   <div className="flex gap-1.5">
                     {RESOLUTIONS.map((res) => (
                       <button
@@ -313,7 +313,7 @@ export default function Seedance2Page() {
                         className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                           resolution === res
                             ? "border-mint bg-mint/10 text-mint"
-                            : "border-line bg-panel2 text-slate-500 hover:text-slate-800"
+                            : "border-line bg-panel2 text-gray-500 hover:text-gray-200"
                         }`}
                         onClick={() => setResolution(res)}
                       >
@@ -323,7 +323,7 @@ export default function Seedance2Page() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">时长（秒）</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">时长（秒）</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -339,7 +339,7 @@ export default function Seedance2Page() {
                           key={d}
                           type="button"
                           className={`rounded-md border px-2 py-1 text-[10px] transition ${
-                            duration === d ? "border-mint/40 bg-mint/10 text-mint" : "border-line text-slate-400"
+                            duration === d ? "border-mint/40 bg-mint/10 text-mint" : "border-line text-gray-500"
                           }`}
                           onClick={() => setDuration(d)}
                         >
@@ -358,7 +358,7 @@ export default function Seedance2Page() {
                   checked={removeWatermark}
                   onChange={(e) => setRemoveWatermark(e.target.checked)}
                 />
-                <span className="text-xs text-slate-600">去水印</span>
+                <span className="text-xs text-gray-400">去水印</span>
               </div>
 
               <div className="mt-5">
@@ -375,9 +375,9 @@ export default function Seedance2Page() {
             {/* Right: Task Feed */}
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-900">生成记录</h2>
+                <h2 className="text-sm font-semibold text-gray-100">生成记录</h2>
                 <button
-                  className="rounded-full bg-panel2 p-2 text-slate-400 transition hover:text-slate-700"
+                  className="rounded-full bg-panel2 p-2 text-gray-500 transition hover:text-gray-300"
                   onClick={refreshTasks}
                 >
                   <IconRefresh size={14} stroke={2} />
@@ -385,9 +385,9 @@ export default function Seedance2Page() {
               </div>
 
               {tasks.length === 0 ? (
-                <div className="rounded-[24px] border border-line bg-panel p-8 text-center shadow-glow">
+                <div className="rounded-lg border border-line bg-panel p-8 text-center shadow-glow">
                   <IconClock size={32} className="mx-auto text-slate-300" />
-                  <p className="mt-3 text-sm text-slate-500">还没有生成记录</p>
+                  <p className="mt-3 text-sm text-gray-500">还没有生成记录</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -477,21 +477,21 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
     return (
       <div className="rounded-[20px] border border-line bg-panel p-4 shadow-glow transition hover:border-mint/40">
         <div className="mb-2 flex items-center gap-2">
-          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-medium text-emerald-600">已完成</span>
-          {totalDuration && <span className="text-[10px] text-slate-400">耗时 {totalDuration}</span>}
-          <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
+          <span className="text-[11px] font-medium text-emerald-400">已完成</span>
+          {totalDuration && <span className="text-[10px] text-gray-500">耗时 {totalDuration}</span>}
+          <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
         </div>
-        <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+        <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">
             {task.task_type === "seedance_t2v" ? "文生视频" : task.task_type === "seedance_i2v" ? "首帧生成视频" : "参考图生成视频"}
           </span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-          {res && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{res}</span>}
-          {dur > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+          {res && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{res}</span>}
+          {dur > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>}
           {task.created_at ? (
-            <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+            <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
         <button
@@ -528,30 +528,30 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
           </>
         ) : isFailed ? (
           <>
-            <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-medium text-rose-600">失败</span>
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500/100" />
+            <span className="text-[11px] font-medium text-red-400">失败</span>
             {failedDuration && <span className="text-[10px] text-rose-400">耗时 {failedDuration}</span>}
           </>
         ) : (
           <>
             <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-            <span className="text-[11px] font-medium text-slate-500">排队中</span>
+            <span className="text-[11px] font-medium text-gray-500">排队中</span>
           </>
         )}
-        <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+        <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
       </div>
 
-      <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+      <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">
           {task.task_type === "seedance_t2v" ? "文生视频" : task.task_type === "seedance_i2v" ? "首帧生成视频" : "参考图生成视频"}
         </span>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-        {res && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{res}</span>}
-        {dur > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>}
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+        {res && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{res}</span>}
+        {dur > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>}
         {task.created_at ? (
-          <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+          <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
         ) : null}
       </div>
 
@@ -569,7 +569,7 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-slate-500">{progressPercent}%</span>
+              <span className="shrink-0 text-[10px] font-medium text-gray-500">{progressPercent}%</span>
             </div>
           ) : (
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -580,12 +580,12 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
       )}
 
       {isFailed && task.error_message ? (
-        <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{task.error_message}</div>
+        <div className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{task.error_message}</div>
       ) : null}
 
       {isFailed ? (
         <button
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-50 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-100"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-red-500/10 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
           onClick={() => onRetry(task)}
         >
           <IconRefresh size={14} stroke={2} />
@@ -609,26 +609,19 @@ function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }
   return (
     <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
       <DialogContent
-        showCloseButton={false}
-        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
+        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Seedance 任务详情</DialogTitle>
           <DialogDescription>查看 Seedance 任务视频、提示词和参数。</DialogDescription>
         </DialogHeader>
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center">
           <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
             <span className="text-sm font-semibold text-white">任务 #{task.id}</span>
-            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
+            <span className="rounded-full bg-emerald-500/100/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
           </div>
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 transition hover:bg-white/20 hover:text-white"
-            onClick={onClose}
-          >
-            <IconX size={16} stroke={2} />
-          </button>
         </div>
 
         {/* Video */}
@@ -646,19 +639,19 @@ function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }
         {/* Prompt */}
         <div className="mb-4">
           <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-white/40">提示词</label>
-          <p className="rounded-xl bg-white/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText || "—"}</p>
+          <p className="rounded-xl bg-panel/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText || "—"}</p>
         </div>
 
         {/* Meta */}
         <div className="mb-5 flex flex-wrap gap-2">
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">
             {task.task_type === "seedance_t2v" ? "文生视频" : task.task_type === "seedance_i2v" ? "首帧生成视频" : "参考图生成视频"}
           </span>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
-          {res && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">分辨率: {res}</span>}
-          {dur > 0 && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>}
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
+          {res && <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">分辨率: {res}</span>}
+          {dur > 0 && <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>}
           {task.created_at ? (
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
+            <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
 

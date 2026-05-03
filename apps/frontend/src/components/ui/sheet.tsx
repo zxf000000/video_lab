@@ -5,7 +5,6 @@ import { Dialog as ThemeDialog, Theme } from "@radix-ui/themes"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/src/lib/utils"
-import { Button } from "@/src/components/ui/button"
 
 function Sheet(props: React.ComponentPropsWithoutRef<typeof ThemeDialog.Root>) {
   return <ThemeDialog.Root data-slot="sheet" {...props} />
@@ -38,14 +37,14 @@ function SheetContent({
   showCloseButton?: boolean
 }) {
   return (
-    <Theme appearance="light" accentColor="iris" grayColor="slate" radius="large">
+    <Theme appearance="dark" accentColor="cyan" grayColor="slate" radius="large">
       <ThemeDialog.Content
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-[60] flex max-h-[100vh] flex-col gap-4 rounded-none border-0 p-0 shadow-2xl",
-          "data-[side=right]:top-0 data-[side=right]:right-0 data-[side=right]:h-screen data-[side=right]:w-[min(32rem,92vw)]",
-          "data-[side=left]:top-0 data-[side=left]:left-0 data-[side=left]:h-screen data-[side=left]:w-[min(32rem,92vw)]",
+          "fixed z-[60] flex max-h-[100vh] flex-col gap-4 rounded-none border-0 !bg-panel !text-gray-100 p-0 shadow-2xl",
+          "data-[side=right]:top-0 data-[side=right]:right-0 data-[side=right]:h-screen data-[side=right]:w-[min(32rem,92vw)] data-[side=right]:border-l data-[side=right]:border-line",
+          "data-[side=left]:top-0 data-[side=left]:left-0 data-[side=left]:h-screen data-[side=left]:w-[min(32rem,92vw)] data-[side=left]:border-r data-[side=left]:border-line",
           "data-[side=top]:top-0 data-[side=top]:left-0 data-[side=top]:w-screen",
           "data-[side=bottom]:bottom-0 data-[side=bottom]:left-0 data-[side=bottom]:w-screen",
           className
@@ -55,10 +54,14 @@ function SheetContent({
         {children}
         {showCloseButton ? (
           <ThemeDialog.Close>
-            <Button variant="ghost" className="absolute top-3 right-3" size="icon">
-              <XIcon />
+            <span
+              className={cn(
+                "absolute top-3 right-3 z-10 inline-flex size-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-panel/5 hover:text-gray-200"
+              )}
+            >
+              <XIcon className="size-4" />
               <span className="sr-only">Close</span>
-            </Button>
+            </span>
           </ThemeDialog.Close>
         ) : null}
       </ThemeDialog.Content>
@@ -85,7 +88,7 @@ function SheetDescription({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<typeof ThemeDialog.Description>) {
-  return <ThemeDialog.Description data-slot="sheet-description" className={cn("text-sm text-slate-500", className)} {...props} />
+  return <ThemeDialog.Description data-slot="sheet-description" className={cn("text-sm text-gray-500", className)} {...props} />
 }
 
 export {

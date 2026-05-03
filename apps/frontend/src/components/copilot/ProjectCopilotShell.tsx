@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { streamCopilot, type CopilotIntent, type CopilotProposal } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
-import { EmptyState, SectionCard } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
 import { Label } from "@/src/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/src/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { Textarea } from "@/src/components/ui/textarea";
 import { useProjectCopilot } from "@/src/components/copilot/ProjectCopilotContext";
 
@@ -29,6 +29,7 @@ export default function ProjectCopilotShell() {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [tab, setTab] = useState("chat");
   const proposalSectionRef = useRef<HTMLDivElement | null>(null);
 
   const supportedIntents = adapter?.getSupportedIntents() ?? [];
@@ -49,6 +50,7 @@ export default function ProjectCopilotShell() {
       setSelectedFields([]);
       setError("");
       setInput("");
+      setTab("chat");
       return;
     }
     const nextIntent = adapter.getSupportedIntents()[0] ?? "generate";
@@ -126,6 +128,10 @@ export default function ProjectCopilotShell() {
     }
   }
 
+  useEffect(() => {
+    if (proposal) setTab("proposal");
+  }, [proposal]);
+
   if (!adapter) return null;
 
   return (
@@ -137,74 +143,89 @@ export default function ProjectCopilotShell() {
           </SheetHeader>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto p-3">
-              <SectionCard title="上下文摘要" description="Copilot 会基于当前模块状态生成建议，不会直接改库。">
-                {adapter.renderContextSummary()}
-              </SectionCard>
+            <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="border-b border-line px-4">
+                <TabsList variant="line">
+                  <TabsTrigger value="context">上下文</TabsTrigger>
+                  <TabsTrigger value="chat">对话</TabsTrigger>
+                  <TabsTrigger value="proposal">建议 {proposal ? "(1)" : ""}</TabsTrigger>
+                </TabsList>
+              </div>
 
-              <SectionCard title="对话区" description="先告诉 Copilot 这次希望生成、改写、扩写还是补全。">
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <TabsContent value="context" className="p-4">
+                  <div className="space-y-3 text-[13px] leading-5 text-gray-300">
+                    {adapter.renderContextSummary()}
+                  </div>
+                  <p className="mt-4 text-[11px] text-gray-500">Copilot 会基于当前模块状态生成建议，不会直接改库。</p>
+                </TabsContent>
+
+                <TabsContent value="chat" className="flex flex-col gap-3 p-4">
+                  <div className="flex flex-wrap gap-1.5">
                     {supportedIntents.map((item) => (
                       <Button key={item} type="button" variant={intent === item ? "default" : "outline"} size="sm" onClick={() => setIntent(item)}>
                         {intentLabels[item]}
                       </Button>
                     ))}
                   </div>
+
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-slate-500">{composer?.inputLabel ?? "你的目标"}</Label>
+                    <Label className="text-xs text-gray-500">{composer?.inputLabel ?? "你的目标"}</Label>
                     <Textarea
-                      className="min-h-[104px] text-sm"
+                      className="min-h-[80px] text-sm"
                       placeholder={composer?.inputPlaceholder ?? "例如：根据这个短剧创意，先生成一版更有钩子的 Brief。"}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2 rounded-[18px] border border-line bg-panel px-3 py-3">
+
+                  <div className="space-y-2.5 rounded-lg border border-line bg-panel2/50 px-3 py-2.5">
                     {messages.length ? messages.map((message, index) => (
-                      <div key={`${message.role}-${index}`} className="space-y-1">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                          {message.role === "user" ? "User" : "Copilot"}
+                      <div key={`${message.role}-${index}`} className="space-y-0.5">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">
+                          {message.role === "user" ? "You" : "Copilot"}
                         </p>
-                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-slate-700">{message.content}</div>
+                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{message.content}</div>
                       </div>
                     )) : (
-                      <EmptyState
-                        title={composer?.emptyConversationTitle ?? "还没有对话"}
-                        description={composer?.emptyConversationDescription ?? `输入一句创意或改写目标，Copilot 会返回可回填的 ${adapter.title} 草稿。`}
-                      />
+                      <p className="py-4 text-center text-[13px] text-gray-500">
+                        {composer?.emptyConversationDescription ?? `输入创意或改写目标，Copilot 会返回可回填的 ${adapter.title} 草稿。`}
+                      </p>
                     )}
                     {streamingText ? (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">Copilot</p>
-                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-slate-700">{streamingText}</div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">Copilot</p>
+                        <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{streamingText}</div>
                       </div>
                     ) : null}
                   </div>
-                  {error ? <div className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-600">{error}</div> : null}
-                </div>
-              </SectionCard>
 
-              <div ref={proposalSectionRef}>
-                <SectionCard title="建议结果区" description="AI 先产出结构化草稿，你确认后再应用到当前表单。">
-                {proposal ? (
-                  adapter.renderProposal({ proposal, selectedFields, toggleField })
-                ) : (
-                  <EmptyState title="还没有结构化建议" description={`发起一次对话后，这里会显示可回填的 ${adapter.title} proposal。`} />
-                )}
-                </SectionCard>
+                  {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[13px] text-red-400">{error}</div> : null}
+                </TabsContent>
+
+                <TabsContent value="proposal" className="p-4">
+                  {proposal ? (
+                    <div className="space-y-3">
+                      {adapter.renderProposal({ proposal, selectedFields, toggleField })}
+                    </div>
+                  ) : (
+                    <p className="py-4 text-center text-[13px] text-gray-500">
+                      发起对话后，这里会显示可回填的 {adapter.title} 建议。
+                    </p>
+                  )}
+                </TabsContent>
               </div>
-            </div>
+            </Tabs>
 
-            <div className="border-t border-line bg-white px-4 py-3">
-              <div className="mb-3 flex flex-wrap gap-2">
+            <div className="border-t border-line bg-panel px-4 py-3">
+              <div className="mb-2 flex flex-wrap gap-2">
                 <Button onClick={handleSubmit} disabled={submitting || !input.trim()}>
-                  {submitting ? "生成中..." : "发送给 Copilot"}
+                  {submitting ? "生成中..." : "发送"}
                 </Button>
                 {proposalStyle === "fieldSelection" && adapter.applyProposal ? (
                   <>
                     <Button variant="outline" disabled={!proposal} onClick={() => proposal && adapter.applyProposal?.(proposal, { mode: "all", fields: [] })}>
-                      应用全部建议
+                      应用全部
                     </Button>
                     <Button
                       variant="outline"
@@ -216,10 +237,10 @@ export default function ProjectCopilotShell() {
                   </>
                 ) : null}
               </div>
-              <div className="text-[11px] leading-5 text-slate-500">
+              <div className="text-[11px] leading-5 text-gray-500">
                 {proposalStyle === "fieldSelection"
-                  ? "应用动作只会更新当前页面表单；真正写入数据库仍需你点击页面自己的保存按钮。"
-                  : "角色设计器会先生成候选角色；你可以逐个加入角色库，或载入编辑器后再保存。"}
+                  ? "应用动作只更新页面表单；写入数据库需点击保存按钮。"
+                  : "角色设计器先生成候选角色；加入角色库或载入编辑器后再保存。"}
               </div>
             </div>
           </div>

@@ -19,18 +19,18 @@ function mapBadgeProps(variant: BadgeVariant) {
     case "destructive":
       return { variant: "soft" as const, color: "red" as const }
     case "outline":
-      return { variant: "outline" as const, color: "gray" as const }
+      return { variant: "outline" as const, color: "cyan" as const }
     case "ghost":
       return { variant: "surface" as const, color: "gray" as const }
     default:
-      return { variant: "solid" as const, color: "iris" as const }
+      return { variant: "solid" as const, color: "cyan" as const }
   }
 }
 
 function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
   const mapped = mapBadgeProps(variant)
   return (
-    <ThemeBadge data-slot="badge" radius="full" {...mapped} className={cn(className)} {...props}>
+    <ThemeBadge data-slot="badge" radius="medium" {...mapped} className={cn(className)} {...props}>
       {children}
     </ThemeBadge>
   )

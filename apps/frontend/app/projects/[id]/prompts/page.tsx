@@ -14,9 +14,9 @@ export default function ProjectPromptsPage() {
       {currentProject.episodes.length ? (
         <div className="grid gap-3 md:grid-cols-2">
           {currentProject.episodes.map((episode) => (
-            <Link key={episode.id} href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="rounded-[24px] border border-line bg-panel2 px-5 py-4 transition hover:border-mint/40 hover:bg-white/80">
-              <p className="text-sm font-semibold text-slate-900">第 {episode.episodeNo} 集 · {episode.title || "未命名分集"}</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">先进入镜头列表，再按具体 shot 管理 Prompt 版本和激活状态。</p>
+            <Link key={episode.id} href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="rounded-lg border border-line bg-panel2 px-5 py-4 transition hover:border-mint/40 hover:bg-panel/5">
+              <p className="text-sm font-semibold text-gray-100">第 {episode.episodeNo} 集 · {episode.title || "未命名分集"}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">先进入镜头列表，再按具体 shot 管理 Prompt 版本和激活状态。</p>
             </Link>
           ))}
         </div>

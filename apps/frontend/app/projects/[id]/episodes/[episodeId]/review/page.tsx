@@ -75,11 +75,11 @@ export default function EpisodeReviewPage() {
       <SectionCard title={`第 ${episode.episodeNo} 集审核`} description="用结构化问题记录生成失败、漂移和返工方向。">
         <div className="grid gap-5 md:grid-cols-3">
           <div>
-            <Label className="mb-2 block text-xs text-slate-500">问题类型</Label>
+            <Label className="mb-2 block text-xs text-gray-500">问题类型</Label>
             <Input value={issueType} onChange={(e) => setIssueType(e.target.value)} placeholder="人脸漂移 / 情绪不对 / 镜头不稳" />
           </div>
           <div>
-            <Label className="mb-2 block text-xs text-slate-500">严重程度</Label>
+            <Label className="mb-2 block text-xs text-gray-500">严重程度</Label>
             <Input value={severity} onChange={(e) => setSeverity(e.target.value)} placeholder="medium" />
           </div>
           <div className="flex items-end">
@@ -88,7 +88,7 @@ export default function EpisodeReviewPage() {
             </Button>
           </div>
           <div className="md:col-span-3">
-            <Label className="mb-2 block text-xs text-slate-500">问题描述</Label>
+            <Label className="mb-2 block text-xs text-gray-500">问题描述</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[120px]" />
           </div>
         </div>
@@ -96,19 +96,19 @@ export default function EpisodeReviewPage() {
 
       <SectionCard title="问题列表" description="每个问题都会成为返工和版本迭代的输入。">
         {loading ? (
-          <div className="text-sm text-slate-500">审核问题加载中...</div>
+          <div className="text-sm text-gray-500">审核问题加载中...</div>
         ) : issues.length ? (
           <div className="grid gap-3">
             {issues.map((issue) => (
-              <div key={issue.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+              <div key={issue.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-slate-900">{issue.issueType}</h3>
+                      <h3 className="text-sm font-semibold text-gray-100">{issue.issueType}</h3>
                       <StatusPill value={issue.severity} tone="amber" />
                       <StatusPill value={issue.resolutionStatus} tone={issue.resolutionStatus === "resolved" ? "green" : "purple"} />
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{issue.description || "无描述"}</p>
+                    <p className="mt-3 text-sm leading-6 text-gray-400">{issue.description || "无描述"}</p>
                   </div>
                   {issue.resolutionStatus !== "resolved" ? (
                     <Button variant="secondary" size="sm" onClick={() => handleResolve(issue.id)}>

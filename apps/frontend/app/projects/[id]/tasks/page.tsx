@@ -26,16 +26,16 @@ export default function ProjectTasksPage() {
       {currentProject.tasks.length ? (
         <div className="grid gap-3">
           {currentProject.tasks.map((task) => (
-            <div key={task.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+            <div key={task.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900">{task.modelName || task.provider || "Generation Task"}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-gray-100">{task.modelName || task.provider || "Generation Task"}</p>
+                  <p className="mt-1 text-xs text-gray-500">
                     Task #{task.id}
                     {task.episodeId ? ` · Episode ${task.episodeId}` : ""}
                     {task.shotId ? ` · Shot ${task.shotId}` : ""}
                   </p>
-                  {task.errorMessage ? <p className="mt-3 text-sm text-rose-500">{task.errorMessage}</p> : null}
+                  {task.errorMessage ? <p className="mt-3 text-sm text-red-400">{task.errorMessage}</p> : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill value={task.status} tone={task.status === "failed" ? "amber" : task.status === "succeeded" ? "green" : "blue"} />

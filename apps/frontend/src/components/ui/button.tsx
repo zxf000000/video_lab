@@ -25,19 +25,19 @@ function mapButtonProps(variant: ButtonVariant, size: ButtonSize) {
   switch (variant) {
     case "primary":
     case "default":
-      return { variant: "solid" as const, color: "iris" as const, size: sizeMap[size], className: "" }
+      return { variant: "solid" as const, color: "cyan" as const, size: sizeMap[size], className: "hover:shadow-glow-strong" }
     case "secondary":
       return { variant: "soft" as const, color: "gray" as const, size: sizeMap[size], className: "" }
     case "outline":
-      return { variant: "outline" as const, color: "gray" as const, size: sizeMap[size], className: "" }
+      return { variant: "outline" as const, color: "gray" as const, size: sizeMap[size], className: "border-line hover:border-mint/50 hover:text-mint transition-colors" }
     case "ghost":
-      return { variant: "ghost" as const, color: "gray" as const, size: sizeMap[size], className: "" }
+      return { variant: "ghost" as const, color: "gray" as const, size: sizeMap[size], className: "hover:bg-panel/5 hover:text-gray-200" }
     case "destructive":
       return { variant: "solid" as const, color: "red" as const, size: sizeMap[size], className: "" }
     case "link":
       return {
         variant: "ghost" as const,
-        color: "iris" as const,
+        color: "cyan" as const,
         size: sizeMap[size],
         className: "px-0 underline-offset-4 hover:underline",
       }
@@ -46,10 +46,10 @@ function mapButtonProps(variant: ButtonVariant, size: ButtonSize) {
         variant: "soft" as const,
         color: "gray" as const,
         size: sizeMap[size],
-        className: "bg-white/12 text-white shadow-none ring-1 ring-white/20 hover:bg-white/18",
+        className: "bg-cyan-500/10 text-cyan-300 shadow-none ring-1 ring-cyan-500/20 hover:bg-cyan-500/20",
       }
     default:
-      return { variant: "solid" as const, color: "iris" as const, size: sizeMap[size], className: "" }
+      return { variant: "solid" as const, color: "cyan" as const, size: sizeMap[size], className: "" }
   }
 }
 

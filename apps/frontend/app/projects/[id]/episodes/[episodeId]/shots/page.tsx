@@ -184,22 +184,22 @@ export default function EpisodeShotsPage() {
       }
     >
       {loading ? (
-        <div className="text-sm text-slate-500">镜头加载中...</div>
+        <div className="text-sm text-gray-500">镜头加载中...</div>
       ) : shots.length ? (
         <div className="grid gap-3">
           {shots.map((shot) => (
-            <div key={shot.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+            <div key={shot.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-base font-semibold text-slate-900">Shot {shot.shotNo}</h3>
+                    <h3 className="text-base font-semibold text-gray-100">Shot {shot.shotNo}</h3>
                     <StatusPill value={shot.status} tone="purple" />
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{shot.visualGoal || "未填写镜头目标"}</p>
-                  <p className="mt-2 text-xs text-slate-500">{shot.sceneBlock || "未填写场次块"} · {shot.estimatedDurationMs}ms</p>
+                  <p className="mt-3 text-sm leading-6 text-gray-400">{shot.visualGoal || "未填写镜头目标"}</p>
+                  <p className="mt-2 text-xs text-gray-500">{shot.sceneBlock || "未填写场次块"} · {shot.estimatedDurationMs}ms</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link href={`/projects/${currentProject.id}/shots/${shot.id}/prompts`} className="inline-flex rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-mint hover:text-mint">
+                  <Link href={`/projects/${currentProject.id}/shots/${shot.id}/prompts`} className="inline-flex rounded-xl border border-line bg-panel2 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-mint hover:text-mint">
                     Prompt
                   </Link>
                   <Button variant="secondary" size="sm" onClick={() => handleGenerateShot(shot)}>
@@ -221,56 +221,58 @@ export default function EpisodeShotsPage() {
       )}
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-4xl rounded-[28px] border border-line bg-panel p-0">
+        <DialogContent className="max-w-4xl bg-panel p-0">
           <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle>{editing?.id ? "编辑镜头" : "新增镜头"}</DialogTitle>
           </DialogHeader>
           {editing ? (
             <>
-              <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">镜头号</Label>
-                  <Input type="number" value={String(editing.shotNo)} onChange={(e) => setEditing((prev) => prev ? { ...prev, shotNo: Number(e.target.value || 1) } : prev)} />
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">镜头号</Label>
+                    <Input type="number" value={String(editing.shotNo)} onChange={(e) => setEditing((prev) => prev ? { ...prev, shotNo: Number(e.target.value || 1) } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">状态</Label>
+                    <Input value={editing.status} onChange={(e) => setEditing((prev) => prev ? { ...prev, status: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">场次块</Label>
+                    <Input value={editing.sceneBlock} onChange={(e) => setEditing((prev) => prev ? { ...prev, sceneBlock: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">镜头目标</Label>
+                    <Textarea value={editing.visualGoal} onChange={(e) => setEditing((prev) => prev ? { ...prev, visualGoal: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">角色 ID 列表</Label>
+                    <Input value={editing.characterIds} onChange={(e) => setEditing((prev) => prev ? { ...prev, characterIds: e.target.value } : prev)} placeholder="1, 2" />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">场景模板</Label>
+                    <select
+                      className="w-full rounded-xl border border-line bg-panel2 px-4 py-3 text-sm"
+                      value={editing.scenePresetId}
+                      onChange={(e) => setEditing((prev) => prev ? { ...prev, scenePresetId: e.target.value } : prev)}
+                    >
+                      <option value="">未绑定</option>
+                      {sceneOptions.map((scene) => (
+                        <option key={scene.id} value={scene.id}>{scene.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">景别</Label><Input value={editing.shotSize} onChange={(e) => setEditing((prev) => prev ? { ...prev, shotSize: e.target.value } : prev)} /></div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">角度</Label><Input value={editing.cameraAngle} onChange={(e) => setEditing((prev) => prev ? { ...prev, cameraAngle: e.target.value } : prev)} /></div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">构图</Label><Input value={editing.composition} onChange={(e) => setEditing((prev) => prev ? { ...prev, composition: e.target.value } : prev)} /></div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">镜头时长(ms)</Label><Input type="number" value={String(editing.estimatedDurationMs)} onChange={(e) => setEditing((prev) => prev ? { ...prev, estimatedDurationMs: Number(e.target.value || 0) } : prev)} /></div>
+                  <div className="md:col-span-2"><Label className="mb-2 block text-xs text-gray-500">动作描述</Label><Textarea value={editing.actionDescription} onChange={(e) => setEditing((prev) => prev ? { ...prev, actionDescription: e.target.value } : prev)} /></div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">表情 / 情绪</Label><Input value={editing.facialEmotion} onChange={(e) => setEditing((prev) => prev ? { ...prev, facialEmotion: e.target.value } : prev)} /></div>
+                  <div><Label className="mb-2 block text-xs text-gray-500">运镜</Label><Input value={editing.cameraMotion} onChange={(e) => setEditing((prev) => prev ? { ...prev, cameraMotion: e.target.value } : prev)} /></div>
+                  <div className="md:col-span-2"><Label className="mb-2 block text-xs text-gray-500">对白摘要</Label><Textarea value={editing.dialogueExcerpt} onChange={(e) => setEditing((prev) => prev ? { ...prev, dialogueExcerpt: e.target.value } : prev)} /></div>
                 </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">状态</Label>
-                  <Input value={editing.status} onChange={(e) => setEditing((prev) => prev ? { ...prev, status: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">场次块</Label>
-                  <Input value={editing.sceneBlock} onChange={(e) => setEditing((prev) => prev ? { ...prev, sceneBlock: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">镜头目标</Label>
-                  <Textarea value={editing.visualGoal} onChange={(e) => setEditing((prev) => prev ? { ...prev, visualGoal: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">角色 ID 列表</Label>
-                  <Input value={editing.characterIds} onChange={(e) => setEditing((prev) => prev ? { ...prev, characterIds: e.target.value } : prev)} placeholder="1, 2" />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">场景模板</Label>
-                  <select
-                    className="w-full rounded-xl border border-line bg-panel2 px-4 py-3 text-sm"
-                    value={editing.scenePresetId}
-                    onChange={(e) => setEditing((prev) => prev ? { ...prev, scenePresetId: e.target.value } : prev)}
-                  >
-                    <option value="">未绑定</option>
-                    {sceneOptions.map((scene) => (
-                      <option key={scene.id} value={scene.id}>{scene.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div><Label className="mb-2 block text-xs text-slate-500">景别</Label><Input value={editing.shotSize} onChange={(e) => setEditing((prev) => prev ? { ...prev, shotSize: e.target.value } : prev)} /></div>
-                <div><Label className="mb-2 block text-xs text-slate-500">角度</Label><Input value={editing.cameraAngle} onChange={(e) => setEditing((prev) => prev ? { ...prev, cameraAngle: e.target.value } : prev)} /></div>
-                <div><Label className="mb-2 block text-xs text-slate-500">构图</Label><Input value={editing.composition} onChange={(e) => setEditing((prev) => prev ? { ...prev, composition: e.target.value } : prev)} /></div>
-                <div><Label className="mb-2 block text-xs text-slate-500">镜头时长(ms)</Label><Input type="number" value={String(editing.estimatedDurationMs)} onChange={(e) => setEditing((prev) => prev ? { ...prev, estimatedDurationMs: Number(e.target.value || 0) } : prev)} /></div>
-                <div className="md:col-span-2"><Label className="mb-2 block text-xs text-slate-500">动作描述</Label><Textarea value={editing.actionDescription} onChange={(e) => setEditing((prev) => prev ? { ...prev, actionDescription: e.target.value } : prev)} /></div>
-                <div><Label className="mb-2 block text-xs text-slate-500">表情 / 情绪</Label><Input value={editing.facialEmotion} onChange={(e) => setEditing((prev) => prev ? { ...prev, facialEmotion: e.target.value } : prev)} /></div>
-                <div><Label className="mb-2 block text-xs text-slate-500">运镜</Label><Input value={editing.cameraMotion} onChange={(e) => setEditing((prev) => prev ? { ...prev, cameraMotion: e.target.value } : prev)} /></div>
-                <div className="md:col-span-2"><Label className="mb-2 block text-xs text-slate-500">对白摘要</Label><Textarea value={editing.dialogueExcerpt} onChange={(e) => setEditing((prev) => prev ? { ...prev, dialogueExcerpt: e.target.value } : prev)} /></div>
               </div>
-              <DialogFooter className="border-t border-line bg-panel2/60 px-5 py-3">
+              <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
                 <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
                   取消
                 </Button>

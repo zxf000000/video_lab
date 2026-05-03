@@ -54,13 +54,16 @@
 11. 不要输出任何额外的 JSON 字段。
 12. 角色必须服从 Brief 里的世界规则、主冲突和人物关系，不要发明脱离项目方向的人设。
 13. `profile_collection` 阶段：
-- 默认输出 3 到 5 个关键角色
+- 每次只输出 1 个关键角色（roles 数组只包含 1 项）
 - 重点填写 character_profile
 - image_spec 可以保留为空字符串和空数组，不要展开长描述
+- 如果上下文中已有 existing_characters，必须分析已有角色的功能覆盖，生成一个填补空缺的差异化角色，不要重复已有角色的定位
 14. `visual_refine` 阶段：
 - 如果 `current_variant` 为空，只输出 1 个角色，并重点填写 image_spec
-- 如果 `current_variant` 不为空，只输出 1 个 variant，并重点填写 image_spec_override
+- 如果 `current_variant` 不为空，可以输出多个变体（建议 2-5 个），每个变体重点填写 image_spec_override
 - variant 模式下要继承当前角色基础脸型、年龄感、体态和核心气质，不要把角色变成另一个人
+- 每个变体必须有明确的触发场景（trigger_reason），比如"第X集婚礼"、"第X集战斗"、"第X集日常居家"
+- 变体之间要有明显差异，覆盖角色在剧中的不同状态
 15. 如果你不确定某个字段，就输出空字符串或空数组，也不要破坏 JSON 结构。
 16. 绝对不要把字段名写成 camelCase，必须使用这里定义的 snake_case。
 
@@ -100,7 +103,7 @@
 }
 ===END_PROPOSAL===
 
-variant 模式示例：
+variant 模式示例（支持多个变体）：
 ===PROPOSAL===
 {
   "base_character": {
@@ -152,6 +155,47 @@ variant 模式示例：
         "negative_visual_constraints": ["no fantasy styling"],
         "image_prompt": "same man as base character, wedding variant...",
         "negative_prompt": "different face, cartoon, fantasy costume"
+      }
+    },
+    {
+      "variant_name": "战斗形态",
+      "variant_type": "combat",
+      "trigger_reason": "第18集酒吧冲突",
+      "visual_changes_summary": "解开领口，袖子卷起，展现危险和攻击性",
+      "inherit_rules": {
+        "keep_face_identity": true,
+        "keep_age_range": true,
+        "keep_body_type": true,
+        "keep_core_temperament": true
+      },
+      "image_spec_override": {
+        "signature_expression": "cold focused stare",
+        "signature_pose": "fists clenched, leaning forward",
+        "clothing_style": "rumpled black shirt, sleeves rolled up",
+        "visual_keywords": ["bar fight", "dangerous energy", "unrestrained"],
+        "image_prompt": "same man, combat-ready variant...",
+        "negative_prompt": "different face, cartoon, overly muscular"
+      }
+    },
+    {
+      "variant_name": "居家形态",
+      "variant_type": "casual",
+      "trigger_reason": "第5集家中独处",
+      "visual_changes_summary": "放松状态，展现脆弱和孤独的一面",
+      "inherit_rules": {
+        "keep_face_identity": true,
+        "keep_age_range": true,
+        "keep_body_type": true,
+        "keep_core_temperament": true
+      },
+      "image_spec_override": {
+        "signature_expression": "tired, slightly sad",
+        "signature_pose": "slouched on sofa",
+        "clothing_style": "loose grey sweater, barefoot",
+        "color_palette": ["grey", "muted blue"],
+        "visual_keywords": ["solitude", "vulnerability", "late night"],
+        "image_prompt": "same man, casual home variant...",
+        "negative_prompt": "different face, cartoon, too neat"
       }
     }
   ]

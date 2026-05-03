@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertDialog as ThemeAlertDialog } from "@radix-ui/themes"
+import { AlertDialog as ThemeAlertDialog, Theme } from "@radix-ui/themes"
 
 import { cn } from "@/src/lib/utils"
 
@@ -27,12 +27,14 @@ function AlertDialogContent({
   ...props
 }: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Content> & { size?: string }) {
   return (
-    <ThemeAlertDialog.Content
-      data-slot="alert-dialog-content"
-      data-size={size}
-      className={cn("max-w-[min(92vw,32rem)] rounded-3xl", className)}
-      {...props}
-    />
+    <Theme appearance="dark" accentColor="cyan" grayColor="slate" radius="large">
+      <ThemeAlertDialog.Content
+        data-slot="alert-dialog-content"
+        data-size={size}
+        className={cn("max-w-[min(92vw,32rem)] rounded-lg border border-line shadow-glow-strong", className)}
+        {...props}
+      />
+    </Theme>
   )
 }
 
@@ -45,7 +47,7 @@ function AlertDialogFooter({ className, ...props }: React.ComponentPropsWithoutR
 }
 
 function AlertDialogMedia({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
-  return <div data-slot="alert-dialog-media" className={cn("mb-2 inline-flex size-10 items-center justify-center rounded-xl bg-muted", className)} {...props} />
+  return <div data-slot="alert-dialog-media" className={cn("mb-2 inline-flex size-10 items-center justify-center rounded-xl bg-muted text-mint", className)} {...props} />
 }
 
 function AlertDialogTitle({
@@ -59,7 +61,7 @@ function AlertDialogDescription({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Description>) {
-  return <ThemeAlertDialog.Description data-slot="alert-dialog-description" className={cn("text-sm text-slate-500", className)} {...props} />
+  return <ThemeAlertDialog.Description data-slot="alert-dialog-description" className={cn("text-sm text-gray-500", className)} {...props} />
 }
 
 function AlertDialogAction(props: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Action>) {

@@ -71,25 +71,8 @@ htmlcov/
 .git/
 
 # Video assets & generated files
-data/assets/
-data/*.mp4
-data/*.mov
-data/*.avi
-data/*.webm
-data/*.gif
-data/*.mp3
-data/config.json
-data/*.sqlite3
-data/*.db
-data/*.mov
-data/*.avi
-data/*.webm
-data/*.gif
-data/*.png
-data/*.jpg
-data/*.jpeg
-data/*.svg
-data/*.mp3
+data/
+runs/
 *.mp4
 *.mov
 *.avi

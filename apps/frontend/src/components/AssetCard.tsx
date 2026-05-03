@@ -9,10 +9,10 @@ export default function AssetCard({ label, url, kind }: any) {
   const absoluteUrl = url ? `${getApiBase()}${url}` : null;
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-[24px] border border-line bg-panel px-4 py-4">
-      <p className="mb-3 text-sm font-medium text-slate-700">{label}</p>
+    <div className="rounded-lg border border-line bg-panel px-4 py-4">
+      <p className="mb-3 text-sm font-medium text-gray-300">{label}</p>
       {!absoluteUrl ? (
-        <div className="rounded-[20px] border border-dashed border-line bg-panel2 px-4 py-10 text-center text-sm text-slate-500">
+        <div className="rounded-[20px] border border-dashed border-line bg-panel2 px-4 py-10 text-center text-sm text-gray-500">
           尚未生成
         </div>
       ) : kind === "image" ? (

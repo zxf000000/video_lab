@@ -4,7 +4,7 @@ export default function StepIndicator({ steps, activeStep, onStepClick }: any) {
   const activeIndex = steps.findIndex((s: any) => s.key === activeStep);
 
   return (
-    <div className="sticky top-[76px] z-10 flex items-center gap-2 overflow-x-auto rounded-[24px] border border-line bg-panel/80 px-3 py-3 shadow-glow backdrop-blur-xl">
+    <div className="sticky top-[76px] z-10 flex items-center gap-2 overflow-x-auto rounded-lg border border-line bg-panel/80 px-3 py-3 shadow-glow backdrop-blur-xl">
       {steps.map((step: any, i: number) => {
         const isCompleted = i < activeIndex;
         const isActive = i === activeIndex;
@@ -17,7 +17,7 @@ export default function StepIndicator({ steps, activeStep, onStepClick }: any) {
                   ? "bg-mint text-white shadow-[0_8px_20px_rgba(111,103,216,0.24)]"
                   : isCompleted
                     ? "bg-mint/10 text-mint hover:bg-mint/15"
-                    : "bg-panel2 text-slate-500 hover:text-slate-700"
+                    : "bg-panel2 text-gray-500 hover:text-gray-300"
               }`}
               onClick={() => onStepClick(step.key)}
               type="button"
@@ -25,10 +25,10 @@ export default function StepIndicator({ steps, activeStep, onStepClick }: any) {
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
                   isActive
-                    ? "bg-white/20 text-white"
+                    ? "bg-panel/20 text-white"
                     : isCompleted
-                      ? "bg-white text-mint"
-                      : "bg-white text-slate-500"
+                      ? "bg-panel2 text-mint"
+                      : "bg-panel2 text-gray-500"
                 }`}
               >
                 {isCompleted ? <IconCheck size={10} stroke={2.5} /> : i + 1}

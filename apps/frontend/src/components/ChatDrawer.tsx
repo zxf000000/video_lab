@@ -141,7 +141,7 @@ export default function ChatDrawer({ open, onClose }: any) {
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">Chat Create</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">对话式创建</h2>
+            <h2 className="mt-1 text-lg font-semibold text-gray-100">对话式创建</h2>
           </div>
           {extractedParams && (
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-medium text-emerald-700">
@@ -149,7 +149,7 @@ export default function ChatDrawer({ open, onClose }: any) {
             </span>
           )}
           <button
-            className="shrink-0 rounded-full bg-panel2 px-2.5 py-1 text-xs text-slate-500 transition hover:text-slate-900 disabled:opacity-30"
+            className="shrink-0 rounded-full bg-panel2 px-2.5 py-1 text-xs text-gray-500 transition hover:text-gray-100 disabled:opacity-30"
             onClick={handleClose}
             disabled={creating || isStreaming}
           >
@@ -169,7 +169,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                       className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                         msg.role === "user"
                           ? "bg-mint text-white"
-                          : "bg-panel2 text-slate-700"
+                          : "bg-panel2 text-gray-300"
                       }`}
                     >
                       <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
@@ -179,7 +179,7 @@ export default function ChatDrawer({ open, onClose }: any) {
 
                 {streamingContent && (
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl bg-panel2 px-4 py-3 text-sm leading-6 text-slate-700">
+                    <div className="max-w-[85%] rounded-2xl bg-panel2 px-4 py-3 text-sm leading-6 text-gray-300">
                       <pre className="whitespace-pre-wrap font-sans">{streamingContent}</pre>
                       <span className="inline-block h-4 w-0.5 animate-pulse bg-mint align-middle" />
                     </div>
@@ -227,13 +227,13 @@ export default function ChatDrawer({ open, onClose }: any) {
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">AI 已提取以下参数，确认后创建项目</p>
-                <StatusBadge status="ready" className="bg-[#f2efff] text-mint" />
+                <p className="text-xs text-gray-500">AI 已提取以下参数，确认后创建项目</p>
+                <StatusBadge status="ready" className="bg-purple-500/10 text-mint" />
               </div>
 
-              <div className="flex flex-col gap-4 rounded-[24px] border border-line bg-panel2 p-5">
+              <div className="flex flex-col gap-4 rounded-lg border border-line bg-panel2 p-5">
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">项目名</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">项目名</label>
                   <Input
                     className="rounded-xl"
                     type="text"
@@ -242,7 +242,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">剧情需求</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">剧情需求</label>
                   <Textarea
                     className="min-h-[120px] resize-y"
                     value={extractedParams.story_prompt}
@@ -250,7 +250,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs text-slate-500">风格</label>
+                  <label className="mb-2 block text-xs text-gray-500">风格</label>
                   <div className="grid grid-cols-3 gap-2">
                     {STYLE_PRESETS.map((s) => {
                       const active = extractedParams.style === s.id;
@@ -261,7 +261,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                           className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
                             active
                               ? "border-mint bg-mint/10 text-mint"
-                              : "border-line bg-white text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                              : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                           }`}
                           onClick={() => updateParam("style", s.id)}
                         >
@@ -273,7 +273,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-xs text-slate-500">画面比例</label>
+                    <label className="mb-2 block text-xs text-gray-500">画面比例</label>
                     <div className="grid grid-cols-2 gap-2">
                       {RATIOS.map((r) => (
                         <button
@@ -282,7 +282,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                           className={`rounded-xl border py-2 text-sm font-medium transition ${
                             extractedParams.aspect_ratio === r
                               ? "border-mint bg-mint/10 text-mint"
-                              : "border-line bg-white text-slate-600 hover:border-mint/40 hover:text-slate-900"
+                              : "border-line bg-panel2 text-gray-400 hover:border-mint/40 hover:text-gray-100"
                           }`}
                           onClick={() => updateParam("aspect_ratio", r)}
                         >
@@ -292,7 +292,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                     </div>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs text-slate-500">目标时长（秒）</label>
+                    <label className="mb-2 block text-xs text-gray-500">目标时长（秒）</label>
                     <Input
                       className="rounded-xl"
                       type="number"
@@ -309,7 +309,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                           className={`rounded-lg border px-3 py-1 text-[11px] transition ${
                             extractedParams.target_duration === d
                               ? "border-mint/40 bg-mint/10 text-mint"
-                              : "border-line text-slate-500 hover:text-slate-800"
+                              : "border-line text-gray-500 hover:text-gray-200"
                           }`}
                           onClick={() => updateParam("target_duration", d)}
                         >

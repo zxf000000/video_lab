@@ -92,15 +92,15 @@ export default function ShotPromptsPage() {
       <SectionCard title={shot ? `Shot ${shot.shotNo} Prompt` : "Prompt"} description="Prompt 版本是镜头生成的正式输入，激活后才会被任务读取。">
         <div className="grid gap-5 md:grid-cols-2">
           <div className="md:col-span-2">
-            <Label className="mb-2 block text-xs text-slate-500">Prompt 文本</Label>
+            <Label className="mb-2 block text-xs text-gray-500">Prompt 文本</Label>
             <Textarea className="min-h-[140px]" value={promptText} onChange={(e) => setPromptText(e.target.value)} />
           </div>
           <div>
-            <Label className="mb-2 block text-xs text-slate-500">Negative Prompt</Label>
+            <Label className="mb-2 block text-xs text-gray-500">Negative Prompt</Label>
             <Textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} />
           </div>
           <div>
-            <Label className="mb-2 block text-xs text-slate-500">状态</Label>
+            <Label className="mb-2 block text-xs text-gray-500">状态</Label>
             <Input value={status} onChange={(e) => setStatus(e.target.value)} />
           </div>
           <div className="md:col-span-2 flex justify-end">
@@ -113,20 +113,20 @@ export default function ShotPromptsPage() {
 
       <SectionCard title="Prompt 版本列表" description="为同一个镜头维护多版提示词，并激活其中一个参与生成。">
         {loading ? (
-          <div className="text-sm text-slate-500">Prompt 加载中...</div>
+          <div className="text-sm text-gray-500">Prompt 加载中...</div>
         ) : prompts.length ? (
           <div className="grid gap-3">
             {prompts.map((prompt) => (
-              <div key={prompt.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+              <div key={prompt.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-slate-900">Version {prompt.versionNo}</h3>
+                      <h3 className="text-sm font-semibold text-gray-100">Version {prompt.versionNo}</h3>
                       <StatusPill value={prompt.status} tone="purple" />
                       {prompt.isActive ? <StatusPill value="active" tone="green" /> : null}
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600 whitespace-pre-wrap">{prompt.promptText}</p>
-                    {prompt.negativePrompt ? <p className="mt-3 text-xs text-slate-500">Negative: {prompt.negativePrompt}</p> : null}
+                    <p className="mt-3 text-sm leading-6 text-gray-400 whitespace-pre-wrap">{prompt.promptText}</p>
+                    {prompt.negativePrompt ? <p className="mt-3 text-xs text-gray-500">Negative: {prompt.negativePrompt}</p> : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {!prompt.isActive ? (

@@ -95,20 +95,20 @@ export default function EpisodesPage() {
       {currentProject.episodes.length ? (
         <div className="grid gap-3">
           {currentProject.episodes.map((episode) => (
-            <div key={episode.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+            <div key={episode.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-base font-semibold text-slate-900">第 {episode.episodeNo} 集 · {episode.title || "未命名分集"}</h3>
+                    <h3 className="text-base font-semibold text-gray-100">第 {episode.episodeNo} 集 · {episode.title || "未命名分集"}</h3>
                     <StatusPill value={episode.status} tone="purple" />
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{episode.summary || "未填写分集摘要"}</p>
+                  <p className="mt-3 text-sm leading-6 text-gray-400">{episode.summary || "未填写分集摘要"}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link href={`/projects/${currentProject.id}/episodes/${episode.id}`} className="inline-flex rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-mint hover:text-mint">
+                  <Link href={`/projects/${currentProject.id}/episodes/${episode.id}`} className="inline-flex rounded-xl border border-line bg-panel2 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-mint hover:text-mint">
                     详情
                   </Link>
-                  <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="inline-flex rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-mint hover:text-mint">
+                  <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="inline-flex rounded-xl border border-line bg-panel2 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-mint hover:text-mint">
                     镜头
                   </Link>
                   <Button variant="secondary" size="sm" onClick={() => setEditing(toForm(episode))}>
@@ -127,51 +127,53 @@ export default function EpisodesPage() {
       )}
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-3xl rounded-[28px] border border-line bg-panel p-0">
+        <DialogContent className="max-w-3xl bg-panel p-0">
           <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle>{editing?.id ? "编辑分集" : "新增分集"}</DialogTitle>
           </DialogHeader>
           {editing ? (
             <>
-              <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">集数</Label>
-                  <Input type="number" value={String(editing.episodeNo)} onChange={(e) => setEditing((prev) => prev ? { ...prev, episodeNo: Number(e.target.value || 1) } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">状态</Label>
-                  <Input value={editing.status} onChange={(e) => setEditing((prev) => prev ? { ...prev, status: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">标题</Label>
-                  <Input value={editing.title} onChange={(e) => setEditing((prev) => prev ? { ...prev, title: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">摘要</Label>
-                  <Textarea value={editing.summary} onChange={(e) => setEditing((prev) => prev ? { ...prev, summary: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">目标</Label>
-                  <Textarea value={editing.goal} onChange={(e) => setEditing((prev) => prev ? { ...prev, goal: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">核心冲突</Label>
-                  <Textarea value={editing.coreConflict} onChange={(e) => setEditing((prev) => prev ? { ...prev, coreConflict: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">开场钩子</Label>
-                  <Textarea value={editing.openingHook} onChange={(e) => setEditing((prev) => prev ? { ...prev, openingHook: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">高潮</Label>
-                  <Textarea value={editing.climax} onChange={(e) => setEditing((prev) => prev ? { ...prev, climax: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">集尾钩子</Label>
-                  <Textarea value={editing.endingHook} onChange={(e) => setEditing((prev) => prev ? { ...prev, endingHook: e.target.value } : prev)} />
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">集数</Label>
+                    <Input type="number" value={String(editing.episodeNo)} onChange={(e) => setEditing((prev) => prev ? { ...prev, episodeNo: Number(e.target.value || 1) } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">状态</Label>
+                    <Input value={editing.status} onChange={(e) => setEditing((prev) => prev ? { ...prev, status: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">标题</Label>
+                    <Input value={editing.title} onChange={(e) => setEditing((prev) => prev ? { ...prev, title: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">摘要</Label>
+                    <Textarea value={editing.summary} onChange={(e) => setEditing((prev) => prev ? { ...prev, summary: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">目标</Label>
+                    <Textarea value={editing.goal} onChange={(e) => setEditing((prev) => prev ? { ...prev, goal: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">核心冲突</Label>
+                    <Textarea value={editing.coreConflict} onChange={(e) => setEditing((prev) => prev ? { ...prev, coreConflict: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">开场钩子</Label>
+                    <Textarea value={editing.openingHook} onChange={(e) => setEditing((prev) => prev ? { ...prev, openingHook: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">高潮</Label>
+                    <Textarea value={editing.climax} onChange={(e) => setEditing((prev) => prev ? { ...prev, climax: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">集尾钩子</Label>
+                    <Textarea value={editing.endingHook} onChange={(e) => setEditing((prev) => prev ? { ...prev, endingHook: e.target.value } : prev)} />
+                  </div>
                 </div>
               </div>
-              <DialogFooter className="border-t border-line bg-panel2/60 px-5 py-3">
+              <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
                 <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
                   取消
                 </Button>

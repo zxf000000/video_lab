@@ -65,19 +65,19 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
     <ProjectWorkspaceContext.Provider value={{ projectId, project, loading, error, refresh }}>
       <ProjectCopilotProvider>
         <div className="flex flex-col gap-4">
-          <section className="rounded-[28px] border border-line bg-panel px-5 py-5 shadow-glow">
+          <section className="rounded-lg border border-line bg-panel px-5 py-5 shadow-glow">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-800">
+                <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-gray-300">
                   <IconArrowLeft size={16} stroke={2} />
                   返回项目列表
                 </Link>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{project ? project.name : `项目 #${projectId}`}</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight text-gray-100">{project ? project.name : `项目 #${projectId}`}</h1>
                   {project ? <StatusPill value={project.currentStage} tone="blue" /> : null}
                   {project ? <StatusPill value={project.status} tone="purple" /> : null}
                 </div>
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-gray-400">
                   {project?.brief.logline || "正在加载项目概要。这里汇总项目约束、资产进度和后续生产入口。"}
                 </p>
               </div>
@@ -101,8 +101,8 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
                 />
                 <div className="rounded-2xl bg-panel2 px-4 py-3">
                   <div className="mb-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">流程导航</p>
-                    <p className="mt-1 text-xs text-slate-500">按生产链路流转，当前阶段会以 tab 形式高亮显示。</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">流程导航</p>
+                    <p className="mt-1 text-xs text-gray-500">按生产链路流转，当前阶段会以 tab 形式高亮显示。</p>
                   </div>
                   <ProjectStageNav items={navItems} />
                 </div>
@@ -110,11 +110,11 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
             ) : null}
           </section>
 
-          {error ? <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
+          {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div> : null}
 
           {loading && !project ? (
             <SectionCard title="正在加载" description="正在读取项目数据，请稍候。">
-              <div className="text-sm text-slate-500">项目详情加载中...</div>
+              <div className="text-sm text-gray-500">项目详情加载中...</div>
             </SectionCard>
           ) : (
             children

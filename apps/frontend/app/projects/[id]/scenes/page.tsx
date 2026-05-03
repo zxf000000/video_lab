@@ -113,18 +113,18 @@ export default function ScenesPage() {
       {currentProject.scenes.length ? (
         <div className="grid gap-3 md:grid-cols-2">
           {currentProject.scenes.map((scene) => (
-            <div key={scene.id} className="rounded-[24px] border border-line bg-panel2 px-5 py-4">
+            <div key={scene.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">{scene.name}</h3>
-                  <p className="mt-1 text-sm text-slate-500">{scene.sceneType || "未填写场景类型"}</p>
+                  <h3 className="text-base font-semibold text-gray-100">{scene.name}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{scene.sceneType || "未填写场景类型"}</p>
                 </div>
                 <StatusPill value={scene.status} tone="purple" />
               </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">{scene.spaceDescription || "未填写空间描述"}</p>
+              <p className="mt-4 text-sm leading-6 text-gray-400">{scene.spaceDescription || "未填写空间描述"}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {scene.propList.map((prop) => (
-                  <span key={prop} className="rounded-full bg-white px-3 py-1 text-xs text-slate-600 shadow-sm">{prop}</span>
+                  <span key={prop} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400 shadow-sm">{prop}</span>
                 ))}
               </div>
               <div className="mt-5 flex items-center gap-2">
@@ -143,43 +143,45 @@ export default function ScenesPage() {
       )}
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl rounded-[28px] border border-line bg-panel p-0">
+        <DialogContent className="max-w-2xl bg-panel p-0">
           <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle>{editing?.id ? "编辑场景" : "新增场景"}</DialogTitle>
           </DialogHeader>
           {editing ? (
             <>
-              <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">场景名</Label>
-                  <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">场景类型</Label>
-                  <Input value={editing.sceneType} onChange={(e) => setEditing((prev) => prev ? { ...prev, sceneType: e.target.value } : prev)} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="mb-2 block text-xs text-slate-500">空间描述</Label>
-                  <Textarea value={editing.spaceDescription} onChange={(e) => setEditing((prev) => prev ? { ...prev, spaceDescription: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">光线风格</Label>
-                  <Input value={editing.lightingStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, lightingStyle: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">时间段</Label>
-                  <Input value={editing.timeOfDay} onChange={(e) => setEditing((prev) => prev ? { ...prev, timeOfDay: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">天气</Label>
-                  <Input value={editing.weather} onChange={(e) => setEditing((prev) => prev ? { ...prev, weather: e.target.value } : prev)} />
-                </div>
-                <div>
-                  <Label className="mb-2 block text-xs text-slate-500">道具列表</Label>
-                  <Input value={editing.propList} onChange={(e) => setEditing((prev) => prev ? { ...prev, propList: e.target.value } : prev)} placeholder="门禁, 雨伞, 沙发" />
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">场景名</Label>
+                    <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">场景类型</Label>
+                    <Input value={editing.sceneType} onChange={(e) => setEditing((prev) => prev ? { ...prev, sceneType: e.target.value } : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block text-xs text-gray-500">空间描述</Label>
+                    <Textarea value={editing.spaceDescription} onChange={(e) => setEditing((prev) => prev ? { ...prev, spaceDescription: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">光线风格</Label>
+                    <Input value={editing.lightingStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, lightingStyle: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">时间段</Label>
+                    <Input value={editing.timeOfDay} onChange={(e) => setEditing((prev) => prev ? { ...prev, timeOfDay: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">天气</Label>
+                    <Input value={editing.weather} onChange={(e) => setEditing((prev) => prev ? { ...prev, weather: e.target.value } : prev)} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-xs text-gray-500">道具列表</Label>
+                    <Input value={editing.propList} onChange={(e) => setEditing((prev) => prev ? { ...prev, propList: e.target.value } : prev)} placeholder="门禁, 雨伞, 沙发" />
+                  </div>
                 </div>
               </div>
-              <DialogFooter className="border-t border-line bg-panel2/60 px-5 py-3">
+              <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
                 <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
                   取消
                 </Button>

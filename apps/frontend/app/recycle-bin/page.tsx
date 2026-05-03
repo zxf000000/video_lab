@@ -49,31 +49,31 @@ export default function RecycleBinPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">Recycle Bin</p>
-          <h1 className="mt-1 text-lg font-semibold text-slate-900">回收站</h1>
-          <p className="text-[11px] text-slate-500">已删除的项目可以在此恢复或永久删除。</p>
+          <h1 className="mt-1 text-lg font-semibold text-gray-100">回收站</h1>
+          <p className="text-[11px] text-gray-500">已删除的项目可以在此恢复或永久删除。</p>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       ) : null}
 
-      <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
+      <section className="rounded-lg border border-line bg-panel p-6 shadow-glow">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">已删除项目</h2>
-            <p className="mt-1 text-sm text-slate-500">共 {projects.length} 个已删除项目</p>
+            <h2 className="text-xl font-semibold text-gray-100">已删除项目</h2>
+            <p className="mt-1 text-sm text-gray-500">共 {projects.length} 个已删除项目</p>
           </div>
           <ActionButton icon={IconRefresh} label="刷新" onClick={() => refresh()} />
         </div>
 
         <div className="overflow-hidden rounded-[22px] border border-line bg-panel2">
-          <div className="hidden grid-cols-[1.2fr_2fr_160px_160px] gap-4 border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 lg:grid">
+          <div className="hidden grid-cols-[1.2fr_2fr_160px_160px] gap-4 border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 lg:grid">
             <span>项目</span>
             <span>剧情需求</span>
             <span>删除时间</span>
@@ -87,11 +87,11 @@ export default function RecycleBinPage() {
                 className="grid gap-3 px-5 py-4 lg:grid-cols-[1.2fr_2fr_160px_160px] lg:items-center"
               >
                 <div>
-                  <strong className="block truncate text-sm font-semibold text-slate-900">{project.title}</strong>
-                  <span className="mt-1 block text-xs text-slate-500">#{project.id}</span>
+                  <strong className="block truncate text-sm font-semibold text-gray-100">{project.title}</strong>
+                  <span className="mt-1 block text-xs text-gray-500">#{project.id}</span>
                 </div>
-                <p className="truncate text-sm text-slate-500">{project.story_prompt}</p>
-                <span className="text-xs text-slate-500">{project.deleted_at ? new Date(project.deleted_at).toLocaleString("zh-CN") : "-"}</span>
+                <p className="truncate text-sm text-gray-500">{project.story_prompt}</p>
+                <span className="text-xs text-gray-500">{project.deleted_at ? new Date(project.deleted_at).toLocaleString("zh-CN") : "-"}</span>
                 <div className="flex items-center gap-3">
                   <button
                     className="inline-flex items-center gap-1 text-xs font-medium text-mint transition hover:text-mint/80"
@@ -101,7 +101,7 @@ export default function RecycleBinPage() {
                     恢复
                   </button>
                   <button
-                    className="inline-flex items-center gap-1 text-xs font-medium text-rose-400 transition hover:text-rose-600"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-rose-400 transition hover:text-red-400"
                     onClick={() => handlePermanentDelete(project.id, project.title)}
                   >
                     <IconTrash size={14} stroke={2} />
@@ -112,7 +112,7 @@ export default function RecycleBinPage() {
             ))}
 
             {projects.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-slate-500">
+              <div className="px-4 py-12 text-center text-sm text-gray-500">
                 回收站为空。
               </div>
             ) : null}

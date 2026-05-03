@@ -57,12 +57,12 @@ export default function ProjectOverviewPage() {
       <SectionCard title="Brief 摘要" description="项目级约束会持续影响后续角色、场景、镜头和 Prompt。">
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl bg-panel2 px-5 py-4">
-            <p className="text-xs font-medium text-slate-500">一句话钩子</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">{currentProject.brief.logline || "未填写"}</p>
+            <p className="text-xs font-medium text-gray-500">一句话钩子</p>
+            <p className="mt-2 text-sm leading-6 text-gray-300">{currentProject.brief.logline || "未填写"}</p>
           </div>
           <div className="rounded-2xl bg-panel2 px-5 py-4">
-            <p className="text-xs font-medium text-slate-500">主冲突</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">{currentProject.brief.mainConflict || "未填写"}</p>
+            <p className="text-xs font-medium text-gray-500">主冲突</p>
+            <p className="mt-2 text-sm leading-6 text-gray-300">{currentProject.brief.mainConflict || "未填写"}</p>
           </div>
         </div>
       </SectionCard>
@@ -74,8 +74,8 @@ export default function ProjectOverviewPage() {
               <div key={task.id} className="rounded-2xl border border-line bg-panel2 px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{task.modelName || task.provider || "Generation Task"}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="text-sm font-semibold text-gray-100">{task.modelName || task.provider || "Generation Task"}</p>
+                    <p className="mt-1 text-xs text-gray-500">
                       Task #{task.id}
                       {task.episodeId ? ` · Episode ${task.episodeId}` : ""}
                       {task.shotId ? ` · Shot ${task.shotId}` : ""}
@@ -83,7 +83,7 @@ export default function ProjectOverviewPage() {
                   </div>
                   <StatusPill value={task.status} tone={task.status === "failed" ? "amber" : task.status === "succeeded" ? "green" : "blue"} />
                 </div>
-                {task.errorMessage ? <p className="mt-3 text-sm text-rose-500">{task.errorMessage}</p> : null}
+                {task.errorMessage ? <p className="mt-3 text-sm text-red-400">{task.errorMessage}</p> : null}
               </div>
             ))}
           </div>
@@ -106,9 +106,9 @@ export default function ProjectOverviewPage() {
 
 function QuickLink({ href, title, description }: { href: string; title: string; description: string }) {
   return (
-    <Link href={href} className="rounded-[22px] border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-white/80">
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
+    <Link href={href} className="rounded-[22px] border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-panel/5">
+      <p className="text-sm font-semibold text-gray-100">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-gray-500">{description}</p>
     </Link>
   );
 }

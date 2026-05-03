@@ -135,10 +135,10 @@ export default function RefineDrawer({
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint">
               AI Refine
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">{title}</h2>
+            <h2 className="mt-1 text-lg font-semibold text-gray-100">{title}</h2>
           </div>
           <button
-            className="shrink-0 rounded-full bg-panel2 px-2.5 py-1 text-xs text-slate-500 transition hover:text-slate-900 disabled:opacity-30"
+            className="shrink-0 rounded-full bg-panel2 px-2.5 py-1 text-xs text-gray-500 transition hover:text-gray-100 disabled:opacity-30"
             onClick={onClose}
             disabled={isStreaming}
           >
@@ -161,7 +161,7 @@ export default function RefineDrawer({
                 className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                   msg.role === "user"
                     ? "bg-mint text-white"
-                    : "bg-panel2 text-slate-700"
+                    : "bg-panel2 text-gray-300"
                 }`}
               >
                 <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
@@ -180,7 +180,7 @@ export default function RefineDrawer({
 
           {streamingContent && (
             <div className="flex justify-start">
-              <div className="max-w-[90%] rounded-2xl bg-panel2 px-4 py-3 text-sm leading-6 text-slate-700">
+              <div className="max-w-[90%] rounded-2xl bg-panel2 px-4 py-3 text-sm leading-6 text-gray-300">
                 <pre className="whitespace-pre-wrap font-sans">{streamingContent}</pre>
                 <span className="inline-block h-4 w-0.5 animate-pulse bg-mint align-middle" />
               </div>

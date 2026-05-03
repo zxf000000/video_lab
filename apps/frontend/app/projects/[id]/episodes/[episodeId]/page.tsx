@@ -33,34 +33,34 @@ export default function EpisodeDetailPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl bg-panel2 px-5 py-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold text-slate-900">{episode.title || "未命名分集"}</h3>
+              <h3 className="text-base font-semibold text-gray-100">{episode.title || "未命名分集"}</h3>
               <StatusPill value={episode.status} tone="purple" />
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{episode.summary || "未填写分集摘要"}</p>
+            <p className="mt-3 text-sm leading-6 text-gray-400">{episode.summary || "未填写分集摘要"}</p>
           </div>
-          <div className="rounded-2xl bg-panel2 px-5 py-4 text-sm leading-7 text-slate-600">
-            <p><span className="font-semibold text-slate-900">目标：</span>{episode.goal || "未填写"}</p>
-            <p><span className="font-semibold text-slate-900">核心冲突：</span>{episode.coreConflict || "未填写"}</p>
-            <p><span className="font-semibold text-slate-900">开场钩子：</span>{episode.openingHook || "未填写"}</p>
-            <p><span className="font-semibold text-slate-900">高潮：</span>{episode.climax || "未填写"}</p>
-            <p><span className="font-semibold text-slate-900">集尾钩子：</span>{episode.endingHook || "未填写"}</p>
+          <div className="rounded-2xl bg-panel2 px-5 py-4 text-sm leading-7 text-gray-400">
+            <p><span className="font-semibold text-gray-100">目标：</span>{episode.goal || "未填写"}</p>
+            <p><span className="font-semibold text-gray-100">核心冲突：</span>{episode.coreConflict || "未填写"}</p>
+            <p><span className="font-semibold text-gray-100">开场钩子：</span>{episode.openingHook || "未填写"}</p>
+            <p><span className="font-semibold text-gray-100">高潮：</span>{episode.climax || "未填写"}</p>
+            <p><span className="font-semibold text-gray-100">集尾钩子：</span>{episode.endingHook || "未填写"}</p>
           </div>
         </div>
       </SectionCard>
 
       <SectionCard title="下一步" description="从这一集进入镜头、审核和导出节点。">
         <div className="grid gap-3 md:grid-cols-3">
-          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="rounded-[24px] border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-white/80">
-            <p className="text-sm font-semibold text-slate-900">镜头列表</p>
-            <p className="mt-2 text-xs text-slate-500">创建镜头、编辑镜头信息、进入 Prompt 页面。</p>
+          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/shots`} className="rounded-lg border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-panel/5">
+            <p className="text-sm font-semibold text-gray-100">镜头列表</p>
+            <p className="mt-2 text-xs text-gray-500">创建镜头、编辑镜头信息、进入 Prompt 页面。</p>
           </Link>
-          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/review`} className="rounded-[24px] border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-white/80">
-            <p className="text-sm font-semibold text-slate-900">审核问题</p>
-            <p className="mt-2 text-xs text-slate-500">记录生成问题，驱动返工闭环。</p>
+          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/review`} className="rounded-lg border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-panel/5">
+            <p className="text-sm font-semibold text-gray-100">审核问题</p>
+            <p className="mt-2 text-xs text-gray-500">记录生成问题，驱动返工闭环。</p>
           </Link>
-          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/export`} className="rounded-[24px] border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-white/80">
-            <p className="text-sm font-semibold text-slate-900">导出版本</p>
-            <p className="mt-2 text-xs text-slate-500">维护单集版本和成片交付记录。</p>
+          <Link href={`/projects/${currentProject.id}/episodes/${episode.id}/export`} className="rounded-lg border border-line bg-panel2 px-4 py-4 transition hover:border-mint/40 hover:bg-panel/5">
+            <p className="text-sm font-semibold text-gray-100">导出版本</p>
+            <p className="mt-2 text-xs text-gray-500">维护单集版本和成片交付记录。</p>
           </Link>
         </div>
       </SectionCard>

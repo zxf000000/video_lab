@@ -429,10 +429,10 @@ export default function KlingPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-4 rounded-[28px] border border-line bg-panel px-5 py-4 shadow-glow">
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-panel px-5 py-4 shadow-glow">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-mint">Kling 可灵</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">可灵视频生成</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-100">可灵视频生成</h1>
         </div>
         {activeTask ? (
           <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5">
@@ -443,16 +443,16 @@ export default function KlingPage() {
       </div>
 
       {/* 生成图片模块 */}
-      <section className="rounded-[28px] border border-line bg-panel p-5 shadow-glow">
+      <section className="rounded-lg border border-line bg-panel p-5 shadow-glow">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <label className="text-xs font-medium text-slate-500">生成图片</label>
-            <span className="ml-2 text-[11px] text-slate-400">
+            <label className="text-xs font-medium text-gray-500">生成图片</label>
+            <span className="ml-2 text-[11px] text-gray-500">
               使用可灵图片模型生成，可作为视频首帧
             </span>
           </div>
           <button
-            className="inline-flex items-center gap-1 rounded-full bg-panel2 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:text-slate-900"
+            className="inline-flex items-center gap-1 rounded-full bg-panel2 px-3 py-1.5 text-xs font-medium text-gray-400 transition hover:text-gray-100"
             onClick={addRefImage}
             disabled={refImages.length >= 4}
           >
@@ -462,7 +462,7 @@ export default function KlingPage() {
         </div>
 
         {refImages.length === 0 ? (
-          <p className="py-4 text-center text-xs text-slate-400">
+          <p className="py-4 text-center text-xs text-gray-500">
             使用可灵 Image Omni 模型生成图片，支持上传引用图。提示词中用 <code className="rounded bg-panel2 px-1 text-[10px]">{"<<<image_1>>>"}</code> 引用上传的图片
           </p>
         ) : (
@@ -472,27 +472,27 @@ export default function KlingPage() {
                 <div className="mb-2 flex items-center gap-2">
                   <input
                     type="text"
-                    className="flex-1 bg-transparent text-xs font-medium outline-none placeholder:text-slate-400"
+                    className="flex-1 bg-transparent text-xs font-medium outline-none placeholder:text-gray-500"
                     placeholder="名称（可选）"
                     value={ref.name}
                     onChange={(e) => updateRefImage(i, "name", e.target.value)}
                   />
                   <button
-                    className="text-slate-400 transition hover:text-rose-500"
+                    className="text-gray-500 transition hover:text-red-400"
                     onClick={() => removeRefImage(i)}
                   >
                     <IconX size={14} stroke={2} />
                   </button>
                 </div>
                 <textarea
-                  className="mb-2 w-full resize-y rounded-lg border border-line bg-panel px-3 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-mint"
+                  className="mb-2 w-full resize-y rounded-lg border border-line bg-panel px-3 py-1.5 text-xs outline-none placeholder:text-gray-500 focus:border-mint"
                   rows={2}
                   placeholder={"提示词，用 <<<image_1>>> 引用图片"}
                   value={ref.prompt}
                   onChange={(e) => updateRefImage(i, "prompt", e.target.value)}
                 />
                 <textarea
-                  className="mb-2 w-full resize-y rounded-lg border border-line bg-panel px-3 py-1.5 text-[11px] outline-none placeholder:text-slate-400 focus:border-mint"
+                  className="mb-2 w-full resize-y rounded-lg border border-line bg-panel px-3 py-1.5 text-[11px] outline-none placeholder:text-gray-500 focus:border-mint"
                   rows={1}
                   placeholder="反向提示词（可选）"
                   value={ref.negativePrompt || ""}
@@ -501,7 +501,7 @@ export default function KlingPage() {
 
                 {/* Reference images */}
                 <div className="mb-2">
-                  <label className="mb-1 block text-[10px] text-slate-400">
+                  <label className="mb-1 block text-[10px] text-gray-500">
                     引用图（{((ref.images || []).length)} 张）
                   </label>
                   {(ref.images || []).length > 0 && (
@@ -524,7 +524,7 @@ export default function KlingPage() {
                   )}
                   <button
                     type="button"
-                    className="flex h-[28px] w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                    className="flex h-[28px] w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                     onClick={() => { refFileInputIdx.current = i; refFileInput.current?.click(); }}
                   >
                     <IconUpload size={10} stroke={1.5} />
@@ -562,7 +562,7 @@ export default function KlingPage() {
                   <button
                     type="button"
                     disabled={generatingRefIdx === i || !ref.prompt?.trim()}
-                    className="flex h-[60px] w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600 disabled:opacity-50"
+                    className="flex h-[60px] w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400 disabled:opacity-50"
                     onClick={() => handleGenerateRefImage(i)}
                   >
                     {generatingRefIdx === i ? (
@@ -581,7 +581,7 @@ export default function KlingPage() {
 
       <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
         {/* Left: Form */}
-        <section className="rounded-[28px] border border-line bg-panel p-6 shadow-glow">
+        <section className="rounded-lg border border-line bg-panel p-6 shadow-glow">
           {/* Mode tabs */}
           <div className="mb-5 flex gap-2">
             {MODES.map((m) => (
@@ -594,15 +594,15 @@ export default function KlingPage() {
                   }`}
                 onClick={() => switchMode(m.id)}
               >
-                <p className={`text-sm font-medium ${mode === m.id ? "text-mint" : "text-slate-700"}`}>{m.label}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">{m.desc}</p>
+                <p className={`text-sm font-medium ${mode === m.id ? "text-mint" : "text-gray-300"}`}>{m.label}</p>
+                <p className="mt-0.5 text-[11px] text-gray-500">{m.desc}</p>
               </button>
             ))}
           </div>
 
           {/* Prompt */}
           <div className="mb-4">
-            <label className="mb-1.5 block text-xs text-slate-500">
+            <label className="mb-1.5 block text-xs text-gray-500">
               {mode === "image" ? "图片描述提示词" : "视频描述提示词"}
             </label>
             <Textarea
@@ -622,7 +622,7 @@ export default function KlingPage() {
           {/* Negative prompt (image mode) */}
           {mode !== "omni-video" && (
             <div className="mb-4">
-              <label className="mb-1.5 block text-xs text-slate-500">反向提示词（可选）</label>
+              <label className="mb-1.5 block text-xs text-gray-500">反向提示词（可选）</label>
               <Textarea
                 className="min-h-[60px] resize-y"
                 placeholder="描述不希望出现的内容..."
@@ -637,11 +637,11 @@ export default function KlingPage() {
             <div className="mb-4">
               {/* Generate first frame */}
               <div className="mb-3">
-                <label className="mb-1.5 block text-xs text-slate-500">AI 生成首帧图</label>
+                <label className="mb-1.5 block text-xs text-gray-500">AI 生成首帧图</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    className="flex-1 rounded-xl border border-line bg-panel2 px-3 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-mint"
+                    className="flex-1 rounded-xl border border-line bg-panel2 px-3 py-1.5 text-xs outline-none placeholder:text-gray-500 focus:border-mint"
                     placeholder="描述首帧画面，例如：一个穿红色连衣裙的女孩站在雨中街道上"
                     value={firstFramePrompt}
                     onChange={(e) => setFirstFramePrompt(e.target.value)}
@@ -666,7 +666,7 @@ export default function KlingPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* Start frame */}
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">首帧图片</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">首帧图片</label>
                   {imagePreview ? (
                     <div className="group relative">
                       <img src={imagePreview} alt="首帧" className="h-[120px] w-full rounded-xl object-cover" />
@@ -680,7 +680,7 @@ export default function KlingPage() {
                   ) : (
                     <button
                       type="button"
-                      className="flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40"
+                      className="flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <IconUpload size={20} stroke={1.5} />
@@ -691,7 +691,7 @@ export default function KlingPage() {
                 </div>
                 {/* End frame */}
                 <div>
-                  <label className="mb-1.5 block text-xs text-slate-500">尾帧图片（可选）</label>
+                  <label className="mb-1.5 block text-xs text-gray-500">尾帧图片（可选）</label>
                   {imageTailPreview ? (
                     <div className="group relative">
                       <img src={imageTailPreview} alt="尾帧" className="h-[120px] w-full rounded-xl object-cover" />
@@ -705,7 +705,7 @@ export default function KlingPage() {
                   ) : (
                     <button
                       type="button"
-                      className="flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40"
+                      className="flex h-[120px] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40"
                       onClick={() => fileTailInputRef.current?.click()}
                     >
                       <IconUpload size={20} stroke={1.5} />
@@ -721,9 +721,9 @@ export default function KlingPage() {
           {/* Omni video images */}
           {mode === "omni-video" && (
             <div className="mb-4">
-              <label className="mb-1.5 block text-xs text-slate-500">
+              <label className="mb-1.5 block text-xs text-gray-500">
                 引用图片（可选）
-                <span className="ml-2 text-[10px] text-slate-400">提示词中用 <code className="rounded bg-panel2 px-1">{"<<<image_1>>>"}</code> 引用</span>
+                <span className="ml-2 text-[10px] text-gray-500">提示词中用 <code className="rounded bg-panel2 px-1">{"<<<image_1>>>"}</code> 引用</span>
               </label>
               {omniVideoImages.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
@@ -745,7 +745,7 @@ export default function KlingPage() {
               )}
               <button
                 type="button"
-                className="flex h-[48px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-slate-400 transition hover:border-mint/40 hover:text-slate-600"
+                className="flex h-[48px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-gray-500 transition hover:border-mint/40 hover:text-gray-400"
                 onClick={() => omniVideoFileRef.current?.click()}
                 disabled={omniVideoImages.length >= 5}
               >
@@ -774,7 +774,7 @@ export default function KlingPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Model */}
             <div>
-              <label className="mb-1.5 block text-xs text-slate-500">模型</label>
+              <label className="mb-1.5 block text-xs text-gray-500">模型</label>
               <select
                 className="w-full rounded-xl border border-line bg-panel2 px-3 py-1.5 text-xs outline-none focus:border-mint"
                 value={modelName}
@@ -788,7 +788,7 @@ export default function KlingPage() {
 
             {/* Aspect ratio */}
             <div>
-              <label className="mb-1.5 block text-xs text-slate-500">画面比例</label>
+              <label className="mb-1.5 block text-xs text-gray-500">画面比例</label>
               <div className="flex gap-1.5">
                 {RATIOS.map((r) => (
                   <button
@@ -796,7 +796,7 @@ export default function KlingPage() {
                     type="button"
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${aspectRatio === r
                       ? "border-mint bg-mint/10 text-mint"
-                      : "border-line bg-panel2 text-slate-500 hover:text-slate-800"
+                      : "border-line bg-panel2 text-gray-500 hover:text-gray-200"
                       }`}
                     onClick={() => setAspectRatio(r)}
                   >
@@ -809,7 +809,7 @@ export default function KlingPage() {
             {/* Mode (std/pro/4k) - only for video */}
             {mode !== "image" && (
               <div>
-                <label className="mb-1.5 block text-xs text-slate-500">画质</label>
+                <label className="mb-1.5 block text-xs text-gray-500">画质</label>
                 <div className="flex gap-1.5">
                   {MODES_KLING.map((m) => (
                     <button
@@ -817,7 +817,7 @@ export default function KlingPage() {
                       type="button"
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${klingMode === m
                         ? "border-mint bg-mint/10 text-mint"
-                        : "border-line bg-panel2 text-slate-500 hover:text-slate-800"
+                        : "border-line bg-panel2 text-gray-500 hover:text-gray-200"
                         }`}
                       onClick={() => setKlingMode(m)}
                     >
@@ -831,7 +831,7 @@ export default function KlingPage() {
             {/* Duration - only for video */}
             {mode !== "image" && (
               <div>
-                <label className="mb-1.5 block text-xs text-slate-500">时长（秒）</label>
+                <label className="mb-1.5 block text-xs text-gray-500">时长（秒）</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -849,7 +849,7 @@ export default function KlingPage() {
                       <button
                         key={d}
                         type="button"
-                        className={`rounded-md border px-2 py-1 text-[10px] transition ${duration === String(d) ? "border-mint/40 bg-mint/10 text-mint" : "border-line text-slate-400"
+                        className={`rounded-md border px-2 py-1 text-[10px] transition ${duration === String(d) ? "border-mint/40 bg-mint/10 text-mint" : "border-line text-gray-500"
                           }`}
                         onClick={() => setDuration(String(d))}
                       >
@@ -876,9 +876,9 @@ export default function KlingPage() {
         {/* Right: Task Feed */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">生成记录</h2>
+            <h2 className="text-sm font-semibold text-gray-100">生成记录</h2>
             <button
-              className="rounded-full bg-panel2 p-2 text-slate-400 transition hover:text-slate-700"
+              className="rounded-full bg-panel2 p-2 text-gray-500 transition hover:text-gray-300"
               onClick={refreshTasks}
             >
               <IconRefresh size={14} stroke={2} />
@@ -886,9 +886,9 @@ export default function KlingPage() {
           </div>
 
           {tasks.length === 0 ? (
-            <div className="rounded-[24px] border border-line bg-panel p-8 text-center shadow-glow">
+            <div className="rounded-lg border border-line bg-panel p-8 text-center shadow-glow">
               <IconClock size={32} className="mx-auto text-slate-300" />
-              <p className="mt-3 text-sm text-slate-500">还没有生成记录</p>
+              <p className="mt-3 text-sm text-gray-500">还没有生成记录</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -993,19 +993,19 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
     return (
       <div className="rounded-[20px] border border-line bg-panel p-4 shadow-glow transition hover:border-mint/40">
         <div className="mb-2 flex items-center gap-2">
-          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-medium text-emerald-600">已完成</span>
-          {totalDuration && <span className="text-[10px] text-slate-400">耗时 {totalDuration}</span>}
-          <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
+          <span className="text-[11px] font-medium text-emerald-400">已完成</span>
+          {totalDuration && <span className="text-[10px] text-gray-500">耗时 {totalDuration}</span>}
+          <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
         </div>
-        <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+        <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{taskTypeLabel(task.task_type, task.params)}</span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-          {modeVal && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{MODE_LABELS[modeVal] || modeVal}</span>}
-          {dur && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{taskTypeLabel(task.task_type, task.params)}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+          {modeVal && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{MODE_LABELS[modeVal] || modeVal}</span>}
+          {dur && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>}
           {task.created_at ? (
-            <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+            <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
         <button
@@ -1040,28 +1040,28 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
           </>
         ) : isFailed ? (
           <>
-            <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-medium text-rose-600">失败</span>
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500/100" />
+            <span className="text-[11px] font-medium text-red-400">失败</span>
             {failedDuration && <span className="text-[10px] text-rose-400">耗时 {failedDuration}</span>}
           </>
         ) : (
           <>
             <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-            <span className="text-[11px] font-medium text-slate-500">排队中</span>
+            <span className="text-[11px] font-medium text-gray-500">排队中</span>
           </>
         )}
-        <span className="ml-auto text-[10px] text-slate-400">#{task.id}</span>
+        <span className="ml-auto text-[10px] text-gray-500">#{task.id}</span>
       </div>
 
-      <p className="mb-2 line-clamp-2 text-sm text-slate-800">{promptText}</p>
+      <p className="mb-2 line-clamp-2 text-sm text-gray-200">{promptText}</p>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{taskTypeLabel(task.task_type, task.params)}</span>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{ratio}</span>
-        {modeVal && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{MODE_LABELS[modeVal] || modeVal}</span>}
-        {dur && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{dur}s</span>}
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{taskTypeLabel(task.task_type, task.params)}</span>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{ratio}</span>
+        {modeVal && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{MODE_LABELS[modeVal] || modeVal}</span>}
+        {dur && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-gray-500">{dur}s</span>}
         {task.created_at ? (
-          <span className="ml-auto text-[10px] text-slate-400">{timeAgo(task.created_at)}</span>
+          <span className="ml-auto text-[10px] text-gray-500">{timeAgo(task.created_at)}</span>
         ) : null}
       </div>
 
@@ -1079,7 +1079,7 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-slate-500">{progressPercent}%</span>
+              <span className="shrink-0 text-[10px] font-medium text-gray-500">{progressPercent}%</span>
             </div>
           ) : (
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -1090,12 +1090,12 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
       )}
 
       {isFailed && task.error_message ? (
-        <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{task.error_message}</div>
+        <div className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">{task.error_message}</div>
       ) : null}
 
       {isFailed ? (
         <button
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rose-50 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-100"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-red-500/10 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
           onClick={() => onRetry(task)}
         >
           <IconRefresh size={14} stroke={2} />
@@ -1120,26 +1120,19 @@ function KlingTaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
   return (
     <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
       <DialogContent
-        showCloseButton={false}
-        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-[28px] border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
+        className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Kling 任务详情</DialogTitle>
           <DialogDescription>查看 Kling 任务输出、提示词和参数。</DialogDescription>
         </DialogHeader>
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center">
           <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/100" />
             <span className="text-sm font-semibold text-white">任务 #{task.id}</span>
-            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
+            <span className="rounded-full bg-emerald-500/100/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400">已完成</span>
           </div>
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 transition hover:bg-white/20 hover:text-white"
-            onClick={onClose}
-          >
-            <IconX size={16} stroke={2} />
-          </button>
         </div>
 
         {/* Output */}
@@ -1161,17 +1154,17 @@ function KlingTaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
         {/* Prompt */}
         <div className="mb-4">
           <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-white/40">提示词</label>
-          <p className="rounded-xl bg-white/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText || "—"}</p>
+          <p className="rounded-xl bg-panel/5 px-4 py-3 text-sm leading-6 text-white/90">{promptText || "—"}</p>
         </div>
 
         {/* Meta */}
         <div className="mb-5 flex flex-wrap gap-2">
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{taskTypeLabel(task.task_type, task.params)}</span>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
-          {modeVal && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">画质: {MODE_LABELS[modeVal] || modeVal}</span>}
-          {dur && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>}
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">{taskTypeLabel(task.task_type, task.params)}</span>
+          <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">比例: {ratio}</span>
+          {modeVal && <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">画质: {MODE_LABELS[modeVal] || modeVal}</span>}
+          {dur && <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">时长: {dur}s</span>}
           {task.created_at ? (
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
+            <span className="rounded-full bg-panel/10 px-3 py-1 text-xs text-white/70">{timeAgo(task.created_at)}</span>
           ) : null}
         </div>
 

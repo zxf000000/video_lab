@@ -11,7 +11,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function T
   { className, ...props },
   ref
 ) {
-  return <ThemeTextArea ref={ref} data-slot="textarea" radius="large" variant="surface" size="3" className={cn("w-full", className)} {...props} />
+  return <ThemeTextArea ref={ref} data-slot="textarea" radius="large" variant="surface" size="3" className={cn("w-full focus:shadow-[0_0_12px_rgba(0,240,255,0.3)] transition-shadow", className)} {...props} />
 })
 
 export { Textarea }

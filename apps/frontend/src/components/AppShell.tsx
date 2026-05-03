@@ -62,18 +62,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarWidth = collapsed ? "w-[72px]" : "w-[180px]";
 
   return (
-    <div className="min-h-screen bg-ink text-slate-900">
+    <div className="min-h-screen bg-ink text-gray-100">
       <div className="flex">
         {/* Desktop Sidebar */}
         <aside
-          className={`sticky top-0 hidden h-screen shrink-0 ${sidebarWidth} border-r border-line bg-panel py-4 shadow-glow transition-[width] duration-200 lg:flex lg:flex-col`}
+          className={`sticky top-0 hidden h-screen shrink-0 ${sidebarWidth} border-r border-line bg-panel/95 py-4 shadow-[inset_-1px_0_0_rgba(0,240,255,0.15)] transition-[width] duration-200 lg:flex lg:flex-col`}
         >
           <div className="flex items-center gap-3 px-4 pb-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-mint text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-mint/20 text-mint">
               <IconVideo size={18} stroke={2} />
             </div>
             {!collapsed && (
-              <span className="text-sm font-semibold tracking-tight text-slate-900">
+              <span className="text-sm font-semibold tracking-tight text-gray-100">
                 AI Drama Lab
               </span>
             )}
@@ -87,10 +87,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  className={`flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium transition ${
                     active
-                      ? "bg-mint text-white"
-                      : "text-slate-500 hover:bg-panel2 hover:text-slate-900"
+                      ? "bg-cyan-500/15 text-mint border-l-2 border-mint"
+                      : "text-gray-500 hover:bg-panel2 hover:text-gray-300"
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
@@ -104,7 +104,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="px-3">
             <button
               onClick={toggleCollapsed}
-              className="flex w-full items-center justify-center rounded-xl bg-panel2 py-2 text-slate-400 transition hover:text-slate-700"
+              className="flex w-full items-center justify-center rounded-sm bg-panel2 py-2 text-gray-500 transition hover:text-gray-300"
             >
               {collapsed ? (
                 <IconChevronRight size={18} stroke={2} />
@@ -119,15 +119,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
-              className="absolute inset-0 bg-black/30"
+              className="absolute inset-0 bg-black/60"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 h-full w-[240px] border-r border-line bg-panel p-4 shadow-xl">
+            <aside className="absolute left-0 top-0 h-full w-[240px] border-r border-line bg-panel/95 p-4 shadow-xl">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-mint text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-mint/20 text-mint">
                   <IconVideo size={18} stroke={2} />
                 </div>
-                <span className="text-sm font-semibold tracking-tight text-slate-900">
+                <span className="text-sm font-semibold tracking-tight text-gray-100">
                   AI Drama Lab
                 </span>
               </div>
@@ -139,10 +139,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                      className={`flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium transition ${
                         active
-                          ? "bg-mint text-white"
-                          : "text-slate-500 hover:bg-panel2 hover:text-slate-900"
+                          ? "bg-cyan-500/15 text-mint border-l-2 border-mint"
+                          : "text-gray-500 hover:bg-panel2 hover:text-gray-300"
                       }`}
                     >
                       <Icon size={20} stroke={2} className="shrink-0" />
@@ -158,16 +158,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Main Area */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Global Header */}
-          <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-panel/80 px-4 py-3 backdrop-blur-xl lg:px-6">
+          <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-panel/60 px-4 py-3 shadow-[0_1px_10px_rgba(0,240,255,0.08)] backdrop-blur-xl lg:px-6">
             <button
               onClick={() => setMobileOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-panel2 hover:text-slate-900 lg:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-sm text-gray-500 transition hover:bg-panel2 hover:text-gray-300 lg:hidden"
             >
               <IconMenu2 size={20} stroke={2} />
             </button>
             <button
               onClick={toggleCollapsed}
-              className="hidden h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-panel2 hover:text-slate-900 lg:flex"
+              className="hidden h-9 w-9 items-center justify-center rounded-sm text-gray-500 transition hover:bg-panel2 hover:text-gray-300 lg:flex"
             >
               {collapsed ? (
                 <IconChevronRight size={18} stroke={2} />
@@ -175,7 +175,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <IconChevronLeft size={18} stroke={2} />
               )}
             </button>
-            <span className="text-sm font-semibold tracking-tight text-slate-900">
+            <span className="text-sm font-semibold tracking-tight text-gray-100">
               AI Drama Lab
             </span>
           </header>

@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 234 50% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 246 67% 62%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 60% 99%;
-    --secondary-foreground: 215 20% 46%;
-    --muted: 240 60% 99%;
-    --muted-foreground: 215 20% 46%;
-    --accent: 240 60% 99%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+    --background: 240 20% 6%;
+    --foreground: 210 20% 90%;
+    --card: 240 18% 10%;
+    --card-foreground: 210 20% 90%;
+    --popover: 240 18% 10%;
+    --popover-foreground: 210 20% 90%;
+    --primary: 185 100% 47%;
+    --primary-foreground: 240 20% 6%;
+    --secondary: 275 75% 56%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 18% 14%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 275 75% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 234 20% 92%;
-    --input: 234 20% 92%;
-    --ring: 246 67% 62%;
-    --radius: 1rem;
+    --border: 240 15% 20%;
+    --input: 240 15% 16%;
+    --ring: 185 100% 47%;
+    --radius: 0.5rem;
   }
   * {
     @apply border-border outline-ring/50;
@@ -38,12 +38,28 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(111, 103, 216, 0.08), transparent 28%),
-    radial-gradient(circle at top right, rgba(242, 185, 75, 0.08), transparent 24%),
-    linear-gradient(180deg, #f7f7fb 0%, #f2f3f8 100%);
-  color: #1f2430;
+  font-family: var(--font-mono), "Fira Code", monospace;
+  background-color: #0a0a0f;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: #e2e8f0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 240, 255, 0.015) 2px,
+    rgba(0, 240, 255, 0.015) 4px
+  );
 }
 
 button,
@@ -59,4 +75,38 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+/* Skew panel utility */
+.cyber-panel {
+  transform: skewX(-2deg);
+}
+.cyber-panel > * {
+  transform: skewX(2deg);
+}
+
+/* Glitch hover animation */
+@keyframes cyber-glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, 2px); }
+  80% { transform: translate(1px, -2px); }
+}
+.cyber-glitch:hover {
+  animation: cyber-glitch 0.3s ease-in-out;
+}
+
+/* Neon text glow */
+.neon-text {
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+/* Force Radix Themes dialogs to dark */
+.rt-BaseDialogOverlay {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+.rt-BaseDialogContent {
+  background-color: #12121e !important;
+  color: #e2e8f0 !important;
 }

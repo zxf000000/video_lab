@@ -127,16 +127,16 @@ export default function ProjectBriefPage() {
               type="button"
               onClick={() => toggleField(field.key)}
               className={`rounded-[20px] border px-4 py-3 text-left transition ${
-                checked ? "border-[#6f67d8] bg-[#f3f1ff]" : "border-line bg-panel hover:border-[#c9c4ff]"
+                checked ? "border-mint bg-mint/10" : "border-line bg-panel hover:border-mint/40"
               }`}
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-medium text-slate-800">{field.label}</div>
-                <div className={`text-[11px] ${checked ? "text-[#6f67d8]" : "text-slate-400"}`}>
+                <div className="text-sm font-medium text-gray-200">{field.label}</div>
+                <div className={`text-[11px] ${checked ? "text-mint" : "text-gray-500"}`}>
                   {checked ? "已选中" : "点击选中"}
                 </div>
               </div>
-              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-400">
                 {Array.isArray(value) ? value.join(", ") || "[]" : String(value ?? "") || "空"}
               </div>
             </button>
@@ -204,43 +204,43 @@ export default function ProjectBriefPage() {
     >
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <Label className="mb-2 block text-xs text-slate-500">一句话钩子</Label>
+          <Label className="mb-2 block text-xs text-gray-500">一句话钩子</Label>
           <Textarea className="min-h-[120px]" value={form.logline} onChange={(e) => setForm((prev) => ({ ...prev, logline: e.target.value }))} />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">目标受众</Label>
+          <Label className="mb-2 block text-xs text-gray-500">目标受众</Label>
           <Input value={form.targetAudience} onChange={(e) => setForm((prev) => ({ ...prev, targetAudience: e.target.value }))} />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">状态</Label>
+          <Label className="mb-2 block text-xs text-gray-500">状态</Label>
           <Input value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))} />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">题材标签</Label>
+          <Label className="mb-2 block text-xs text-gray-500">题材标签</Label>
           <Input value={form.genreTags} onChange={(e) => setForm((prev) => ({ ...prev, genreTags: e.target.value }))} placeholder="甜宠, 逆袭, 复仇" />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">风格关键词</Label>
+          <Label className="mb-2 block text-xs text-gray-500">风格关键词</Label>
           <Input value={form.styleKeywords} onChange={(e) => setForm((prev) => ({ ...prev, styleKeywords: e.target.value }))} placeholder="高饱和, 快节奏" />
         </div>
         <div className="md:col-span-2">
-          <Label className="mb-2 block text-xs text-slate-500">世界规则</Label>
+          <Label className="mb-2 block text-xs text-gray-500">世界规则</Label>
           <Textarea value={form.worldRules} onChange={(e) => setForm((prev) => ({ ...prev, worldRules: e.target.value }))} />
         </div>
         <div className="md:col-span-2">
-          <Label className="mb-2 block text-xs text-slate-500">主冲突</Label>
+          <Label className="mb-2 block text-xs text-gray-500">主冲突</Label>
           <Textarea value={form.mainConflict} onChange={(e) => setForm((prev) => ({ ...prev, mainConflict: e.target.value }))} />
         </div>
         <div className="md:col-span-2">
-          <Label className="mb-2 block text-xs text-slate-500">人物关系</Label>
+          <Label className="mb-2 block text-xs text-gray-500">人物关系</Label>
           <Textarea value={form.relationshipSummary} onChange={(e) => setForm((prev) => ({ ...prev, relationshipSummary: e.target.value }))} />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">反转规则</Label>
+          <Label className="mb-2 block text-xs text-gray-500">反转规则</Label>
           <Textarea value={form.reversalRules} onChange={(e) => setForm((prev) => ({ ...prev, reversalRules: e.target.value }))} />
         </div>
         <div>
-          <Label className="mb-2 block text-xs text-slate-500">禁忌项</Label>
+          <Label className="mb-2 block text-xs text-gray-500">禁忌项</Label>
           <Textarea value={form.forbiddenRules} onChange={(e) => setForm((prev) => ({ ...prev, forbiddenRules: e.target.value }))} />
         </div>
       </div>

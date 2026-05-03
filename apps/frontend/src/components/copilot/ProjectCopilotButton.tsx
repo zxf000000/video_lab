@@ -12,7 +12,7 @@ export default function ProjectCopilotButton({ label = "AI Copilot" }: { label?:
 
   return (
     <>
-      <Button size="sm" onClick={() => setIsOpen(true)}>
+      <Button size="sm" onClick={() => setIsOpen(true)} className="shadow-glow animate-pulse">
         <IconSparkles size={16} stroke={2} />
         {label}
       </Button>

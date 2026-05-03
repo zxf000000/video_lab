@@ -1,5 +1,4 @@
 import React from "react";
-import { IconX } from "@tabler/icons-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -29,7 +28,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ text }: EmptyStateProps) {
-  return <div className="rounded-2xl border border-dashed border-line px-4 py-6 text-sm text-slate-500">{text}</div>;
+  return <div className="rounded-2xl border border-dashed border-line px-4 py-6 text-sm text-gray-500">{text}</div>;
 }
 
 interface StatusBadgeProps {
@@ -39,11 +38,11 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   const tones: Record<string, string> = {
-    failed: "bg-rose-100 text-rose-600",
-    error: "bg-rose-100 text-rose-600",
-    succeeded: "bg-emerald-100 text-emerald-600",
-    success: "bg-emerald-100 text-emerald-600",
-    completed: "bg-emerald-100 text-emerald-600",
+    failed: "bg-red-500/10 text-red-400",
+    error: "bg-red-500/10 text-red-400",
+    succeeded: "bg-emerald-100 text-emerald-400",
+    success: "bg-emerald-100 text-emerald-400",
+    completed: "bg-emerald-100 text-emerald-400",
     shots_ready: "bg-emerald-100 text-emerald-700",
     outline_ready: "bg-cyan-100 text-cyan-700",
     project_ready: "bg-emerald-100 text-emerald-700",
@@ -52,19 +51,19 @@ export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
     video_ready: "bg-emerald-100 text-emerald-700",
     frames_ready: "bg-cyan-100 text-cyan-700",
     prompt_updated: "bg-amber-100 text-amber-700",
-    planned: "bg-slate-100 text-slate-500",
-    draft: "bg-slate-100 text-slate-500",
-    queued: "bg-[#f2efff] text-mint",
-    running: "bg-[#f2efff] text-mint",
-    generating_story: "bg-[#f2efff] text-mint",
-    generating_episode_screenplay: "bg-[#f2efff] text-mint",
-    generating_characters: "bg-[#f2efff] text-mint",
-    generating_scenes: "bg-[#f2efff] text-mint",
-    splitting_shots: "bg-[#f2efff] text-mint",
+    planned: "bg-slate-100 text-gray-500",
+    draft: "bg-slate-100 text-gray-500",
+    queued: "bg-purple-500/10 text-mint",
+    running: "bg-purple-500/10 text-mint",
+    generating_story: "bg-purple-500/10 text-mint",
+    generating_episode_screenplay: "bg-purple-500/10 text-mint",
+    generating_characters: "bg-purple-500/10 text-mint",
+    generating_scenes: "bg-purple-500/10 text-mint",
+    splitting_shots: "bg-purple-500/10 text-mint",
   };
 
   return (
-    <Badge className={cn(tones[status] || "bg-[#f2efff] text-mint", className)}>
+    <Badge className={cn(tones[status] || "bg-purple-500/10 text-mint", className)}>
       {status}
     </Badge>
   );
@@ -88,7 +87,6 @@ export function ImageViewer({ src, alt, onClose }: ImageViewerProps) {
   return (
     <Dialog open={!!src} onOpenChange={(open: any) => { if (!open) onClose(); }}>
       <DialogContent
-        showCloseButton={false}
         className="max-w-[90vw] border-0 bg-transparent p-0 shadow-none ring-0"
       >
         <DialogHeader className="sr-only">
@@ -100,12 +98,6 @@ export function ImageViewer({ src, alt, onClose }: ImageViewerProps) {
           alt={alt || ""}
           className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
         />
-        <button
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-          onClick={onClose}
-        >
-          <IconX size={16} stroke={2} />
-        </button>
       </DialogContent>
     </Dialog>
   );
