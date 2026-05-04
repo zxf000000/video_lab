@@ -56,6 +56,7 @@ class AssetsService:
             "prop_list": normalize_json_text(payload.get("prop_list"), []),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "variants": normalize_json_text(payload.get("variants"), []),
+            "episode_id": payload.get("episode_id"),
             "status": normalize_text(payload.get("status"), "draft"),
             "version_no": max(1, normalize_int(payload.get("version_no"), 1)),
         }

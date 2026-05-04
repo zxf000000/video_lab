@@ -90,6 +90,7 @@ export interface SceneProposal {
   negativeConstraints: string;
   imagePrompt: string;
   negativePrompt: string;
+  episodeId?: number | null;
 }
 
 export interface SceneCollectionProposal {
@@ -268,6 +269,7 @@ export interface ScenePreset {
   negativePrompt: string;
   referenceAssetIds: unknown[];
   variants: unknown[];
+  episodeId: number | null;
   status: string;
   versionNo: number;
   createdAt: string;
@@ -668,6 +670,7 @@ function normalizeScene(raw: Record<string, unknown>): ScenePreset {
     negativePrompt: asString(raw.negative_prompt),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     variants: parseJsonValue<unknown[]>(raw.variants, []),
+    episodeId: raw.episode_id != null ? asNumber(raw.episode_id) : null,
     status: asString(raw.status, "draft"),
     versionNo: asNumber(raw.version_no, 1),
     createdAt: asString(raw.created_at),
@@ -971,6 +974,7 @@ export async function createScene(projectId: number, data: Partial<ScenePreset> 
       prop_list: data.propList ?? [],
       reference_asset_ids: data.referenceAssetIds ?? [],
       variants: data.variants ?? [],
+      episode_id: data.episodeId ?? null,
       status: data.status ?? "draft",
       version_no: data.versionNo ?? 1,
     }),
@@ -993,6 +997,7 @@ export async function updateScene(sceneId: number, projectId: number, data: Part
       ...(data.propList !== undefined ? { prop_list: data.propList } : {}),
       ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
       ...(data.variants !== undefined ? { variants: data.variants } : {}),
+      ...(data.episodeId !== undefined ? { episode_id: data.episodeId } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
       ...(data.versionNo !== undefined ? { version_no: data.versionNo } : {}),
     }),

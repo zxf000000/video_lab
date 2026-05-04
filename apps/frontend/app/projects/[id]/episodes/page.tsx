@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   listEpisodes,
@@ -370,9 +371,11 @@ export default function EpisodesPage() {
   /* ---- per-episode scene generation ---- */
   const handleGenerateScenes = useCallback(
     async (episode: Episode) => {
+      console.log("[scene-gen] clicked for episode:", episode.title);
       setGeneratingScenes(episode.id);
       try {
         let collected: any[] = [];
+        console.log("[scene-gen] current scenes count:", scenes.length);
 
         await streamCopilot(
           {
@@ -431,7 +434,7 @@ export default function EpisodesPage() {
         if (collected.length > 0) {
           const { createScene } = await import("@/src/api");
           for (const scene of collected) {
-            await createScene(projectId, scene);
+            await createScene(projectId, { ...scene, episodeId: episode.id });
           }
           await refresh();
         }
@@ -524,6 +527,35 @@ export default function EpisodesPage() {
                       <span>冲突: {ep.coreConflict.slice(0, 40)}...</span>
                     </div>
                   )}
+                  {/* Related scenes */}
+                  {(() => {
+                    const relatedScenes = scenes.filter((s: any) => s.episodeId === ep.id);
+                    if (relatedScenes.length === 0) return null;
+                    const shown = relatedScenes.slice(0, 3);
+                    const rest = relatedScenes.length - shown.length;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span className="text-xs text-gray-500">场景:</span>
+                        {shown.map((s: any) => (
+                          <Link
+                            key={s.id}
+                            href={`/projects/${projectId}/scenes?episode=${ep.id}`}
+                            className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20 transition"
+                          >
+                            {s.name}
+                          </Link>
+                        ))}
+                        {rest > 0 && (
+                          <Link
+                            href={`/projects/${projectId}/scenes?episode=${ep.id}`}
+                            className="text-xs text-gray-500 hover:text-primary transition"
+                          >
+                            +{rest}
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   <Button

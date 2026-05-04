@@ -302,3 +302,7 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     conn.execute("UPDATE shots SET action_description = character_action WHERE action_description = ''")
     conn.execute("UPDATE shots SET camera_angle = camera_movement WHERE camera_angle = ''")
     conn.execute("UPDATE shots SET estimated_duration_ms = duration_seconds * 1000 WHERE estimated_duration_ms = 0 AND duration_seconds IS NOT NULL")
+
+    existing_scene_presets = {row[1] for row in conn.execute("PRAGMA table_info(scene_presets)").fetchall()}
+    if existing_scene_presets and "episode_id" not in existing_scene_presets:
+        conn.execute("ALTER TABLE scene_presets ADD COLUMN episode_id INTEGER DEFAULT NULL")

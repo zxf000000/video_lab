@@ -1,0 +1,26 @@
+请基于下面的上下文，根据用户的具体要求重新生成当前角色。
+
+重新生成要求：
+1. 以 current_character 为起点，根据用户在「用户目标」中提出的修改要求进行定向重构。
+2. 用户可能要求改变物种（如人类→外星人、机器人、动物等）、性别、年龄段、性格方向、外观风格等。
+3. 如果用户要求改变 species（物种），必须同步调整：
+   - character_profile 中的 species 和 identity_summary
+   - appearance_summary 必须重新描述该物种的典型外观特征
+   - image_spec 中的所有外观字段（face_features、hair_style、body_type 等）必须重新设定
+   - image_prompt 必须完全重写以匹配新物种
+   - negative_visual_constraints 必须排除与新物种冲突的元素
+4. 如果用户没有指定某个维度，保留 current_character 中该维度的设定，不要无意义重写。
+5. 如果 generation_stage 是 `profile_collection`，输出完整的 character_profile + image_spec。
+6. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 为空，输出完整 image_spec。
+7. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 不为空，输出 image_spec_override。
+8. 重新生成的角色必须保持与 Brief 的世界观、主冲突和人物关系一致。
+9. variant 模式下只改当前形态的变化字段，不要把角色变成另一个人。
+10. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}

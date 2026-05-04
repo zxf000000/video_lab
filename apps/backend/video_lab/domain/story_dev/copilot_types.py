@@ -6,6 +6,7 @@ from typing import Literal, NotRequired, TypedDict
 class CharacterProfilePayload(TypedDict):
     name: str
     role_type: str
+    species: str
     identity_summary: str
     appearance_summary: str
     personality_tags: list[str]

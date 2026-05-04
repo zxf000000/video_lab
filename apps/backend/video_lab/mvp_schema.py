@@ -67,13 +67,18 @@ CREATE TABLE IF NOT EXISTS scene_presets (
     time_of_day TEXT NOT NULL DEFAULT '',
     weather TEXT NOT NULL DEFAULT '',
     prop_list TEXT NOT NULL DEFAULT '[]',
+    negative_constraints TEXT NOT NULL DEFAULT '',
+    image_prompt TEXT NOT NULL DEFAULT '',
+    negative_prompt TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     variants TEXT NOT NULL DEFAULT '[]',
+    episode_id INTEGER,
     status TEXT NOT NULL DEFAULT 'draft',
     version_no INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS episodes (
@@ -221,6 +226,9 @@ CREATE TABLE IF NOT EXISTS scene_presets (
     time_of_day TEXT NOT NULL DEFAULT '',
     weather TEXT NOT NULL DEFAULT '',
     prop_list TEXT NOT NULL DEFAULT '[]',
+    negative_constraints TEXT NOT NULL DEFAULT '',
+    image_prompt TEXT NOT NULL DEFAULT '',
+    negative_prompt TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     variants TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'draft',

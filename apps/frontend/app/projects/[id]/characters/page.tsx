@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { API_BASE, createCharacter, deleteCharacter, generateCharacterImage, streamCopilot, type CharacterAsset, type CharacterCollectionProposal, type CharacterProposal, type CharacterVariantCollectionProposal, type CharacterVariantProposal, type CopilotProposal, updateCharacter } from "@/src/api";
 import ProjectCopilotButton from "@/src/components/copilot/ProjectCopilotButton";
-import { useProjectCopilotModule } from "@/src/components/copilot/ProjectCopilotContext";
+import { useProjectCopilot, useProjectCopilotModule } from "@/src/components/copilot/ProjectCopilotContext";
 import type { CopilotFieldDescriptor, CopilotModuleAdapter } from "@/src/components/copilot/types";
+import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, KeyValueGrid, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
@@ -56,6 +57,7 @@ type CharacterFormState = {
   id?: number;
   name: string;
   roleType: string;
+  species: string;
   identitySummary: string;
   appearanceSummary: string;
   personalityTags: string;
@@ -103,6 +105,7 @@ const emptyVariantVisual: VariantVisualDraft = {
 const emptyForm: CharacterFormState = {
   name: "",
   roleType: "",
+  species: "",
   identitySummary: "",
   appearanceSummary: "",
   personalityTags: "",
@@ -132,6 +135,7 @@ const emptyForm: CharacterFormState = {
 const CHARACTER_FIELD_LABELS: CopilotFieldDescriptor[] = [
   { key: "name", label: "角色名" },
   { key: "roleType", label: "角色类型" },
+  { key: "species", label: "物种" },
   { key: "appearanceSummary", label: "外观描述" },
   { key: "personalityTags", label: "性格标签" },
   { key: "speechStyle", label: "说话风格" },
@@ -285,6 +289,7 @@ function proposalToForm(role: CharacterProposal, base?: CharacterFormState | nul
     id: base?.id,
     name: profile.name,
     roleType: profile.roleType,
+    species: profile.species,
     identitySummary: profile.identitySummary,
     appearanceSummary: profile.appearanceSummary,
     personalityTags: profile.personalityTags.join(", "),
@@ -374,6 +379,7 @@ function toForm(character?: CharacterAsset): CharacterFormState {
     id: character.id,
     name: character.name,
     roleType: character.roleType,
+    species: typeof rawBaseImageSpec.species === "string" ? rawBaseImageSpec.species : (typeof character.species === "string" ? character.species : ""),
     identitySummary: character.identitySummary,
     appearanceSummary: character.appearanceSummary,
     personalityTags: character.personalityTags.join(", "),
@@ -569,20 +575,86 @@ function applyMultiVariantProposalToForm(base: CharacterFormState, variants: Cha
 
 export default function CharactersPage() {
   const { project, refresh } = useProjectWorkspace();
+  const { adapter } = useProjectCopilot();
   const [editing, setEditing] = useState<CharacterFormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [generatingImage, setGeneratingImage] = useState<number | "draft" | null>(null);
   const [generatingImageSpec, setGeneratingImageSpec] = useState(false);
   const [creatingFromProposal, setCreatingFromProposal] = useState<string>("");
+  const [regenerating, setRegenerating] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [progressiveActive, setProgressiveActive] = useState(false);
-  const [progressiveProposal, setProgressiveProposal] = useState<CharacterCollectionProposal | null>(null);
-  const [progressiveLoading, setProgressiveLoading] = useState(false);
-  const [progressiveStreamText, setProgressiveStreamText] = useState("");
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [regenerateInput, setRegenerateInput] = useState("");
+  const [regenerateCharacter, setRegenerateCharacter] = useState<CharacterFormState | null>(null);
 
   const currentProject = project;
   const isVisualStage = editing !== null;
   const activeVariant = editing ? getActiveVariant(editing) : null;
+
+  // Progressive generation: context builder and confirm handler
+  function buildProgressiveContext() {
+    if (!currentProject) return {};
+    return {
+      current_mode: "collection",
+      generation_stage: "profile_collection",
+      project_summary: {
+        name: currentProject.name,
+        genre: currentProject.genre,
+        target_platform: currentProject.targetPlatform,
+        episode_count_planned: currentProject.episodeCountPlanned,
+      },
+      brief_summary: {
+        logline: currentProject.brief.logline,
+        target_audience: currentProject.brief.targetAudience,
+        genre_tags: currentProject.brief.genreTags,
+        style_keywords: currentProject.brief.styleKeywords,
+        world_rules: currentProject.brief.worldRules,
+        main_conflict: currentProject.brief.mainConflict,
+        relationship_summary: currentProject.brief.relationshipSummary,
+        reversal_rules: currentProject.brief.reversalRules,
+        forbidden_rules: currentProject.brief.forbiddenRules,
+      },
+      current_character: null,
+      existing_characters: currentProject.characters.map((character) => ({
+        character_profile: {
+          name: character.name,
+          role_type: character.roleType,
+          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+          identity_summary: character.identitySummary,
+          appearance_summary: character.appearanceSummary,
+          personality_tags: character.personalityTags,
+          speech_style: character.speechStyle,
+        },
+        image_spec: {
+          ...(character.visualProfile ?? {}),
+          image_prompt: character.imagePrompt,
+          negative_prompt: character.negativePrompt,
+        },
+      })),
+      locked_rules: {
+        project_id: currentProject.id,
+        must_follow_brief: true,
+      },
+    };
+  }
+
+  async function handleProgressiveConfirm(proposal: CopilotProposal) {
+    const roles = (proposal as CharacterCollectionProposal).roles;
+    const role = roles?.[0];
+    if (!role || !currentProject) return;
+    const form = proposalToForm(role, emptyForm);
+    await persistCharacter(form);
+    await refresh();
+    toast.success(`角色「${role.characterProfile.name}」已加入角色库`);
+  }
+
+  const progressive = useProgressiveGeneration({
+    projectId: currentProject?.id ?? 0,
+    moduleType: "character",
+    userMessage: "请为这个短剧项目生成下一个关键角色。严格遵循 brief 中的世界规则、主冲突和人物关系，分析已有角色的功能覆盖，填补空缺。",
+    buildContext: buildProgressiveContext,
+    onConfirm: handleProgressiveConfirm,
+  });
 
   const characterAdapter = useMemo<CopilotModuleAdapter | null>(() => {
     if (!currentProject) return null;
@@ -609,6 +681,7 @@ export default function CharactersPage() {
             expand: activeVariant ? "丰富变体细节" : "丰富视觉细节",
             compress: activeVariant ? "收敛变体方案" : "收敛视觉方案",
             fill_missing: activeVariant ? "补全变体字段" : "补全视觉字段",
+            regenerate: "重新生成",
           }
         : {
             generate: "生成角色组",
@@ -616,6 +689,7 @@ export default function CharactersPage() {
             expand: "丰富角色组",
             compress: "收敛角色组",
             fill_missing: "补全角色组",
+            regenerate: "重新生成",
           },
     },
     proposalStyle: "custom",
@@ -643,6 +717,7 @@ export default function CharactersPage() {
         character_profile: {
           name: editing.name,
           role_type: editing.roleType,
+          species: editing.species,
           identity_summary: editing.identitySummary,
           appearance_summary: editing.appearanceSummary,
           personality_tags: parseCsv(editing.personalityTags),
@@ -662,6 +737,7 @@ export default function CharactersPage() {
         character_profile: {
           name: character.name,
           role_type: character.roleType,
+          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
           identity_summary: character.identitySummary,
           appearance_summary: character.appearanceSummary,
           personality_tags: character.personalityTags,
@@ -692,7 +768,7 @@ export default function CharactersPage() {
         ]}
       />
     ),
-    getSupportedIntents: () => ["generate", "rewrite", "expand", "compress", "fill_missing"],
+    getSupportedIntents: () => ["generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"],
     getProposalFields: () => CHARACTER_FIELD_LABELS,
     renderProposal: ({ proposal, selectedFields, toggleField }) => {
       if (isVariantProposal(proposal)) {
@@ -931,6 +1007,7 @@ export default function CharactersPage() {
         for (const key of allowed) {
           if (key === "name") next.name = profile.name;
           else if (key === "roleType") next.roleType = profile.roleType;
+          else if (key === "species") next.species = profile.species;
           else if (key === "appearanceSummary") next.appearanceSummary = profile.appearanceSummary;
           else if (key === "personalityTags") next.personalityTags = profile.personalityTags.join(", ");
           else if (key === "speechStyle") next.speechStyle = profile.speechStyle;
@@ -954,6 +1031,7 @@ export default function CharactersPage() {
     const payload = {
       name: form.name,
       roleType: form.roleType,
+      species: form.species,
       identitySummary: form.identitySummary,
       appearanceSummary: form.appearanceSummary,
       personalityTags: parseCsv(form.personalityTags),
@@ -998,6 +1076,7 @@ export default function CharactersPage() {
         character_profile: {
           name: form.name,
           role_type: form.roleType,
+          species: form.species,
           identity_summary: form.identitySummary,
           appearance_summary: form.appearanceSummary,
           personality_tags: parseCsv(form.personalityTags),
@@ -1017,6 +1096,7 @@ export default function CharactersPage() {
         character_profile: {
           name: character.name,
           role_type: character.roleType,
+          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
           identity_summary: character.identitySummary,
           appearance_summary: character.appearanceSummary,
           personality_tags: character.personalityTags,
@@ -1144,132 +1224,118 @@ export default function CharactersPage() {
     }
   }
 
-  function buildProgressiveContext() {
-    return {
-      current_mode: "collection",
-      generation_stage: "profile_collection",
-      project_summary: {
-        name: readyProject.name,
-        genre: readyProject.genre,
-        target_platform: readyProject.targetPlatform,
-        episode_count_planned: readyProject.episodeCountPlanned,
-      },
-      brief_summary: {
-        logline: readyProject.brief.logline,
-        target_audience: readyProject.brief.targetAudience,
-        genre_tags: readyProject.brief.genreTags,
-        style_keywords: readyProject.brief.styleKeywords,
-        world_rules: readyProject.brief.worldRules,
-        main_conflict: readyProject.brief.mainConflict,
-        relationship_summary: readyProject.brief.relationshipSummary,
-        reversal_rules: readyProject.brief.reversalRules,
-        forbidden_rules: readyProject.brief.forbiddenRules,
-      },
-      current_character: null,
-      existing_characters: readyProject.characters.map((character) => ({
-        character_profile: {
-          name: character.name,
-          role_type: character.roleType,
-          identity_summary: character.identitySummary,
-          appearance_summary: character.appearanceSummary,
-          personality_tags: character.personalityTags,
-          speech_style: character.speechStyle,
-        },
-        image_spec: {
-          ...(character.visualProfile ?? {}),
-          image_prompt: character.imagePrompt,
-          negative_prompt: character.negativePrompt,
-        },
-      })),
-      locked_rules: {
-        project_id: readyProject.id,
-        must_follow_brief: true,
-      },
-    };
-  }
-
-  async function fetchNextProgressiveProposal() {
-    setProgressiveLoading(true);
-    setProgressiveProposal(null);
-    setProgressiveStreamText("");
+  async function handleRegenerate() {
+    if (!regenerateCharacter || !regenerateInput.trim()) return;
+    setRegenerating(true);
     try {
+      // Build context with the character being regenerated
+      const context = {
+        current_mode: "single_refine",
+        generation_stage: "visual_refine",
+        project_summary: {
+          name: currentProject.name,
+          genre: currentProject.genre,
+          target_platform: currentProject.targetPlatform,
+          episode_count_planned: currentProject.episodeCountPlanned,
+        },
+        brief_summary: {
+          logline: currentProject.brief.logline,
+          target_audience: currentProject.brief.targetAudience,
+          genre_tags: currentProject.brief.genreTags,
+          style_keywords: currentProject.brief.styleKeywords,
+          world_rules: currentProject.brief.worldRules,
+          main_conflict: currentProject.brief.mainConflict,
+          relationship_summary: currentProject.brief.relationshipSummary,
+          reversal_rules: currentProject.brief.reversalRules,
+          forbidden_rules: currentProject.brief.forbiddenRules,
+        },
+        current_character: {
+          character_profile: {
+            name: regenerateCharacter.name,
+            role_type: regenerateCharacter.roleType,
+            species: regenerateCharacter.species,
+            identity_summary: regenerateCharacter.identitySummary,
+            appearance_summary: regenerateCharacter.appearanceSummary,
+            personality_tags: parseCsv(regenerateCharacter.personalityTags),
+            speech_style: regenerateCharacter.speechStyle,
+            negative_constraints: regenerateCharacter.negativeConstraints,
+          },
+          image_spec: mergeVariantImageSpec(regenerateCharacter, regenerateCharacter.activeVariantId),
+          current_variant: regenerateCharacter.activeVariantId === DEFAULT_VARIANT_ID ? null : {
+            variant_name: getActiveVariant(regenerateCharacter)?.variantName ?? "",
+            variant_type: getActiveVariant(regenerateCharacter)?.variantType ?? "",
+            trigger_reason: getActiveVariant(regenerateCharacter)?.triggerReason ?? "",
+            visual_changes_summary: getActiveVariant(regenerateCharacter)?.visualChangesSummary ?? "",
+          },
+          status: regenerateCharacter.status,
+        },
+        existing_characters: currentProject.characters.map((character) => ({
+          character_profile: {
+            name: character.name,
+            role_type: character.roleType,
+            species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+            identity_summary: character.identitySummary,
+            appearance_summary: character.appearanceSummary,
+            personality_tags: character.personalityTags,
+            speech_style: character.speechStyle,
+          },
+          image_spec: {
+            ...(character.visualProfile ?? {}),
+            image_prompt: character.imagePrompt,
+            negative_prompt: character.negativePrompt,
+          },
+        })),
+        locked_rules: {
+          project_id: currentProject.id,
+          must_follow_brief: true,
+        },
+      };
+
+      const outgoingMessages = [{ role: "user" as const, content: regenerateInput.trim() }];
+      let assistantContent = "";
       let proposal: CopilotProposal | null = null;
+
       await streamCopilot(
         {
           moduleType: "character",
-          projectId: readyProject.id,
-          intent: "generate",
-          messages: [
-            {
-              role: "user",
-              content: "请为这个短剧项目生成下一个关键角色。分析已有角色的功能覆盖，填补空缺。",
-            },
-          ],
-          context: buildProgressiveContext(),
+          projectId: currentProject.id,
+          entityId: regenerateCharacter.id ?? null,
+          intent: "regenerate",
+          messages: outgoingMessages,
+          context,
         },
         {
-          onDelta: (event) => {
-            setProgressiveStreamText((prev) => prev + event.content);
-          },
-          onProposal: (event) => {
-            proposal = event.proposal;
-          },
-          onError: (error) => {
-            throw new Error(error);
-          },
+          onDelta: (event) => { assistantContent += event.content; },
+          onProposal: (event) => { proposal = event.proposal; },
+          onError: (err) => { throw err; },
+          onDone: () => {},
         },
       );
-      if (proposal && !isVariantProposal(proposal)) {
-        setProgressiveProposal(proposal as CharacterCollectionProposal);
+
+      if (proposal && "roles" in proposal) {
+        const roles = (proposal as CharacterCollectionProposal).roles;
+        if (roles.length > 0) {
+          // Use regenerateCharacter as base to preserve id, imagePath, variants, etc.
+          const regenerated = { ...proposalToForm(roles[0], regenerateCharacter), id: regenerateCharacter.id, status: regenerateCharacter.status };
+          setEditing(regenerated);
+          toast.success("角色已根据你的要求重新生成，请检查后保存");
+          setRegenerateOpen(false);
+          setRegenerateInput("");
+          setRegenerateCharacter(null);
+        }
+      } else if (proposal && "variants" in proposal) {
+        toast.success("已生成变体方案，请在建议面板中查看");
+        setRegenerateOpen(false);
+        setRegenerateInput("");
+        setRegenerateCharacter(null);
       } else {
-        toast.error("未生成有效角色，请重试");
+        toast.error("未能解析重新生成的结果，请重试");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setProgressiveLoading(false);
-      setProgressiveStreamText("");
+      setRegenerating(false);
     }
-  }
-
-  function handleStartProgressive() {
-    setProgressiveActive(true);
-    setProgressiveProposal(null);
-    void fetchNextProgressiveProposal();
-  }
-
-  function handleStopProgressive() {
-    setProgressiveActive(false);
-    setProgressiveProposal(null);
-    setProgressiveLoading(false);
-    setProgressiveStreamText("");
-  }
-
-  async function handleProgressiveConfirmAndNext() {
-    if (!progressiveProposal) return;
-    const role = progressiveProposal.roles?.[0];
-    if (!role) return;
-    try {
-      await createCharacter(readyProject.id, {
-        name: role.characterProfile.name,
-        roleType: role.characterProfile.roleType,
-        identitySummary: role.characterProfile.identitySummary,
-        appearanceSummary: role.characterProfile.appearanceSummary,
-        personalityTags: role.characterProfile.personalityTags,
-        speechStyle: role.characterProfile.speechStyle,
-        negativeConstraints: role.characterProfile.negativeConstraints,
-        status: "draft",
-      });
-      await refresh();
-      toast.success(`角色「${role.characterProfile.name}」已加入角色库`);
-      void fetchNextProgressiveProposal();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }
-
-  async function handleProgressiveSkip() {
-    void fetchNextProgressiveProposal();
   }
 
   return (
@@ -1290,16 +1356,46 @@ export default function CharactersPage() {
         ) : null}
       </DialogContent>
     </Dialog>
+    <Dialog open={regenerateOpen} onOpenChange={(open) => { setRegenerateOpen(open); if (!open) { setRegenerateInput(""); setRegenerateCharacter(null); } }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>重新生成角色</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-400">
+            当前角色: <span className="font-medium text-gray-200">{regenerateCharacter?.name || "未命名"}</span>
+            {regenerateCharacter?.species && <span className="ml-2 text-gray-500">({regenerateCharacter.species})</span>}
+          </p>
+          <p className="text-xs text-gray-500">
+            描述你的修改要求，例如："改为外星人物种"、"性别改为女性"、"年龄改为60岁老人"、"性格更阴险"
+          </p>
+          <Textarea
+            className="min-h-[80px] text-sm"
+            placeholder="请描述重新生成的要求..."
+            value={regenerateInput}
+            onChange={(e) => setRegenerateInput(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setRegenerateOpen(false); setRegenerateInput(""); setRegenerateCharacter(null); }}>
+            取消
+          </Button>
+          <Button onClick={() => void handleRegenerate()} disabled={regenerating || !regenerateInput.trim()}>
+            {regenerating ? "生成中..." : "重新生成"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <SectionCard
       title="角色资产"
       description="角色卡是视觉生成和剧本一致性的关键事实源，先稳定角色，再扩剧情。"
       action={
         <div className="flex gap-2">
           <ProjectCopilotButton label={editing ? "补视觉设定" : "生成角色组"} />
-          {!progressiveActive ? (
-            <Button variant="secondary" onClick={handleStartProgressive}>渐进式生成</Button>
+          {!progressive.active ? (
+            <Button variant="secondary" onClick={progressive.start}>渐进式生成</Button>
           ) : (
-            <Button variant="destructive" onClick={handleStopProgressive}>停止生成</Button>
+            <Button variant="destructive" onClick={progressive.stop}>停止生成</Button>
           )}
           <Button variant="secondary" onClick={() => setEditing(emptyForm)}>新增角色</Button>
           <Button onClick={() => setEditing(emptyForm)}>新增并用 Copilot 精修</Button>
@@ -1310,8 +1406,26 @@ export default function CharactersPage() {
         <div className="grid gap-3 md:grid-cols-2">
           {currentProject.characters.map((character) => {
             const variantSummary = getCharacterVariantSummary(character);
+            const imageUrl = character.imagePath ? `${API_BASE}/assets/${character.imagePath}` : null;
             return (
-              <div key={character.id} className="rounded-lg border border-line bg-panel2 px-5 py-4">
+              <div key={character.id} className="rounded-lg border border-line bg-panel2 overflow-hidden">
+                {/* Image thumbnail */}
+                <div className="relative w-full aspect-[3/4] bg-panel">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={character.name}
+                      className="w-full h-full object-cover cursor-zoom-in transition hover:opacity-85"
+                      onClick={() => setPreviewImage(imageUrl)}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center border-b border-line">
+                      <p className="text-sm text-gray-500">待生成</p>
+                    </div>
+                  )}
+                </div>
+                {/* Text content */}
+                <div className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-gray-100">{character.name}</h3>
@@ -1348,6 +1462,13 @@ export default function CharactersPage() {
                   <Button
                     variant="secondary"
                     size="sm"
+                    onClick={() => { setRegenerateCharacter(toForm(character)); setRegenerateOpen(true); }}
+                  >
+                    重新生成
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => void handleGenerateCharacterImage(character)}
                     disabled={generatingImage === character.id}
                   >
@@ -1357,6 +1478,7 @@ export default function CharactersPage() {
                     删除
                   </Button>
                 </div>
+                </div>
               </div>
             );
           })}
@@ -1365,7 +1487,7 @@ export default function CharactersPage() {
         <EmptyState title="还没有角色资产" description="先创建主角、反派和关键配角，后续分集和场景才能稳定生成。" action={<Button onClick={() => setEditing(emptyForm)}>新增角色</Button>} />
       )}
 
-      {progressiveActive && (
+      {progressive.active && (
         <div className="mt-4 rounded-lg border border-dashed border-mint/40 bg-mint/5 px-5 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1374,22 +1496,22 @@ export default function CharactersPage() {
                 已有 {readyProject.characters.length} 个角色。每次生成 1 个新角色，确认后加入角色库。
               </p>
             </div>
-            {progressiveLoading && (
+            {progressive.loading && (
               <span className="rounded-full bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">
                 生成中...
               </span>
             )}
           </div>
 
-          {progressiveStreamText && !progressiveProposal && (
+          {progressive.streamText && !progressive.proposal && (
             <div className="mt-3 rounded-lg border border-line bg-panel2/50 px-3 py-2.5">
               <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">Copilot</p>
-              <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{progressiveStreamText}</div>
+              <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{progressive.streamText}</div>
             </div>
           )}
 
-          {progressiveProposal && progressiveProposal.roles && progressiveProposal.roles.length > 0 && (() => {
-            const role = progressiveProposal.roles[0];
+          {progressive.proposal && progressive.proposal.roles && progressive.proposal.roles.length > 0 && (() => {
+            const role = progressive.proposal!.roles[0];
             const profile = role.characterProfile;
             return (
               <div className="mt-3 rounded-lg border border-line bg-panel px-5 py-4">
@@ -1426,15 +1548,17 @@ export default function CharactersPage() {
                   </div>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Button size="sm" onClick={handleProgressiveConfirmAndNext}>
+                  <Button size="sm" onClick={() => void progressive.confirmAndNext()}>
                     确认并生成下一个
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={handleProgressiveSkip}>
+                  <Button size="sm" variant="secondary" onClick={progressive.skip}>
                     跳过，生成下一个
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => void progressive.confirmAndStop()}>
+                    完成
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
                     setEditing(proposalToForm(role, emptyForm));
-                    handleStopProgressive();
                   }}>
                     载入编辑器
                   </Button>
@@ -1471,6 +1595,10 @@ export default function CharactersPage() {
                     <div>
                       <Label className="mb-2 block text-xs text-gray-500">角色类型</Label>
                       <Input value={editing.roleType} onChange={(e) => setEditing((prev) => prev ? { ...prev, roleType: e.target.value } : prev)} />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-xs text-gray-500">物种</Label>
+                      <Input value={editing.species} onChange={(e) => setEditing((prev) => prev ? { ...prev, species: e.target.value } : prev)} placeholder="人类、外星人、机器人..." />
                     </div>
                     <div className="md:col-span-2">
                       <Label className="mb-2 block text-xs text-gray-500">角色定位</Label>

@@ -28,6 +28,7 @@
 7. character_profile 只能包含以下字段：
 - name
 - role_type
+- species
 - identity_summary
 - appearance_summary
 - personality_tags
@@ -55,8 +56,9 @@
 12. 角色必须服从 Brief 里的世界规则、主冲突和人物关系，不要发明脱离项目方向的人设。
 13. `profile_collection` 阶段：
 - 每次只输出 1 个关键角色（roles 数组只包含 1 项）
-- 重点填写 character_profile
-- image_spec 可以保留为空字符串和空数组，不要展开长描述
+- character_profile 和 image_spec 必须同时完整填写
+- image_spec 应基于 character_profile 中的 appearance_summary 自动推导各字段
+- image_prompt 必须可直接用于出图，negative_prompt 也要填写
 - 如果上下文中已有 existing_characters，必须分析已有角色的功能覆盖，生成一个填补空缺的差异化角色，不要重复已有角色的定位
 14. `visual_refine` 阶段：
 - 如果 `current_variant` 为空，只输出 1 个角色，并重点填写 image_spec
@@ -64,8 +66,15 @@
 - variant 模式下要继承当前角色基础脸型、年龄感、体态和核心气质，不要把角色变成另一个人
 - 每个变体必须有明确的触发场景（trigger_reason），比如"第X集婚礼"、"第X集战斗"、"第X集日常居家"
 - 变体之间要有明显差异，覆盖角色在剧中的不同状态
-15. 如果你不确定某个字段，就输出空字符串或空数组，也不要破坏 JSON 结构。
-16. 绝对不要把字段名写成 camelCase，必须使用这里定义的 snake_case。
+15. `regenerate` 模式（重新生成）：
+- 用户会提供具体的修改要求（如改变物种、性别、年龄段、性格方向等）
+- 以 current_character 为基础，根据用户要求进行定向重构
+- 保留 current_character 中未被要求修改的核心身份感，重点调整用户指定的维度
+- 如果用户要求改变物种，需要同步调整 appearance_summary、image_spec 中的所有外观字段、以及 image_prompt
+- 重新生成时必须保持与 Brief 的一致性
+- 输出完整的 character_profile + image_spec（profile_collection 阶段）或 image_spec_override（visual_refine 阶段）
+16. 如果你不确定某个字段，就输出空字符串或空数组，也不要破坏 JSON 结构。
+17. 绝对不要把字段名写成 camelCase，必须使用这里定义的 snake_case。
 
 正确示例：
 ===PROPOSAL===
@@ -75,6 +84,7 @@
       "character_profile": {
         "name": "顾沉舟",
         "role_type": "主角",
+        "species": "人类",
         "identity_summary": "隐藏身份的复仇继承人",
         "appearance_summary": "外表慵懒贵气，压迫感强",
         "personality_tags": ["冷静", "戏谑"],
@@ -110,6 +120,7 @@ variant 模式示例（支持多个变体）：
     "character_profile": {
       "name": "顾沉舟",
       "role_type": "主角",
+      "species": "人类",
       "identity_summary": "隐藏身份的复仇继承人",
       "appearance_summary": "外表慵懒贵气，压迫感强",
       "personality_tags": ["冷静", "戏谑"],

@@ -860,6 +860,7 @@ class ChatfireProvider:
                 resp = requests.post(
                     url, json=payload, headers=self._headers,
                     timeout=_timeout, stream=True,
+                    proxies={"http": "", "https": ""},  # 跳过系统代理
                 )
                 if resp.status_code >= 500 and attempt < retries:
                     time.sleep(2 ** attempt)
@@ -897,6 +898,7 @@ class ChatfireProvider:
             try:
                 resp = requests.request(
                     method, url, json=json_body, headers=self._headers, timeout=_timeout,
+                    proxies={"http": "", "https": ""},  # 跳过系统代理
                 )
                 if resp.status_code >= 500 and attempt < retries:
                     time.sleep(2 ** attempt)

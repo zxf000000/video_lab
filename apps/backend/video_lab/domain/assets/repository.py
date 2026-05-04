@@ -165,9 +165,11 @@ class AssetsRepository:
                 """
                 INSERT INTO scene_presets (
                     project_id, name, scene_type, space_description, lighting_style,
-                    time_of_day, weather, prop_list, reference_asset_ids, variants,
-                    status, version_no, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    time_of_day, weather, prop_list, negative_constraints,
+                    image_prompt, negative_prompt,
+                    reference_asset_ids, variants,
+                    episode_id, status, version_no, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -178,8 +180,12 @@ class AssetsRepository:
                     payload["time_of_day"],
                     payload["weather"],
                     payload["prop_list"],
+                    payload.get("negative_constraints", ""),
+                    payload.get("image_prompt", ""),
+                    payload.get("negative_prompt", ""),
                     payload["reference_asset_ids"],
                     payload["variants"],
+                    payload.get("episode_id"),
                     payload["status"],
                     payload["version_no"],
                     ts,
@@ -202,8 +208,12 @@ class AssetsRepository:
             "time_of_day",
             "weather",
             "prop_list",
+            "negative_constraints",
+            "image_prompt",
+            "negative_prompt",
             "reference_asset_ids",
             "variants",
+            "episode_id",
             "status",
             "version_no",
         ):
