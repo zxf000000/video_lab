@@ -35,6 +35,8 @@ _STAGE_KEY_MAP = {
     "refine_shot": "refine_shot",
     "copilot_brief": "copilot_brief",
     "copilot_character": "copilot_character",
+    "copilot_scene": "copilot_scene",
+    "copilot_episode": "copilot_episode",
 }
 
 
