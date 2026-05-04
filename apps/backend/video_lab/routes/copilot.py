@@ -271,6 +271,45 @@ def _extract_scene_proposal(text: str) -> dict | None:
     return None
 
 
+def _normalize_episode(raw: dict) -> dict:
+    """Normalize a single episode object from LLM output."""
+    return {
+        "episode_no": int(raw.get("episode_no", 0)),
+        "title": str(raw.get("title", "")),
+        "summary": str(raw.get("summary", "")),
+        "goal": str(raw.get("goal", "")),
+        "core_conflict": str(raw.get("core_conflict", "")),
+        "opening_hook": str(raw.get("opening_hook", "")),
+        "climax": str(raw.get("climax", "")),
+        "ending_hook": str(raw.get("ending_hook", "")),
+    }
+
+
+def _extract_episode_proposal(text: str) -> dict | None:
+    """Extract episode proposal(s) from LLM response."""
+    if START_MARKER not in text or END_MARKER not in text:
+        return None
+    start = text.index(START_MARKER) + len(START_MARKER)
+    end = text.index(END_MARKER, start)
+    raw = text[start:end].strip()
+    try:
+        proposal = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(proposal, dict):
+        return None
+    # batch mode: { "episodes": [...] }
+    if isinstance(proposal.get("episodes"), list):
+        episodes = [_normalize_episode(ep) for ep in proposal["episodes"] if isinstance(ep, dict)]
+        if not episodes:
+            return None
+        return {"episodes": episodes}
+    # single mode: { "title": "...", ... }
+    if proposal.get("title"):
+        return {"episodes": [_normalize_episode(proposal)]}
+    return None
+
+
 def _extract_proposal(module_type: str, text: str) -> dict | None:
     if module_type == "brief":
         return _extract_brief_proposal(text)
@@ -278,6 +317,8 @@ def _extract_proposal(module_type: str, text: str) -> dict | None:
         return _extract_character_proposal(text)
     if module_type == "scene":
         return _extract_scene_proposal(text)
+    if module_type == "episode":
+        return _extract_episode_proposal(text)
     return None
 
 
