@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ..config import load_config, load_prompts
+from ..config import AppConfig, load_config, load_prompts
 from ..domain.story_dev.copilot_types import (
     CharacterCollectionProposalPayload,
     CharacterCopilotProposalPayload,
@@ -17,8 +17,8 @@ from ..domain.story_dev.copilot_types import (
 from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
-SUPPORTED_MODULES = {"brief", "character"}
-SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing"}
+SUPPORTED_MODULES = {"brief", "character", "scene", "episode"}
+SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"}
 START_MARKER = "===PROPOSAL==="
 END_MARKER = "===END_PROPOSAL==="
 
@@ -90,6 +90,7 @@ def _normalize_character_profile(raw: dict) -> CharacterProfilePayload:
     return {
         "name": str(raw.get("name", "")),
         "role_type": str(raw.get("role_type", "")),
+        "species": str(raw.get("species", "")),
         "identity_summary": str(raw.get("identity_summary", "")),
         "appearance_summary": str(raw.get("appearance_summary", "")),
         "personality_tags": [str(item) for item in raw.get("personality_tags", []) if str(item).strip()],
@@ -231,11 +232,52 @@ def _extract_character_proposal(text: str) -> CharacterCopilotProposalPayload | 
     }
 
 
+def _normalize_scene(raw: dict) -> dict:
+    return {
+        "name": str(raw.get("name", "")),
+        "scene_type": str(raw.get("scene_type", "")),
+        "space_description": str(raw.get("space_description", "")),
+        "lighting_style": str(raw.get("lighting_style", "")),
+        "time_of_day": str(raw.get("time_of_day", "")),
+        "weather": str(raw.get("weather", "")),
+        "prop_list": [str(item) for item in raw.get("prop_list", []) if str(item).strip()],
+        "negative_constraints": str(raw.get("negative_constraints", "")),
+        "image_prompt": str(raw.get("image_prompt", "")),
+        "negative_prompt": str(raw.get("negative_prompt", "")),
+    }
+
+
+def _extract_scene_proposal(text: str) -> dict | None:
+    if START_MARKER not in text or END_MARKER not in text:
+        return None
+    start = text.index(START_MARKER) + len(START_MARKER)
+    end = text.index(END_MARKER, start)
+    raw = text[start:end].strip()
+    try:
+        proposal = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(proposal, dict):
+        return None
+    # batch mode: { "scenes": [...] }
+    if isinstance(proposal.get("scenes"), list):
+        scenes = [_normalize_scene(s) for s in proposal["scenes"] if isinstance(s, dict)]
+        if not scenes:
+            return None
+        return {"scenes": scenes}
+    # single mode: { "name": "...", ... }
+    if proposal.get("name"):
+        return {"scenes": [_normalize_scene(proposal)]}
+    return None
+
+
 def _extract_proposal(module_type: str, text: str) -> dict | None:
     if module_type == "brief":
         return _extract_brief_proposal(text)
     if module_type == "character":
         return _extract_character_proposal(text)
+    if module_type == "scene":
+        return _extract_scene_proposal(text)
     return None
 
 
@@ -328,3 +370,183 @@ def stream_copilot(environ, start_response):
             yield b'data: {"type":"done"}\n\n'
 
     return generate()
+
+
+# ── 评价端点 ──────────────────────────────────────────────
+
+EVAL_MODEL = "gpt-5-mini"  # 评价专用模型，避免 reasoning tokens 问题
+
+EVAL_PROMPTS = {
+    "character": """评审角色（含视觉设定）与Brief匹配度。
+
+Brief: {brief}
+
+角色设定: {profile}
+
+视觉设定: {image_spec}
+{existing_info}
+
+评审5个维度（每项0-10分）:
+1. brief关联度: 人设是否服务brief世界观/主冲突/人物关系
+2. 角色功能: 功能是否清晰、与已有角色互补
+3. 爽感贡献: 能否提供打脸/反转/情绪宣泄
+4. 视觉设定质量: image_spec完整且与人设一致，image_prompt可出图
+5. 潜在问题: 有无矛盾、重复、空泛
+
+输出JSON:
+{{"brief_relevance":{{"score":N,"reason":"10字内"}},"role_completeness":{{"score":N,"reason":"10字内"}},"drama_value":{{"score":N,"reason":"10字内"}},"visual_quality":{{"score":N,"reason":"10字内"}},"issues":{{"score":N,"reason":"10字内"}},"overall_comment":"10字内"}}
+
+只输出JSON。""",
+
+    "brief": """评审短剧Brief的质量。
+
+Brief:
+{brief}
+
+目标受众: {target_audience}
+题材: {genre}
+
+评审4个维度（每项0-10分）:
+1. 完整性: logline/世界观/主冲突/人物关系/反转规则是否都填写且充实
+2. 冲突丰富度: 主冲突是否有足够张力和反转空间
+3. 世界观清晰度: 规则是否明确、不矛盾、可执行
+4. 受众匹配: 题材/风格是否匹配目标受众
+
+输出JSON:
+{{"completeness":{{"score":N,"reason":"10字内"}},"conflict_richness":{{"score":N,"reason":"10字内"}},"world_clarity":{{"score":N,"reason":"10字内"}},"audience_fit":{{"score":N,"reason":"10字内"}},"overall_comment":"10字内"}}
+
+只输出JSON。""",
+}
+
+
+def _build_eval_prompt(module_type: str, proposal: dict, context: dict) -> str:
+    """构建评价 prompt"""
+    template = EVAL_PROMPTS.get(module_type, "")
+    if not template:
+        return ""
+
+    if module_type == "character":
+        roles = proposal.get("roles", [])
+        role = roles[0] if roles else proposal
+        profile = json.dumps(role.get("character_profile", {}), ensure_ascii=False)
+        image_spec = json.dumps(role.get("image_spec", {}), ensure_ascii=False)
+        existing = context.get("existing_characters", [])
+        existing_info = ""
+        if existing:
+            names = [c.get("character_profile", {}).get("name", "?") for c in existing]
+            existing_info = f"\n已有角色: {', '.join(names)}"
+        brief = json.dumps(context.get("brief_summary", {}), ensure_ascii=False)
+        return template.format(
+            brief=brief[:500], profile=profile[:500],
+            image_spec=image_spec[:800], existing_info=existing_info,
+        )
+
+    if module_type == "brief":
+        brief = json.dumps(proposal, ensure_ascii=False)
+        brief_summary = context.get("brief_summary", context)
+        return template.format(
+            brief=brief[:600],
+            target_audience=brief_summary.get("target_audience", ""),
+            genre=brief_summary.get("genre", context.get("project_summary", {}).get("genre", "")),
+        )
+
+    return ""
+
+
+@register("POST", r"/api/copilot/evaluate")
+def evaluate_proposal(environ, start_response):
+    """评价 copilot 生成的 proposal"""
+    payload = parse_json(environ)
+
+    module_type = str(payload.get("module_type", "")).strip()
+    if module_type not in SUPPORTED_MODULES:
+        return respond_json(start_response, {"error": f"Unsupported module_type: {module_type}"}, status="400 Bad Request")
+
+    proposal = payload.get("proposal")
+    if not isinstance(proposal, dict):
+        return respond_json(start_response, {"error": "proposal is required"}, status="400 Bad Request")
+
+    context = payload.get("context", {})
+
+    prompt = _build_eval_prompt(module_type, proposal, context)
+    if not prompt:
+        return respond_json(start_response, {"error": "No eval prompt for module_type"}, status="400 Bad Request")
+
+    # 用评价专用模型调用 LLM（带重试）
+    config = load_config()
+    eval_config = AppConfig(
+        api_base=config.api_base,
+        api_key=config.api_key,
+        text_model=EVAL_MODEL,
+        max_tokens=2000,
+        temperature=0.3,
+        request_timeout=90,
+        max_retries=3,
+    )
+    provider = ChatfireProvider(eval_config)
+
+    result_text = None
+    last_error = None
+    for attempt in range(3):
+        try:
+            result_text = provider._chat(
+                system="你是短剧评审专家，只输出JSON评分。",
+                user=prompt,
+                timeout=90,
+            )
+            break
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if result_text is None:
+        return respond_json(start_response, {"error": f"LLM call failed after 3 retries: {last_error}"}, status="500 Internal Server Error")
+
+    # 解析 JSON
+    result_text = result_text.strip()
+    if "```" in result_text:
+        parts = result_text.split("```")
+        for part in parts[1::2]:
+            part = part.strip()
+            if part.startswith("json"):
+                part = part[4:].strip()
+            if part.startswith("{"):
+                result_text = part
+                break
+    if not result_text.startswith("{"):
+        start = result_text.find("{")
+        end = result_text.rfind("}") + 1
+        if start >= 0 and end > start:
+            result_text = result_text[start:end]
+
+    try:
+        scores = json.loads(result_text)
+    except json.JSONDecodeError:
+        return respond_json(start_response, {"error": "Failed to parse LLM output", "raw": result_text[:500]}, status="500 Internal Server Error")
+
+    # 计算总分
+    score_keys = [k for k in scores if isinstance(scores[k], dict) and "score" in scores[k]]
+    total = sum(scores[k]["score"] for k in score_keys)
+    max_score = len(score_keys) * 10
+
+    if max_score > 0:
+        pct = total / max_score * 100
+        if pct >= 85:
+            grade = "A"
+        elif pct >= 70:
+            grade = "B"
+        elif pct >= 55:
+            grade = "C"
+        elif pct >= 40:
+            grade = "D"
+        else:
+            grade = "F"
+    else:
+        grade = "?"
+
+    return respond_json(start_response, {
+        "scores": scores,
+        "total": total,
+        "max": max_score,
+        "grade": grade,
+    })
