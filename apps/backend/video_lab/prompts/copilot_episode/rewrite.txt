@@ -1,0 +1,16 @@
+请基于下面的上下文，改写指定分集的内容。
+
+改写要求：
+1. 保持 episode_no 不变。
+2. 根据用户的改写要求调整 summary、goal、core_conflict、opening_hook、climax、ending_hook。
+3. 如果用户要求改变剧情走向，确保与前后集的逻辑一致。
+4. 如果用户要求增强某个元素（如更强的冲突、更好的钩子），重点优化该字段。
+5. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}
