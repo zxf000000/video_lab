@@ -196,52 +196,74 @@ export default function EpisodesPage() {
   /* ---- batch generation ---- */
   const handleBatchGenerate = useCallback(async () => {
     const context = buildEpisodeCopilotContext("collection", null);
-    const count = project?.episodeCountPlanned || 8;
-    let collected: EpisodeProposal[] = [];
+    const totalCount = project?.episodeCountPlanned || 8;
+    const BATCH_SIZE = 8; // Limit per batch to avoid LLM output truncation
+    let allEpisodes: Episode[] = [];
 
-    await streamCopilot(
-      {
-        projectId,
-        moduleType: "episode",
-        intent: "generate",
-        messages: [
+    for (let offset = 0; offset < totalCount; offset += BATCH_SIZE) {
+      const remaining = totalCount - offset;
+      const batchSize = Math.min(remaining, BATCH_SIZE);
+      let collected: EpisodeProposal[] = [];
+
+      console.log(`[episode] Generating batch ${offset + 1}-${offset + batchSize} of ${totalCount}`);
+
+      try {
+        await streamCopilot(
           {
-            role: "user",
-            content: `请为项目生成全部 ${count} 集分集大纲`,
+            projectId,
+            moduleType: "episode",
+            intent: "generate",
+            messages: [
+              {
+                role: "user",
+                content: `请为项目生成第 ${offset + 1} 到第 ${offset + batchSize} 集分集大纲（共 ${totalCount} 集中的前 ${offset + batchSize} 集）`,
+              },
+            ],
+            context,
           },
-        ],
-        context,
-      },
-      {
-        onProposal: (event) => {
-          const col = event.proposal as EpisodeCollectionProposal;
-          if (col?.episodes) {
-            collected = col.episodes;
+          {
+            onDelta: () => {},
+            onProposal: (event) => {
+              const col = event.proposal as EpisodeCollectionProposal;
+              if (col?.episodes) {
+                collected = col.episodes;
+                console.log(`[episode] Collected ${collected.length} episodes in this batch`);
+              }
+            },
+            onError: (error) => {
+              console.error("[episode] Batch generation error:", error);
+            },
           }
-        },
-        onError: (error) => {
-          console.error("Batch generation error:", error);
-        },
+        );
+      } catch (err) {
+        console.error("[episode] streamCopilot threw:", err);
       }
-    );
 
-    if (collected.length > 0) {
-      for (const ep of collected) {
-        await createEpisode(projectId, {
-          episodeNo: ep.episodeNo,
-          title: ep.title,
-          summary: ep.summary,
-          goal: ep.goal,
-          coreConflict: ep.coreConflict,
-          openingHook: ep.openingHook,
-          climax: ep.climax,
-          endingHook: ep.endingHook,
-          sortOrder: ep.episodeNo,
-          status: "draft",
-        });
+      if (collected.length > 0) {
+        for (const ep of collected) {
+          try {
+            await createEpisode(projectId, {
+              episodeNo: ep.episodeNo || (offset + allEpisodes.length + 1),
+              title: ep.title,
+              summary: ep.summary,
+              goal: ep.goal,
+              coreConflict: ep.coreConflict,
+              openingHook: ep.openingHook,
+              climax: ep.climax,
+              endingHook: ep.endingHook,
+              sortOrder: ep.episodeNo || (offset + allEpisodes.length + 1),
+              status: "draft",
+            });
+            console.log("[episode] Created:", ep.title);
+          } catch (err) {
+            console.error("[episode] createEpisode failed:", ep.title, err);
+          }
+        }
       }
-      await refresh();
     }
+
+    console.log("[episode] All batches done, refreshing...");
+    await refresh();
   }, [buildEpisodeCopilotContext, project, projectId, episodes.length, refresh]);
 
   /* ---- edit save ---- */

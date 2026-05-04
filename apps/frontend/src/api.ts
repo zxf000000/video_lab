@@ -1341,6 +1341,44 @@ export async function streamCopilot(
       }
     }
   }
+  // Process any remaining data in the buffer
+  if (buffer.trim()) {
+    const remaining = buffer.split("\n");
+    for (const line of remaining) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (!raw) continue;
+      try {
+        const event = JSON.parse(raw) as {
+          type?: string;
+          content?: string;
+          proposal?: Record<string, unknown>;
+          error?: string;
+        };
+        if (event.type === "delta") {
+          handlers.onDelta?.({ type: "delta", content: event.content ?? "" });
+        } else if (event.type === "proposal" && event.proposal) {
+          let normalizedProposal: CopilotProposal;
+          if (requestPayload.moduleType === "scene") {
+            normalizedProposal = normalizeSceneCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "character") {
+            normalizedProposal = Array.isArray((event.proposal as Record<string, unknown>).variants)
+              ? normalizeCharacterVariantCollectionProposal(event.proposal)
+              : normalizeCharacterCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "episode") {
+            normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
+          } else {
+            normalizedProposal = normalizeBriefProposal(event.proposal);
+          }
+          handlers.onProposal?.({ type: "proposal", proposal: normalizedProposal });
+        } else if (event.type === "error") {
+          handlers.onError?.(event.error ?? "Unknown copilot error");
+        }
+      } catch {
+        // Ignore malformed SSE events.
+      }
+    }
+  }
   handlers.onDone?.();
 }
 
