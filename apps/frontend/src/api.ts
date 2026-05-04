@@ -64,8 +64,8 @@ export interface ProjectBrief {
   status: string;
 }
 
-export type CopilotModuleType = "brief" | "character";
-export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing";
+export type CopilotModuleType = "brief" | "character" | "scene" | "episode";
+export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing" | "regenerate";
 
 export interface BriefProposal {
   logline: string;
@@ -79,10 +79,30 @@ export interface BriefProposal {
   forbiddenRules: string;
 }
 
+export interface SceneProposal {
+  name: string;
+  sceneType: string;
+  spaceDescription: string;
+  lightingStyle: string;
+  timeOfDay: string;
+  weather: string;
+  propList: string[];
+  negativeConstraints: string;
+  imagePrompt: string;
+  negativePrompt: string;
+}
+
+export interface SceneCollectionProposal {
+  scenes: SceneProposal[];
+}
+
+export type SceneCopilotProposal = SceneCollectionProposal;
+
 export interface CharacterProposal {
   characterProfile: {
     name: string;
     roleType: string;
+    species: string;
     identitySummary: string;
     appearanceSummary: string;
     personalityTags: string[];
@@ -168,10 +188,27 @@ export interface CharacterVariantCollectionProposal {
   variants: CharacterVariantProposal[];
 }
 
+export interface EpisodeProposal {
+  episodeNo: number;
+  title: string;
+  summary: string;
+  goal: string;
+  coreConflict: string;
+  openingHook: string;
+  climax: string;
+  endingHook: string;
+}
+
+export interface EpisodeCollectionProposal {
+  episodes: EpisodeProposal[];
+}
+
 export type CopilotProposal =
   | BriefProposal
   | CharacterCollectionProposal
-  | CharacterVariantCollectionProposal;
+  | CharacterVariantCollectionProposal
+  | SceneCopilotProposal
+  | EpisodeCollectionProposal;
 
 export interface CopilotStreamRequest {
   moduleType: CopilotModuleType;
@@ -197,6 +234,7 @@ export interface CharacterAsset {
   projectId: number;
   name: string;
   roleType: string;
+  species: string;
   appearanceSummary: string;
   personalityTags: string[];
   speechStyle: string;
@@ -225,6 +263,9 @@ export interface ScenePreset {
   timeOfDay: string;
   weather: string;
   propList: string[];
+  negativeConstraints: string;
+  imagePrompt: string;
+  negativePrompt: string;
   referenceAssetIds: unknown[];
   variants: unknown[];
   status: string;
@@ -409,6 +450,7 @@ function normalizeCharacterProposal(raw: Record<string, unknown>): CharacterProp
     characterProfile: {
       name: asString(profile.name),
       roleType: asString(profile.role_type ?? profile.roleType),
+      species: asString(profile.species),
       identitySummary: asString(profile.identity_summary ?? profile.identitySummary),
       appearanceSummary: asString(profile.appearance_summary ?? profile.appearanceSummary),
       personalityTags: parseJsonValue<string[]>(profile.personality_tags ?? profile.personalityTags, []),
@@ -449,6 +491,52 @@ function normalizeCharacterCollectionProposal(raw: Record<string, unknown>): Cha
     roles: roles
       .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
       .map(normalizeCharacterProposal),
+  };
+}
+
+function normalizeSceneProposal(raw: Record<string, unknown>): SceneProposal {
+  return {
+    name: asString(raw.name),
+    sceneType: asString(raw.scene_type ?? raw.sceneType),
+    spaceDescription: asString(raw.space_description ?? raw.spaceDescription),
+    lightingStyle: asString(raw.lighting_style ?? raw.lightingStyle),
+    timeOfDay: asString(raw.time_of_day ?? raw.timeOfDay),
+    weather: asString(raw.weather),
+    propList: parseJsonValue<string[]>(raw.prop_list ?? raw.propList, []),
+    negativeConstraints: asString(raw.negative_constraints ?? raw.negativeConstraints),
+    imagePrompt: asString(raw.image_prompt ?? raw.imagePrompt),
+    negativePrompt: asString(raw.negative_prompt ?? raw.negativePrompt),
+  };
+}
+
+function normalizeSceneCollectionProposal(raw: Record<string, unknown>): SceneCollectionProposal {
+  const scenes = Array.isArray(raw.scenes) ? raw.scenes : [];
+  return {
+    scenes: scenes
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map(normalizeSceneProposal),
+  };
+}
+
+function normalizeEpisodeProposal(raw: Record<string, unknown>): EpisodeProposal {
+  return {
+    episodeNo: Number(raw.episode_no ?? raw.episodeNo ?? 0),
+    title: String(raw.title ?? ""),
+    summary: String(raw.summary ?? ""),
+    goal: String(raw.goal ?? ""),
+    coreConflict: String(raw.core_conflict ?? raw.coreConflict ?? ""),
+    openingHook: String(raw.opening_hook ?? raw.openingHook ?? ""),
+    climax: String(raw.climax ?? ""),
+    endingHook: String(raw.ending_hook ?? raw.endingHook ?? ""),
+  };
+}
+
+function normalizeEpisodeCollectionProposal(raw: Record<string, unknown>): EpisodeCollectionProposal {
+  const episodes = Array.isArray(raw.episodes) ? raw.episodes : [];
+  return {
+    episodes: episodes
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map(normalizeEpisodeProposal),
   };
 }
 
@@ -575,6 +663,9 @@ function normalizeScene(raw: Record<string, unknown>): ScenePreset {
     timeOfDay: asString(raw.time_of_day),
     weather: asString(raw.weather),
     propList: parseJsonValue<string[]>(raw.prop_list, []),
+    negativeConstraints: asString(raw.negative_constraints),
+    imagePrompt: asString(raw.image_prompt),
+    negativePrompt: asString(raw.negative_prompt),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     variants: parseJsonValue<unknown[]>(raw.variants, []),
     status: asString(raw.status, "draft"),
@@ -1226,11 +1317,18 @@ export async function streamCopilot(
         if (event.type === "delta") {
           handlers.onDelta?.({ type: "delta", content: event.content ?? "" });
         } else if (event.type === "proposal" && event.proposal) {
-          const normalizedProposal = requestPayload.moduleType === "character"
-            ? Array.isArray((event.proposal as Record<string, unknown>).variants)
+          let normalizedProposal: CopilotProposal;
+          if (requestPayload.moduleType === "scene") {
+            normalizedProposal = normalizeSceneCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "character") {
+            normalizedProposal = Array.isArray((event.proposal as Record<string, unknown>).variants)
               ? normalizeCharacterVariantCollectionProposal(event.proposal)
-              : normalizeCharacterCollectionProposal(event.proposal)
-            : normalizeBriefProposal(event.proposal);
+              : normalizeCharacterCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "episode") {
+            normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
+          } else {
+            normalizedProposal = normalizeBriefProposal(event.proposal);
+          }
           handlers.onProposal?.({ type: "proposal", proposal: normalizedProposal });
         } else if (event.type === "error") {
           handlers.onError?.(event.error ?? "Unknown copilot error");
