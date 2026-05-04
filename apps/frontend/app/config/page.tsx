@@ -6,6 +6,7 @@ import {
   getConfig, getModels, updateConfig, addModel, deleteModel,
   getSeedanceConfig, updateSeedanceConfig,
   getKlingConfig, updateKlingConfig,
+  type AppConfig, type ModelItem,
 } from "../../src/api";
 import ApiBaseBadge from "../../src/components/ApiBaseBadge";
 import { ActionButton, StatusBadge } from "../../src/components/ui-legacy";
@@ -20,40 +21,49 @@ async function getVendors() {
   return resp.json();
 }
 
+type ConfigFormState = {
+  text_model: string; image_model: string; video_model: string; voice_model: string;
+  api_base: string; api_key: string;
+};
+type SdFormState = { seedance_api_base: string; seedance_api_key: string };
+type KlingFormState = { kling_api_base: string; kling_access_key: string; kling_secret_key: string };
+type VendorsData = Record<string, Record<string, ModelItem[]>>;
+type ModelsData = Record<string, ModelItem[]>;
+
 export default function ConfigPage() {
-  const [config, setConfig] = useState<any>(null);
-  const [models, setModels] = useState<any>(null);
-  const [vendors, setVendors] = useState<any>(null);
-  const [form, setForm] = useState<any>(null);
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [models, setModels] = useState<ModelsData | null>(null);
+  const [vendors, setVendors] = useState<VendorsData | null>(null);
+  const [form, setForm] = useState<ConfigFormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   // Seedance 2.0
-  const [sdForm, setSdForm] = useState<any>(null);
+  const [sdForm, setSdForm] = useState<SdFormState | null>(null);
   const [sdSaving, setSdSaving] = useState(false);
 
   // Kling 可灵
-  const [klingForm, setKlingForm] = useState<any>(null);
+  const [klingForm, setKlingForm] = useState<KlingFormState | null>(null);
   const [klingSaving, setKlingSaving] = useState(false);
 
-  function sdSet(field: any, value: any) {
-    setSdForm((prev: any) => ({ ...prev, [field]: value }));
+  function sdSet(field: keyof SdFormState, value: string) {
+    setSdForm((prev) => ({ ...prev!, [field]: value }));
   }
 
-  function klingSet(field: any, value: any) {
-    setKlingForm((prev: any) => ({ ...prev, [field]: value }));
+  function klingSet(field: keyof KlingFormState, value: string) {
+    setKlingForm((prev) => ({ ...prev!, [field]: value }));
   }
 
   useEffect(() => { loadAll(); }, []);
 
   function loadAll() {
     Promise.all([getConfig(), getModels(), getVendors(), getSeedanceConfig(), getKlingConfig()])
-      .then(([cfgRes, modelsRes, vendorsRes, sdRes, klingRes]: any[]) => {
+      .then(([cfgRes, modelsRes, vendorsRes, sdRes, klingRes]) => {
         setConfig(cfgRes.config);
         setModels(modelsRes.models);
         setVendors(vendorsRes.vendors);
-        setForm((prev: any) => prev || {
+        setForm((prev) => prev || {
           text_model: cfgRes.config.text_model,
           image_model: cfgRes.config.image_model,
           video_model: cfgRes.config.video_model,
@@ -61,68 +71,71 @@ export default function ConfigPage() {
           api_base: cfgRes.config.api_base,
           api_key: "",
         });
-        setSdForm((prev: any) => prev || {
+        setSdForm((prev) => prev || {
           seedance_api_base: sdRes.config.seedance_api_base,
           seedance_api_key: "",
         });
-        setKlingForm((prev: any) => prev || {
+        setKlingForm((prev) => prev || {
           kling_api_base: klingRes.config.kling_api_base,
           kling_access_key: "",
           kling_secret_key: "",
         });
       })
-      .catch((err) => setError(String(err.message || err)));
+      .catch((err: unknown) => setError(String((err as Error).message || err)));
   }
 
-  function onSave(e: any) {
+  function onSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!form) return;
     setSaving(true);
     setMessage("");
     setError("");
-    const payload = { ...form };
+    const payload: Record<string, string> = { ...form };
     if (!payload.api_key) delete payload.api_key;
     updateConfig(payload)
       .then((res) => {
         setConfig(res.config);
         setMessage("配置已保存，即时生效。");
-        setForm((f: any) => ({ ...f, api_key: "" }));
+        setForm((f) => ({ ...f!, api_key: "" }));
       })
-      .catch((err) => setError(String(err.message || err)))
+      .catch((err: unknown) => setError(String((err as Error).message || err)))
       .finally(() => setSaving(false));
   }
 
-  function set(field: any, value: any) {
-    setForm((f: any) => ({ ...f, [field]: value }));
+  function set(field: keyof ConfigFormState, value: string) {
+    setForm((f) => ({ ...f!, [field]: value }));
   }
 
-  async function onSaveSeedance(e: any) {
+  async function onSaveSeedance(e: React.FormEvent) {
     e.preventDefault();
+    if (!sdForm) return;
     setSdSaving(true);
     try {
-      const payload = { ...sdForm };
+      const payload: Record<string, string> = { ...sdForm };
       if (!payload.seedance_api_key) delete payload.seedance_api_key;
-      const res = await updateSeedanceConfig(payload);
+      await updateSeedanceConfig(payload);
       toast.success("Seedance 配置已保存");
-      setSdForm((prev: any) => ({ ...prev, seedance_api_key: "" }));
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+      setSdForm((prev) => ({ ...prev!, seedance_api_key: "" }));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setSdSaving(false);
     }
   }
 
-  async function onSaveKling(e: any) {
+  async function onSaveKling(e: React.FormEvent) {
     e.preventDefault();
+    if (!klingForm) return;
     setKlingSaving(true);
     try {
-      const payload = { ...klingForm };
+      const payload: Record<string, string> = { ...klingForm };
       if (!payload.kling_access_key) delete payload.kling_access_key;
       if (!payload.kling_secret_key) delete payload.kling_secret_key;
       await updateKlingConfig(payload);
       toast.success("Kling 配置已保存");
-      setKlingForm((prev: any) => ({ ...prev, kling_access_key: "", kling_secret_key: "" }));
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+      setKlingForm((prev) => ({ ...prev!, kling_access_key: "", kling_secret_key: "" }));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setKlingSaving(false);
     }
@@ -213,7 +226,7 @@ export default function ConfigPage() {
               vendors={vendors}
               models={models.text || []}
               value={form.text_model}
-              onChange={(v: any) => set("text_model", v)}
+              onChange={(v) => set("text_model", v)}
             />
             <VendorModelSection
               title="图片模型"
@@ -222,7 +235,7 @@ export default function ConfigPage() {
               vendors={vendors}
               models={models.image || []}
               value={form.image_model}
-              onChange={(v: any) => set("image_model", v)}
+              onChange={(v) => set("image_model", v)}
             />
             <VendorModelSection
               title="视频模型"
@@ -231,7 +244,7 @@ export default function ConfigPage() {
               vendors={vendors}
               models={models.video || []}
               value={form.video_model}
-              onChange={(v: any) => set("video_model", v)}
+              onChange={(v) => set("video_model", v)}
             />
             <VendorModelSection
               title="音频模型"
@@ -240,7 +253,7 @@ export default function ConfigPage() {
               vendors={vendors}
               models={models.voice || []}
               value={form.voice_model}
-              onChange={(v: any) => set("voice_model", v)}
+              onChange={(v) => set("voice_model", v)}
             />
           </div>
 
@@ -339,8 +352,16 @@ export default function ConfigPage() {
 
 /* ── Vendor → Model Section ──────────────────────────────────── */
 
-function VendorModelSection({ title, desc, category, vendors, models: modelList, value, onChange }: any) {
-  const [selectedVendor, setSelectedVendor] = useState<any>(null);
+function VendorModelSection({ title, desc, category, vendors, models: modelList, value, onChange }: {
+  title: string;
+  desc: string;
+  category: string;
+  vendors: VendorsData;
+  models: ModelItem[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -350,21 +371,21 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
   const activeVendor = selectedVendor || currentVendor;
 
   // Get models for the active vendor
-  const vendorModels = activeVendor ? (vendors[activeVendor]?.[category] || []) : [];
+  const vendorModels: ModelItem[] = activeVendor ? (vendors[activeVendor]?.[category] || []) : [];
 
   // Also show user-added models (not in any vendor list) under "自定义"
-  const vendorIds = new Set();
-  Object.values(vendors).forEach((cats: any) => {
-    (cats[category] || []).forEach((m: any) => vendorIds.add(m.id));
+  const vendorIds = new Set<string>();
+  Object.values(vendors).forEach((cats) => {
+    (cats[category] || []).forEach((m) => vendorIds.add(m.id));
   });
-  const customModels = modelList.filter((m: any) => !vendorIds.has(m.id));
+  const customModels = modelList.filter((m) => !vendorIds.has(m.id));
 
   // Vendor list with models in this category
   const vendorNames = Object.entries(vendors)
-    .filter(([, cats]: any) => (cats[category] || []).length > 0)
+    .filter(([, cats]) => (cats[category] || []).length > 0)
     .map(([name]) => name);
 
-  function handleAdd(e: any) {
+  function handleAdd(e?: React.KeyboardEvent | React.MouseEvent) {
     e?.preventDefault();
     if (!newId.trim()) return;
     addModel(category, newId.trim(), newLabel.trim() || newId.trim())
@@ -378,7 +399,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
       .catch(() => {});
   }
 
-  const selectedLabel = modelList.find((m: any) => m.id === value)?.label || value || "未选择";
+  const selectedLabel = modelList.find((m) => m.id === value)?.label || value || "未选择";
 
   return (
     <section className="flex flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-glow">
@@ -398,7 +419,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
         <div className="flex w-24 shrink-0 flex-col overflow-y-auto border-r border-line bg-panel2/60">
           {vendorNames.map((name) => {
             const isActive = activeVendor === name;
-            const hasSelected = (vendors[name]?.[category] || []).some((m: any) => m.id === value);
+            const hasSelected = (vendors[name]?.[category] || []).some((m) => m.id === value);
             return (
               <button
                 key={name}
@@ -434,7 +455,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
         {/* Model list */}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto">
-            {(activeVendor === "__custom" ? customModels : vendorModels).map((m: any) => {
+            {(activeVendor === "__custom" ? customModels : vendorModels).map((m) => {
               const isSelected = value === m.id;
               const isCustom = !vendorIds.has(m.id);
               return (
@@ -516,10 +537,10 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
   );
 }
 
-function findVendorForModel(vendors: any, category: any, modelId: any) {
+function findVendorForModel(vendors: VendorsData, category: string, modelId: string) {
   if (!modelId || !vendors) return null;
-  for (const [name, cats] of Object.entries(vendors) as any) {
-    if (((cats as any)[category] || []).some((m: any) => m.id === modelId)) {
+  for (const [name, cats] of Object.entries(vendors)) {
+    if ((cats[category] || []).some((m) => m.id === modelId)) {
       return name;
     }
   }

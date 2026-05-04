@@ -2,7 +2,7 @@
 
 import ReactPlayer from "react-player";
 
-export default function VideoPlayer({ src, aspectRatio = "16 / 9" }: any) {
+export default function VideoPlayer({ src, aspectRatio = "16 / 9" }: { src: string; aspectRatio?: string }) {
   return (
     <div className="relative w-full overflow-hidden rounded-[20px]" style={{ aspectRatio }}>
       <ReactPlayer

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
   seedanceT2V, seedanceI2V, seedanceCharacter,
-  listSeedanceTasks, getApiBase,
+  listSeedanceTasks, getApiBase, type VideoGenerationTask,
 } from "../../src/api";
 import { ActionButton } from "../../src/components/ui-legacy";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../src/components/ui/dialog";
@@ -32,7 +32,7 @@ function fileToBase64(file: File) {
   });
 }
 
-function timeAgo(iso: any) {
+function timeAgo(iso: string) {
   if (!iso) return "";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return "刚刚";
@@ -55,13 +55,13 @@ export default function Seedance2Page() {
   const [resolution, setResolution] = useState("720p");
   const [duration, setDuration] = useState(5);
   const [removeWatermark, setRemoveWatermark] = useState(false);
-  const [imageFiles, setImageFiles] = useState<any[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<any[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<{ name: string; url: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [viewTask, setViewTask] = useState<any>(null);
+  const [viewTask, setViewTask] = useState<VideoGenerationTask | null>(null);
 
   // Task feed
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<VideoGenerationTask[]>([]);
   const feedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,21 +88,21 @@ export default function Seedance2Page() {
     }
   }, [tasks, refreshTasks]);
 
-  function handleFilesSelect(e: any) {
+  function handleFilesSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    setImageFiles((prev: any) => [...prev, ...files]);
-    files.forEach((file: any) => {
+    setImageFiles((prev) => [...prev, ...files]);
+    files.forEach((file) => {
       const reader = new FileReader();
-      reader.onload = () => setImagePreviews((prev: any) => [...prev, { name: file.name, url: reader.result as string }]);
+      reader.onload = () => setImagePreviews((prev) => [...prev, { name: file.name, url: reader.result as string }]);
       reader.readAsDataURL(file);
     });
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function removeFile(index: any) {
-    setImageFiles((prev: any) => prev.filter((_: any, i: any) => i !== index));
-    setImagePreviews((prev: any) => prev.filter((_: any, i: any) => i !== index));
+  function removeFile(index: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   function resetForm() {
@@ -111,7 +111,7 @@ export default function Seedance2Page() {
     setImagePreviews([]);
   }
 
-  async function handleRetry(task: any) {
+  async function handleRetry(task: VideoGenerationTask) {
     const p = task.params || {};
     try {
       if (task.task_type === "seedance_t2v") {
@@ -139,8 +139,8 @@ export default function Seedance2Page() {
       }
       toast.success("已重新提交");
       refreshTasks();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     }
   }
 
@@ -153,7 +153,7 @@ export default function Seedance2Page() {
     try {
       if (mode === "i2v") {
         const images_list = imageFiles.length > 0
-          ? (await Promise.all(imageFiles.map((f: any) => fileToBase64(f)))).map((b: any) => `data:image/png;base64,${b}`)
+          ? (await Promise.all(imageFiles.map((f) => fileToBase64(f)))).map((b) => `data:image/png;base64,${b}`)
           : [];
         await seedanceI2V({
           prompt: prompt.trim(),
@@ -164,8 +164,8 @@ export default function Seedance2Page() {
           remove_watermark: removeWatermark,
         });
       } else {
-        const b64s = await Promise.all(imageFiles.map((f: any) => fileToBase64(f)));
-        const images_list = b64s.map((b: any) => `data:image/png;base64,${b}`);
+        const b64s = await Promise.all(imageFiles.map((f) => fileToBase64(f)));
+        const images_list = b64s.map((b) => `data:image/png;base64,${b}`);
         await seedanceCharacter({
           images_list,
           prompt: prompt.trim(),
@@ -177,14 +177,14 @@ export default function Seedance2Page() {
       }
       toast.success("任务已提交");
       refreshTasks();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setSubmitting(false);
     }
   }
 
-  const activeTask = tasks.find((t: any) => t.status === "queued" || t.status === "running");
+  const activeTask = tasks.find((t) => t.status === "queued" || t.status === "running");
 
   return (
     <>
@@ -391,7 +391,7 @@ export default function Seedance2Page() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {tasks.map((task: any) => (
+                  {tasks.map((task) => (
                     <SeedanceTaskCard key={task.id} task={task} allTasks={tasks} onRefresh={refreshTasks} onView={setViewTask} onRetry={handleRetry} />
                   ))}
                 </div>
@@ -407,36 +407,42 @@ export default function Seedance2Page() {
   );
 }
 
-function estimateAvgDuration(tasks: any[], currentTask: any): number | null {
+function estimateAvgDuration(tasks: VideoGenerationTask[], currentTask: VideoGenerationTask): number | null {
   const p = currentTask.params || {};
   const type = currentTask.task_type;
-  const dur = p.duration || 5;
-  const res = p.resolution || "720p";
+  const dur = (p as Record<string, unknown>).duration || 5;
+  const res = (p as Record<string, unknown>).resolution || "720p";
 
   const completed = tasks.filter(
-    (t: any) => t.status === "succeeded" && t.created_at && t.updated_at && t.task_type === type
+    (t) => t.status === "succeeded" && t.created_at && t.updated_at && t.task_type === type
   );
   if (completed.length === 0) return null;
 
-  const exact = completed.filter((t: any) => {
+  const exact = completed.filter((t) => {
     const tp = t.params || {};
-    return (tp.duration || 5) === dur && (tp.resolution || "720p") === res;
+    return ((tp as Record<string, unknown>).duration || 5) === dur && ((tp as Record<string, unknown>).resolution || "720p") === res;
   });
   const pool = exact.length >= 2 ? exact : completed;
 
   const total = pool.reduce(
-    (sum: number, t: any) => sum + (new Date(t.updated_at).getTime() - new Date(t.created_at).getTime()) / 1000,
+    (sum, t) => sum + (new Date(t.updated_at).getTime() - new Date(t.created_at).getTime()) / 1000,
     0
   );
   return total / pool.length;
 }
 
-function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: any; allTasks: any[]; onRefresh: any; onView: any; onRetry: any }) {
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const dur = params.duration || task.target_duration || 5;
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
-  const res = params.resolution || task.resolution || "";
+function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: {
+  task: VideoGenerationTask;
+  allTasks: VideoGenerationTask[];
+  onRefresh: () => void;
+  onView: (t: VideoGenerationTask) => void;
+  onRetry: (t: VideoGenerationTask) => void;
+}) {
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const dur = Number(params.duration || task.target_duration || 5);
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
+  const res = String(params.resolution || task.resolution || "");
   const isActive = task.status === "queued" || task.status === "running";
   const isDone = task.status === "succeeded";
   const isFailed = task.status === "failed";
@@ -555,8 +561,8 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
         ) : null}
       </div>
 
-      {isActive && task.status === "running" && task.params?.progress_step && (
-        <p className="mb-1 text-[11px] text-amber-600">{task.params.progress_step}</p>
+      {isActive && task.status === "running" && !!task.params?.progress_step && (
+        <p className="mb-1 text-[11px] text-amber-600">{String(task.params.progress_step)}</p>
       )}
 
       {isActive && (
@@ -596,18 +602,18 @@ function SeedanceTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task
   );
 }
 
-function SeedanceTaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
+function SeedanceTaskDetailDialog({ task, onClose }: { task: VideoGenerationTask | null; onClose: () => void }) {
   if (!task) return null;
 
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const dur = params.duration || task.target_duration || 5;
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
-  const res = params.resolution || task.resolution || "";
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const dur = Number(params.duration || task.target_duration || 5);
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
+  const res = String(params.resolution || task.resolution || "");
   const videoUrl = task.output_path ? `${getApiBase()}/assets/${task.output_path}` : "";
 
   return (
-    <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+    <Dialog open={!!task} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >

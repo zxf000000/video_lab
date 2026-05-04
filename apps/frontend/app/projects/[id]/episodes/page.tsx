@@ -10,13 +10,18 @@ import {
   deleteEpisode,
   listCharacters,
   listScenes,
+  createShot,
   getProject,
   streamCopilot,
   type Episode,
   type EpisodeProposal,
   type EpisodeCollectionProposal,
   type SceneCollectionProposal,
+  type SceneProposal,
+  type ShotCollectionProposal,
   type ProjectDetail,
+  type CharacterAsset,
+  type ScenePreset,
 } from "@/src/api";
 import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { SectionCard, StatusPill } from "@/src/components/project/project-ui";
@@ -92,8 +97,8 @@ export default function EpisodesPage() {
   /* ---- state ---- */
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [characters, setCharacters] = useState<any[]>([]);
-  const [scenes, setScenes] = useState<any[]>([]);
+  const [characters, setCharacters] = useState<CharacterAsset[]>([]);
+  const [scenes, setScenes] = useState<ScenePreset[]>([]);
   const [editing, setEditing] = useState<EpisodeFormState | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<EpisodeFormState | null>(null);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
@@ -144,7 +149,7 @@ export default function EpisodesPage() {
             relationship_summary: project.brief.relationshipSummary,
           }
         : null,
-      existing_characters: characters.map((c: any) => ({
+      existing_characters: characters.map((c) => ({
         name: c.name,
         role_type: c.roleType,
         identity_summary: c.identitySummary,
@@ -312,22 +317,23 @@ export default function EpisodesPage() {
   const handleRegenerate = useCallback(
     async (form: EpisodeFormState, userGoal: string) => {
       if (!form.id) return;
+      const fm = form as EpisodeFormState;
       const context = buildEpisodeCopilotContext("single_refine", {
-        id: form.id,
+        id: fm.id!,
         projectId,
-        episodeNo: form.episodeNo,
-        title: form.title,
-        summary: form.summary,
-        goal: form.goal,
-        coreConflict: form.coreConflict,
-        openingHook: form.openingHook,
-        climax: form.climax,
-        endingHook: form.endingHook,
-        status: "draft",
-        sortOrder: form.sortOrder,
+        episodeNo: fm.episodeNo,
+        title: fm.title,
+        summary: fm.summary,
+        goal: fm.goal,
+        coreConflict: fm.coreConflict,
+        openingHook: fm.openingHook,
+        climax: fm.climax,
+        endingHook: fm.endingHook,
+        status: "draft" as string,
+        sortOrder: fm.sortOrder,
         createdAt: "",
         updatedAt: "",
-      });
+      } as Episode);
       let result: EpisodeProposal | null = null;
 
       await streamCopilot(
@@ -350,15 +356,17 @@ export default function EpisodesPage() {
       );
 
       if (result) {
-        await updateEpisode(form.id, {
-          episodeNo: result.episodeNo || form.episodeNo,
-          title: result.title,
-          summary: result.summary,
-          goal: result.goal,
-          coreConflict: result.coreConflict,
-          openingHook: result.openingHook,
-          climax: result.climax,
-          endingHook: result.endingHook,
+        const ep = result as EpisodeProposal;
+        const fm = form as EpisodeFormState;
+        await updateEpisode(fm.id!, {
+          episodeNo: ep.episodeNo || fm.episodeNo,
+          title: ep.title,
+          summary: ep.summary,
+          goal: ep.goal,
+          coreConflict: ep.coreConflict,
+          openingHook: ep.openingHook,
+          climax: ep.climax,
+          endingHook: ep.endingHook,
         });
         await refresh();
       }
@@ -374,7 +382,7 @@ export default function EpisodesPage() {
       console.log("[scene-gen] clicked for episode:", episode.title);
       setGeneratingScenes(episode.id);
       try {
-        let collected: any[] = [];
+        let collected: SceneProposal[] = [];
         console.log("[scene-gen] current scenes count:", scenes.length);
 
         await streamCopilot(
@@ -396,11 +404,11 @@ export default function EpisodesPage() {
                     main_conflict: project.brief.mainConflict,
                   }
                 : null,
-              existing_characters: characters.map((c: any) => ({
+              existing_characters: characters.map((c) => ({
                 name: c.name,
                 role_type: c.roleType,
               })),
-              existing_scenes: scenes.map((s: any) => ({
+              existing_scenes: scenes.map((s) => ({
                 name: s.name,
                 scene_type: s.sceneType,
                 space_description: s.spaceDescription,
@@ -440,6 +448,95 @@ export default function EpisodesPage() {
         }
       } finally {
         setGeneratingScenes(null);
+      }
+    },
+    [project, characters, scenes, projectId, refresh]
+  );
+
+  /* ---- per-episode shot generation ---- */
+  const [generatingShots, setGeneratingShots] = useState<number | null>(null);
+
+  const handleGenerateShots = useCallback(
+    async (episode: Episode) => {
+      setGeneratingShots(episode.id);
+      try {
+        let collected: ShotCollectionProposal | null = null;
+
+        await streamCopilot(
+          {
+            projectId,
+            moduleType: "shot",
+            intent: "generate",
+            messages: [{ role: "user", content: "为此集生成镜头列表（Shot List）" }],
+            context: {
+              current_mode: "episode_shot",
+              generation_mode: "batch",
+              project_summary: project
+                ? { name: project.name, genre: project.genre }
+                : null,
+              brief_summary: project?.brief
+                ? {
+                    logline: project.brief.logline,
+                    world_rules: project.brief.worldRules,
+                    main_conflict: project.brief.mainConflict,
+                  }
+                : null,
+              existing_characters: characters.map((c) => ({
+                id: c.id,
+                name: c.name,
+                role_type: c.roleType,
+              })),
+              existing_scenes: scenes.map((s) => ({
+                id: s.id,
+                name: s.name,
+                scene_type: s.sceneType,
+              })),
+              current_episode: {
+                episode_no: episode.episodeNo,
+                title: episode.title,
+                summary: episode.summary,
+                goal: episode.goal,
+                core_conflict: episode.coreConflict,
+                opening_hook: episode.openingHook,
+                climax: episode.climax,
+                ending_hook: episode.endingHook,
+              },
+              locked_rules: { project_id: projectId, must_follow_brief: true },
+            },
+          },
+          {
+            onProposal: (event) => {
+              collected = event.proposal as ShotCollectionProposal;
+            },
+            onError: (error) => {
+              console.error("Shot generation error:", error);
+            },
+          }
+        );
+
+        const shotList = (collected as ShotCollectionProposal | null)?.shots;
+        if (shotList?.length) {
+          for (const shot of shotList) {
+            await createShot(episode.id, {
+              shotNo: shot.shotNo,
+              sceneBlock: shot.sceneBlock,
+              visualGoal: shot.visualGoal,
+              shotSize: shot.shotSize,
+              cameraAngle: shot.cameraAngle,
+              composition: shot.composition,
+              actionDescription: shot.actionDescription,
+              facialEmotion: shot.facialEmotion,
+              cameraMotion: shot.cameraMotion,
+              dialogueExcerpt: shot.dialogueExcerpt,
+              estimatedDurationMs: shot.estimatedDurationMs,
+              scenePresetId: shot.scenePresetId,
+              characterIds: shot.characterIds,
+            });
+          }
+          await refresh();
+        }
+      } finally {
+        setGeneratingShots(null);
       }
     },
     [project, characters, scenes, projectId, refresh]
@@ -529,14 +626,14 @@ export default function EpisodesPage() {
                   )}
                   {/* Related scenes */}
                   {(() => {
-                    const relatedScenes = scenes.filter((s: any) => s.episodeId === ep.id);
+                    const relatedScenes = scenes.filter((s) => s.episodeId === ep.id);
                     if (relatedScenes.length === 0) return null;
                     const shown = relatedScenes.slice(0, 3);
                     const rest = relatedScenes.length - shown.length;
                     return (
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <span className="text-xs text-gray-500">场景:</span>
-                        {shown.map((s: any) => (
+                        {shown.map((s) => (
                           <Link
                             key={s.id}
                             href={`/projects/${projectId}/scenes?episode=${ep.id}`}
@@ -557,17 +654,13 @@ export default function EpisodesPage() {
                     );
                   })()}
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
-                    size="sm"
-                    variant="ghost"
                     onClick={() => setEditing(toForm(ep))}
                   >
                     编辑
                   </Button>
                   <Button
-                    size="sm"
-                    variant="ghost"
                     onClick={() => {
                       setRegenerateTarget(toForm(ep));
                       setRegenerateOpen(true);
@@ -576,17 +669,19 @@ export default function EpisodesPage() {
                     重新生成
                   </Button>
                   <Button
-                    size="sm"
-                    variant="ghost"
                     onClick={() => void handleGenerateScenes(ep)}
                     disabled={generatingScenes === ep.id}
                   >
                     {generatingScenes === ep.id ? "生成中..." : "生成场景"}
                   </Button>
                   <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
+                    onClick={() => void handleGenerateShots(ep)}
+                    disabled={generatingShots === ep.id}
+                  >
+                    {generatingShots === ep.id ? "生成中..." : "生成镜头"}
+                  </Button>
+                  <Button
+                    variant="destructive"
                     onClick={() => void handleDelete(ep)}
                   >
                     删除

@@ -1,0 +1,19 @@
+请基于下面的上下文，为当前分集生成镜头列表（Shot List）。
+
+镜头生成要求：
+1. 根据分集大纲的剧情要点（goal、core_conflict、climax）拆解出完整的镜头序列。
+2. 每个镜头需要明确景别、角度、构图、动作和情绪。
+3. 镜头之间要有节奏变化：动作场景用快切短镜头，情感场景用慢节奏长镜头。
+4. 对白镜头注意正反打，动作镜头注意运动轨迹。
+5. 生成的镜头数量建议 6-15 个，取决于分集复杂度。
+6. 如果上下文提供了已有场景（existing_scenes），优先为镜头关联 scene_preset_id。
+7. 如果上下文提供了已有角色（existing_characters），为镜头分配 character_ids。
+8. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}

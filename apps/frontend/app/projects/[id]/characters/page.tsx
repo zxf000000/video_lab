@@ -619,7 +619,7 @@ export default function CharactersPage() {
         character_profile: {
           name: character.name,
           role_type: character.roleType,
-          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+          species: character.species,
           identity_summary: character.identitySummary,
           appearance_summary: character.appearanceSummary,
           personality_tags: character.personalityTags,
@@ -737,7 +737,7 @@ export default function CharactersPage() {
         character_profile: {
           name: character.name,
           role_type: character.roleType,
-          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+          species: character.species,
           identity_summary: character.identitySummary,
           appearance_summary: character.appearanceSummary,
           personality_tags: character.personalityTags,
@@ -1096,7 +1096,7 @@ export default function CharactersPage() {
         character_profile: {
           name: character.name,
           role_type: character.roleType,
-          species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+          species: character.species,
           identity_summary: character.identitySummary,
           appearance_summary: character.appearanceSummary,
           personality_tags: character.personalityTags,
@@ -1225,7 +1225,7 @@ export default function CharactersPage() {
   }
 
   async function handleRegenerate() {
-    if (!regenerateCharacter || !regenerateInput.trim()) return;
+    if (!currentProject || !regenerateCharacter || !regenerateInput.trim()) return;
     setRegenerating(true);
     try {
       // Build context with the character being regenerated
@@ -1273,7 +1273,7 @@ export default function CharactersPage() {
           character_profile: {
             name: character.name,
             role_type: character.roleType,
-            species: typeof (character as Record<string, unknown>).species === "string" ? (character as Record<string, unknown>).species : "",
+            species: character.species,
             identity_summary: character.identitySummary,
             appearance_summary: character.appearanceSummary,
             personality_tags: character.personalityTags,
@@ -1510,8 +1510,8 @@ export default function CharactersPage() {
             </div>
           )}
 
-          {progressive.proposal && progressive.proposal.roles && progressive.proposal.roles.length > 0 && (() => {
-            const role = progressive.proposal!.roles[0];
+          {progressive.proposal && (progressive.proposal as CharacterCollectionProposal).roles && (progressive.proposal as CharacterCollectionProposal).roles.length > 0 && (() => {
+            const role = (progressive.proposal as CharacterCollectionProposal).roles[0];
             const profile = role.characterProfile;
             return (
               <div className="mt-3 rounded-lg border border-line bg-panel px-5 py-4">

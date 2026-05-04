@@ -17,7 +17,7 @@ from ..domain.story_dev.copilot_types import (
 from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
-SUPPORTED_MODULES = {"brief", "character", "scene", "episode"}
+SUPPORTED_MODULES = {"brief", "character", "scene", "episode", "shot"}
 SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"}
 START_MARKER = "===PROPOSAL==="
 END_MARKER = "===END_PROPOSAL==="
@@ -310,6 +310,56 @@ def _extract_episode_proposal(text: str) -> dict | None:
     return None
 
 
+def _normalize_shot(raw: dict) -> dict:
+    """Normalize a single shot object from LLM output."""
+    character_ids = raw.get("character_ids", [])
+    if isinstance(character_ids, str):
+        character_ids = [int(x) for x in character_ids.split(",") if x.strip().isdigit()]
+    elif isinstance(character_ids, list):
+        character_ids = [int(x) for x in character_ids if isinstance(x, (int, float)) or (isinstance(x, str) and x.strip().isdigit())]
+
+    return {
+        "shot_no": int(raw.get("shot_no", 0)),
+        "scene_block": str(raw.get("scene_block", "")),
+        "visual_goal": str(raw.get("visual_goal", "")),
+        "shot_size": str(raw.get("shot_size", "")),
+        "camera_angle": str(raw.get("camera_angle", "")),
+        "composition": str(raw.get("composition", "")),
+        "action_description": str(raw.get("action_description", "")),
+        "facial_emotion": str(raw.get("facial_emotion", "")),
+        "camera_motion": str(raw.get("camera_motion", "")),
+        "dialogue_excerpt": str(raw.get("dialogue_excerpt", "")),
+        "estimated_duration_ms": int(raw.get("estimated_duration_ms", 3000)),
+        "scene_preset_id": raw.get("scene_preset_id"),
+        "character_ids": character_ids,
+    }
+
+
+def _extract_shot_proposal(text: str) -> dict | None:
+    """Extract shot proposal(s) from LLM response."""
+    if START_MARKER not in text or END_MARKER not in text:
+        return None
+    start = text.index(START_MARKER) + len(START_MARKER)
+    end = text.index(END_MARKER, start)
+    raw = text[start:end].strip()
+    try:
+        proposal = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(proposal, dict):
+        return None
+    # batch mode: { "shots": [...] }
+    if isinstance(proposal.get("shots"), list):
+        shots = [_normalize_shot(s) for s in proposal["shots"] if isinstance(s, dict)]
+        if not shots:
+            return None
+        return {"shots": shots}
+    # single mode: { "shot_no": 1, ... }
+    if proposal.get("shot_no") is not None:
+        return {"shots": [_normalize_shot(proposal)]}
+    return None
+
+
 def _extract_proposal(module_type: str, text: str) -> dict | None:
     if module_type == "brief":
         return _extract_brief_proposal(text)
@@ -319,6 +369,8 @@ def _extract_proposal(module_type: str, text: str) -> dict | None:
         return _extract_scene_proposal(text)
     if module_type == "episode":
         return _extract_episode_proposal(text)
+    if module_type == "shot":
+        return _extract_shot_proposal(text)
     return None
 
 

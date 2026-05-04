@@ -128,6 +128,10 @@ CREATE TABLE IF NOT EXISTS shot_prompts (
     shot_id INTEGER NOT NULL,
     version_no INTEGER NOT NULL DEFAULT 1,
     prompt_text TEXT NOT NULL DEFAULT '',
+    first_frame_prompt TEXT NOT NULL DEFAULT '',
+    first_frame_negative_prompt TEXT NOT NULL DEFAULT '',
+    video_prompt TEXT NOT NULL DEFAULT '',
+    video_negative_prompt TEXT NOT NULL DEFAULT '',
     negative_prompt TEXT NOT NULL DEFAULT '',
     model_params TEXT NOT NULL DEFAULT '{}',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
@@ -231,11 +235,13 @@ CREATE TABLE IF NOT EXISTS scene_presets (
     negative_prompt TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     variants TEXT NOT NULL DEFAULT '[]',
+    episode_id INTEGER,
     status TEXT NOT NULL DEFAULT 'draft',
     version_no INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS shot_prompts (
@@ -243,6 +249,10 @@ CREATE TABLE IF NOT EXISTS shot_prompts (
     shot_id INTEGER NOT NULL,
     version_no INTEGER NOT NULL DEFAULT 1,
     prompt_text TEXT NOT NULL DEFAULT '',
+    first_frame_prompt TEXT NOT NULL DEFAULT '',
+    first_frame_negative_prompt TEXT NOT NULL DEFAULT '',
+    video_prompt TEXT NOT NULL DEFAULT '',
+    video_negative_prompt TEXT NOT NULL DEFAULT '',
     negative_prompt TEXT NOT NULL DEFAULT '',
     model_params TEXT NOT NULL DEFAULT '{}',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',

@@ -1,12 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
+interface SceneVariant {
+  id?: string;
+  variantName?: string;
+  variantType?: string;
+  imagePath?: string;
+  [key: string]: unknown;
+}
 import { useSearchParams } from "next/navigation";
 import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { toast } from "react-toastify";
 import {
+  API_BASE,
   createScene,
   deleteScene,
+  generateSceneImage,
   streamCopilot,
   updateScene,
   type CopilotProposal,
@@ -30,6 +40,7 @@ import {
   StatusPill,
 } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
+import { ImageViewer } from "@/src/components/ui-legacy";
 import {
   Dialog,
   DialogContent,
@@ -161,6 +172,8 @@ export default function ScenesPage() {
   // Batch generation state
   const [batchStreaming, setBatchStreaming] = useState(false);
   const [batchStreamText, setBatchStreamText] = useState("");
+  const [generatingSceneImage, setGeneratingSceneImage] = useState<number | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
 
   // Regenerate dialog
@@ -607,6 +620,23 @@ export default function ScenesPage() {
     }
   }
 
+  async function handleGenerateSceneImage(scene: ScenePreset) {
+    if (!scene.imagePrompt) {
+      toast.error("该场景没有 image_prompt，无法生成图片");
+      return;
+    }
+    setGeneratingSceneImage(scene.id);
+    try {
+      await generateSceneImage(scene.id);
+      await refresh();
+      toast.success("场景图片已生成");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGeneratingSceneImage(null);
+    }
+  }
+
   async function handleDelete(scene: ScenePreset) {
     try {
       await deleteScene(scene.id);
@@ -777,6 +807,11 @@ export default function ScenesPage() {
 
   return (
     <>
+      {/* Image preview */}
+      {previewImage && (
+        <ImageViewer src={previewImage} alt="场景图片" onClose={() => setPreviewImage(null)} />
+      )}
+
       {/* ------------------------------------------------------------------ */}
       {/* Regenerate Dialog                                                   */}
       {/* ------------------------------------------------------------------ */}
@@ -861,7 +896,6 @@ export default function ScenesPage() {
                   <TabsList variant="line">
                     <TabsTrigger value="basic">基础场景</TabsTrigger>
                     <TabsTrigger value="visual">视觉设定</TabsTrigger>
-                    <TabsTrigger value="image">图片资产</TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -986,30 +1020,6 @@ export default function ScenesPage() {
                     <div className="space-y-4">
                       <div>
                         <Label className="mb-2 block text-xs text-gray-500">
-                          负面约束
-                        </Label>
-                        <Textarea
-                          value={editing.negativeConstraints}
-                          onChange={(e) =>
-                            setEditing((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    negativeConstraints: e.target.value,
-                                  }
-                                : prev
-                            )
-                          }
-                          placeholder="例如：不要出现过于明亮的色彩，避免卡通风格..."
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="image" className="p-5">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="mb-2 block text-xs text-gray-500">
                           图片 Prompt
                         </Label>
                         <Textarea
@@ -1022,7 +1032,7 @@ export default function ScenesPage() {
                             )
                           }
                           className="min-h-[128px]"
-                          placeholder="详细的图片生成提示词..."
+                          placeholder="可直接用于生成场景参考图的英文 prompt..."
                         />
                       </div>
                       <div>
@@ -1040,6 +1050,25 @@ export default function ScenesPage() {
                           }
                           className="min-h-[96px]"
                           placeholder="不希望出现的元素..."
+                        />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block text-xs text-gray-500">
+                          负面约束
+                        </Label>
+                        <Textarea
+                          value={editing.negativeConstraints}
+                          onChange={(e) =>
+                            setEditing((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    negativeConstraints: e.target.value,
+                                  }
+                                : prev
+                            )
+                          }
+                          placeholder="例如：不要出现过于明亮的色彩，避免卡通风格..."
                         />
                       </div>
                     </div>
@@ -1131,11 +1160,27 @@ export default function ScenesPage() {
               const isExpanded = expandedVariants.has(scene.id);
               const hasVariants =
                 scene.variants && scene.variants.length > 0;
+              const sceneImage = Array.isArray(scene.variants)
+                ? (scene.variants as SceneVariant[]).find((v) => v.imagePath)?.imagePath
+                : null;
+              const sceneImageUrl = sceneImage ? `${API_BASE}/assets/${sceneImage}` : null;
               return (
                 <div
                   key={scene.id}
-                  className="rounded-lg border border-line bg-panel2 px-5 py-4"
+                  className="rounded-lg border border-line bg-panel2 overflow-hidden"
                 >
+                  {/* Image thumbnail */}
+                  {sceneImageUrl && (
+                    <div className="relative w-full h-32 bg-panel">
+                      <img
+                        src={sceneImageUrl}
+                        alt={scene.name}
+                        className="w-full h-full object-cover cursor-zoom-in transition hover:opacity-85"
+                        onClick={() => setPreviewImage(sceneImageUrl)}
+                      />
+                    </div>
+                  )}
+                  <div className="px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-base font-semibold text-gray-100">
@@ -1212,16 +1257,8 @@ export default function ScenesPage() {
                       </button>
                       {isExpanded && (
                         <div className="mt-2 space-y-2 pl-2">
-                          {scene.variants.map(
-                            (
-                              variant: {
-                                id?: string;
-                                variantName?: string;
-                                variantType?: string;
-                                [key: string]: unknown;
-                              },
-                              vIdx: number
-                            ) => (
+                          {(scene.variants as SceneVariant[]).map(
+                            (variant, vIdx) => (
                               <div
                                 key={variant.id || vIdx}
                                 className="rounded-lg border border-line bg-panel px-3 py-2"
@@ -1251,6 +1288,14 @@ export default function ScenesPage() {
                     <Button
                       variant="secondary"
                       size="sm"
+                      onClick={() => void handleGenerateSceneImage(scene)}
+                      disabled={generatingSceneImage === scene.id}
+                    >
+                      {generatingSceneImage === scene.id ? "生成中..." : "生成图片"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         setRegenerateScene(toForm(scene));
                         setRegenerateOpen(true);
@@ -1265,6 +1310,7 @@ export default function ScenesPage() {
                     >
                       删除
                     </Button>
+                  </div>
                   </div>
                 </div>
               );

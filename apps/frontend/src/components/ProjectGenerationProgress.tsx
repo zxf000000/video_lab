@@ -2,6 +2,14 @@
 
 import { IconCheck, IconLoader2, IconX } from "@tabler/icons-react";
 import { StatusBadge } from "./ui-legacy";
+import type { GenerationTask, ProjectDetail } from "../api";
+
+type StepState = "pending" | "active" | "done" | "failed";
+
+interface ProjectGenerationProgressProps {
+  project: ProjectDetail | null;
+  compact?: boolean;
+}
 
 const GENERATION_TASK_TYPES = new Set(["pipeline", "generate_story", "generate_characters"]);
 
@@ -16,16 +24,16 @@ const STATUS_TO_STEP = new Map(
   GENERATION_STEPS.flatMap((step, index) => step.statuses.map((status) => [status, index]))
 );
 
-export default function ProjectGenerationProgress({ project, compact = false }: any) {
+export default function ProjectGenerationProgress({ project, compact = false }: ProjectGenerationProgressProps) {
   const tasks = project?.tasks || [];
   const activeTask = tasks.find(
-    (task: any) => GENERATION_TASK_TYPES.has(task.task_type) && (task.status === "queued" || task.status === "running")
+    (task) => GENERATION_TASK_TYPES.has(task.taskType) && (task.status === "queued" || task.status === "running")
   );
-  const failedTask = !activeTask && isFailureStatus(project?.status)
-    ? tasks.find((task: any) => GENERATION_TASK_TYPES.has(task.task_type) && task.status === "failed")
+  const failedTask = !activeTask && isFailureStatus(project?.status ?? "")
+    ? tasks.find((task) => GENERATION_TASK_TYPES.has(task.taskType) && task.status === "failed")
     : null;
-  const activeIndex = failedTask ? Math.max(0, STATUS_TO_STEP.get(project?.status) ?? 0) : getActiveIndex(project, activeTask);
-  const isVisible = Boolean(failedTask || activeTask || isGenerationStatus(project?.status));
+  const activeIndex = failedTask ? Math.max(0, STATUS_TO_STEP.get(project?.status ?? "") ?? 0) : getActiveIndex(project, activeTask);
+  const isVisible = Boolean(failedTask || activeTask || isGenerationStatus(project?.status ?? ""));
 
   if (!isVisible) return null;
 
@@ -60,7 +68,7 @@ export default function ProjectGenerationProgress({ project, compact = false }: 
             {failedTask ? "生成失败" : activeStep.label}
           </h2>
         </div>
-        <StatusBadge status={failedTask ? "failed" : project.status} />
+        <StatusBadge status={failedTask ? "failed" : (project?.status ?? "draft")} />
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -77,35 +85,35 @@ export default function ProjectGenerationProgress({ project, compact = false }: 
         })}
       </div>
 
-      {failedTask?.error_message ? (
-        <p className="mt-3 text-sm leading-5 text-red-400">{failedTask.error_message}</p>
+      {failedTask?.errorMessage ? (
+        <p className="mt-3 text-sm leading-5 text-red-400">{failedTask.errorMessage}</p>
       ) : null}
     </section>
   );
 }
 
-function getActiveIndex(project: any, createTask: any) {
+function getActiveIndex(project: ProjectDetail | null, createTask: GenerationTask | undefined) {
   if (createTask?.status === "queued") return 0;
   if (project?.status === "outline_ready") return 1;
-  return STATUS_TO_STEP.get(project?.status) ?? 0;
+  return STATUS_TO_STEP.get(project?.status ?? "") ?? 0;
 }
 
-function isGenerationStatus(status: any) {
+function isGenerationStatus(status: string) {
   return STATUS_TO_STEP.has(status) && status !== "project_ready";
 }
 
-function isFailureStatus(status: any) {
+function isFailureStatus(status: string) {
   return status === "prompt_updated";
 }
 
-function getStepState(index: any, activeIndex: any, failedTask: any) {
+function getStepState(index: number, activeIndex: number, failedTask: GenerationTask | null | undefined): StepState {
   if (failedTask && index === activeIndex) return "failed";
   if (index < activeIndex) return "done";
   if (index === activeIndex) return "active";
   return "pending";
 }
 
-function StepIcon({ state }: any) {
+function StepIcon({ state }: { state: StepState }) {
   if (state === "done") {
     return <IconCheck size={15} stroke={2} className="shrink-0 text-emerald-400" />;
   }
@@ -118,7 +126,7 @@ function StepIcon({ state }: any) {
   return <span className="h-2 w-2 shrink-0 rounded-full bg-slate-300" />;
 }
 
-function stepTone(state: any) {
+function stepTone(state: StepState) {
   if (state === "done") return "bg-emerald-500/100";
   if (state === "failed") return "bg-rose-400";
   if (state === "active") return "bg-mint";

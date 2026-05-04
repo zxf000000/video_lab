@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPrompts, updatePrompts } from "../../src/api";
+import { getPrompts, updatePrompts, type PromptsData, type PromptTab } from "../../src/api";
 import { ActionButton, StatusBadge } from "../../src/components/ui-legacy";
 import { Textarea } from "../../src/components/ui/textarea";
 import { IconRestore, IconDeviceFloppy, IconCircleFilled } from "@tabler/icons-react";
@@ -89,9 +89,9 @@ const TABS = [
 ];
 
 export default function PromptsPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<PromptsData | null>(null);
   const [activeTab, setActiveTab] = useState("generate_story");
-  const [edited, setEdited] = useState<Record<string, any>>({});
+  const [edited, setEdited] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -115,16 +115,16 @@ export default function PromptsPage() {
       .finally(() => setSaving(false));
   }
 
-  function handleReset(tab: any) {
+  function handleReset(tab: PromptTab) {
     if (!data?.defaults) return;
     const updated = { ...edited };
-    tab.fields.forEach((f: any) => {
+    tab.fields.forEach((f) => {
       updated[f.key] = data.defaults[f.key] || "";
     });
     setEdited(updated);
   }
 
-  function isModified(key: any) {
+  function isModified(key: string) {
     if (!data?.defaults) return false;
     return (edited[key] || "") !== (data.defaults[key] || "");
   }
@@ -213,7 +213,7 @@ export default function PromptsPage() {
               {vars.length > 0 && (
                 <div className="mt-5 flex flex-wrap items-center gap-1.5">
                   <span className="text-[10px] text-gray-500">可用变量：</span>
-                  {vars.map((v: any) => (
+                  {vars.map((v: string) => (
                     <code
                       key={v}
                       className="cursor-pointer rounded-full bg-purple-500/10 px-2.5 py-1 font-mono text-[10px] text-mint transition hover:bg-mint/10"

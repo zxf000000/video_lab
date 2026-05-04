@@ -15,7 +15,10 @@ import {
   type EpisodeProposal,
   type EpisodeCollectionProposal,
   type SceneCollectionProposal,
+  type SceneProposal,
   type ProjectDetail,
+  type CharacterAsset,
+  type ScenePreset,
 } from "@/src/api";
 import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { SectionCard } from "@/src/components/project/project-ui";
@@ -88,8 +91,8 @@ export default function EpisodesPage() {
   /* ---- state ---- */
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [characters, setCharacters] = useState<any[]>([]);
-  const [scenes, setScenes] = useState<any[]>([]);
+  const [characters, setCharacters] = useState<CharacterAsset[]>([]);
+  const [scenes, setScenes] = useState<ScenePreset[]>([]);
   const [editing, setEditing] = useState<EpisodeFormState | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<EpisodeFormState | null>(null);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
@@ -139,7 +142,7 @@ export default function EpisodesPage() {
             relationship_summary: project.brief.relationshipSummary,
           }
         : null,
-      existing_characters: characters.map((c: any) => ({
+      existing_characters: characters.map((c) => ({
         name: c.name,
         role_type: c.roleType,
         identity_summary: c.identitySummary,
@@ -276,22 +279,23 @@ export default function EpisodesPage() {
   const handleRegenerate = useCallback(
     async (form: EpisodeFormState, userGoal: string) => {
       if (!form.id) return;
+      const fm = form as EpisodeFormState;
       const context = buildEpisodeCopilotContext("single_refine", {
-        id: form.id,
+        id: fm.id!,
         projectId,
-        episodeNo: form.episodeNo,
-        title: form.title,
-        summary: form.summary,
-        goal: form.goal,
-        coreConflict: form.coreConflict,
-        openingHook: form.openingHook,
-        climax: form.climax,
-        endingHook: form.endingHook,
-        status: "draft",
-        sortOrder: form.sortOrder,
+        episodeNo: fm.episodeNo,
+        title: fm.title,
+        summary: fm.summary,
+        goal: fm.goal,
+        coreConflict: fm.coreConflict,
+        openingHook: fm.openingHook,
+        climax: fm.climax,
+        endingHook: fm.endingHook,
+        status: "draft" as string,
+        sortOrder: fm.sortOrder,
         createdAt: "",
         updatedAt: "",
-      });
+      } as Episode);
       let result: EpisodeProposal | null = null;
 
       await streamCopilot(
@@ -314,15 +318,17 @@ export default function EpisodesPage() {
       );
 
       if (result) {
-        await updateEpisode(form.id, {
-          episodeNo: result.episodeNo || form.episodeNo,
-          title: result.title,
-          summary: result.summary,
-          goal: result.goal,
-          coreConflict: result.coreConflict,
-          openingHook: result.openingHook,
-          climax: result.climax,
-          endingHook: result.endingHook,
+        const ep = result as EpisodeProposal;
+        const fm = form as EpisodeFormState;
+        await updateEpisode(fm.id!, {
+          episodeNo: ep.episodeNo || fm.episodeNo,
+          title: ep.title,
+          summary: ep.summary,
+          goal: ep.goal,
+          coreConflict: ep.coreConflict,
+          openingHook: ep.openingHook,
+          climax: ep.climax,
+          endingHook: ep.endingHook,
         });
         await refresh();
       }
@@ -337,7 +343,7 @@ export default function EpisodesPage() {
     async (episode: Episode) => {
       setGeneratingScenes(episode.id);
       try {
-        let collected: any[] = [];
+        let collected: SceneProposal[] = [];
 
         await streamCopilot(
           {
@@ -358,11 +364,11 @@ export default function EpisodesPage() {
                     main_conflict: project.brief.mainConflict,
                   }
                 : null,
-              existing_characters: characters.map((c: any) => ({
+              existing_characters: characters.map((c) => ({
                 name: c.name,
                 role_type: c.roleType,
               })),
-              existing_scenes: scenes.map((s: any) => ({
+              existing_scenes: scenes.map((s) => ({
                 name: s.name,
                 scene_type: s.sceneType,
                 space_description: s.spaceDescription,

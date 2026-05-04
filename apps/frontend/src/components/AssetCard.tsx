@@ -5,7 +5,7 @@ import { getApiBase } from "../api";
 import { ImageViewer } from "./ui-legacy";
 import VideoPlayer from "./VideoPlayer";
 
-export default function AssetCard({ label, url, kind }: any) {
+export default function AssetCard({ label, url, kind }: { label: string; url: string; kind: "image" | "video" }) {
   const absoluteUrl = url ? `${getApiBase()}${url}` : null;
   const [open, setOpen] = useState(false);
   return (

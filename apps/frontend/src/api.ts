@@ -2,6 +2,79 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:80
 
 type JsonObject = Record<string, unknown>;
 
+// ── API response types ──
+
+export interface AppConfig {
+  text_model: string;
+  image_model: string;
+  video_model: string;
+  voice_model: string;
+  api_base: string;
+  has_api_key?: boolean;
+  api_key_masked?: string;
+}
+
+export interface ModelItem {
+  id: string;
+  label: string;
+}
+
+export interface PromptTab {
+  key: string;
+  label: string;
+  desc: string;
+  fields: { key: string; label: string; type: string }[];
+}
+
+export interface PromptsData {
+  prompts: Record<string, string>;
+  defaults: Record<string, string>;
+  vars: Record<string, string[]>;
+}
+
+export interface SeedanceConfig {
+  seedance_api_base: string;
+}
+
+export interface KlingConfig {
+  kling_api_base: string;
+}
+
+export interface VideoTaskBase {
+  id: number;
+  task_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  params?: JsonObject;
+  result?: JsonObject;
+  error?: string;
+}
+
+/** Extended task type for video/image generation backends (Seedance, Kling, etc.) */
+export interface VideoGenerationTask extends VideoTaskBase {
+  output_path?: string;
+  error_message?: string;
+  image_url?: string;
+  video_url?: string;
+  story_prompt?: string;
+  target_duration?: number;
+  aspect_ratio?: string;
+  resolution?: string;
+}
+
+export interface DeletedProject {
+  id: number;
+  title: string;
+  story_prompt: string;
+  deleted_at: string;
+}
+
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
 async function request<T>(path: string, options: RequestInit & { headers?: Record<string, string> } = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -47,6 +120,7 @@ export interface ProjectSummary {
   episodeCountPlanned: number;
   currentStage: string;
   status: string;
+  storyPrompt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,7 +138,7 @@ export interface ProjectBrief {
   status: string;
 }
 
-export type CopilotModuleType = "brief" | "character" | "scene" | "episode";
+export type CopilotModuleType = "brief" | "character" | "scene" | "episode" | "shot";
 export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing" | "regenerate";
 
 export interface BriefProposal {
@@ -98,6 +172,28 @@ export interface SceneCollectionProposal {
 }
 
 export type SceneCopilotProposal = SceneCollectionProposal;
+
+export interface ShotProposal {
+  shotNo: number;
+  sceneBlock: string;
+  visualGoal: string;
+  shotSize: string;
+  cameraAngle: string;
+  composition: string;
+  actionDescription: string;
+  facialEmotion: string;
+  cameraMotion: string;
+  dialogueExcerpt: string;
+  estimatedDurationMs: number;
+  scenePresetId: number | null;
+  characterIds: number[];
+}
+
+export interface ShotCollectionProposal {
+  shots: ShotProposal[];
+}
+
+export type ShotCopilotProposal = ShotCollectionProposal;
 
 export interface CharacterProposal {
   characterProfile: {
@@ -209,7 +305,8 @@ export type CopilotProposal =
   | CharacterCollectionProposal
   | CharacterVariantCollectionProposal
   | SceneCopilotProposal
-  | EpisodeCollectionProposal;
+  | EpisodeCollectionProposal
+  | ShotCopilotProposal;
 
 export interface CopilotStreamRequest {
   moduleType: CopilotModuleType;
@@ -320,6 +417,10 @@ export interface ShotPrompt {
   shotId: number;
   versionNo: number;
   promptText: string;
+  firstFramePrompt: string;
+  firstFrameNegativePrompt: string;
+  videoPrompt: string;
+  videoNegativePrompt: string;
   negativePrompt: string;
   modelParams: JsonObject;
   referenceAssetIds: unknown[];
@@ -335,6 +436,7 @@ export interface GenerationTask {
   episodeId: number | null;
   shotId: number | null;
   shotPromptId: number | null;
+  taskType: string;
   provider: string;
   modelName: string;
   status: string;
@@ -346,6 +448,8 @@ export interface GenerationTask {
   durationMs: number;
   submittedAt: string;
   finishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReviewIssue {
@@ -406,6 +510,7 @@ function normalizeProjectSummary(raw: Record<string, unknown>): ProjectSummary {
     episodeCountPlanned: asNumber(raw.episode_count_planned, 0),
     currentStage: asString(raw.current_stage, "draft"),
     status: asString(raw.status, "draft"),
+    storyPrompt: raw.story_prompt != null ? asString(raw.story_prompt) : undefined,
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
   };
@@ -517,6 +622,38 @@ function normalizeSceneCollectionProposal(raw: Record<string, unknown>): SceneCo
     scenes: scenes
       .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
       .map(normalizeSceneProposal),
+  };
+}
+
+function normalizeShotProposal(raw: Record<string, unknown>): ShotProposal {
+  const characterIds = Array.isArray(raw.character_ids)
+    ? raw.character_ids.map((x) => Number(x)).filter((x) => Number.isFinite(x) && x > 0)
+    : typeof raw.character_ids === "string"
+    ? raw.character_ids.split(",").map((s) => Number(s.trim())).filter((x) => Number.isFinite(x) && x > 0)
+    : [];
+  return {
+    shotNo: Number(raw.shot_no ?? raw.shotNo ?? 0),
+    sceneBlock: asString(raw.scene_block ?? raw.sceneBlock),
+    visualGoal: asString(raw.visual_goal ?? raw.visualGoal),
+    shotSize: asString(raw.shot_size ?? raw.shotSize),
+    cameraAngle: asString(raw.camera_angle ?? raw.cameraAngle),
+    composition: asString(raw.composition),
+    actionDescription: asString(raw.action_description ?? raw.actionDescription),
+    facialEmotion: asString(raw.facial_emotion ?? raw.facialEmotion),
+    cameraMotion: asString(raw.camera_motion ?? raw.cameraMotion),
+    dialogueExcerpt: asString(raw.dialogue_excerpt ?? raw.dialogueExcerpt),
+    estimatedDurationMs: Number(raw.estimated_duration_ms ?? raw.estimatedDurationMs ?? 3000),
+    scenePresetId: raw.scene_preset_id == null ? null : Number(raw.scene_preset_id),
+    characterIds,
+  };
+}
+
+function normalizeShotCollectionProposal(raw: Record<string, unknown>): ShotCollectionProposal {
+  const shots = Array.isArray(raw.shots) ? raw.shots : [];
+  return {
+    shots: shots
+      .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map(normalizeShotProposal),
   };
 }
 
@@ -635,6 +772,7 @@ function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
     projectId: asNumber(raw.project_id),
     name: asString(raw.name),
     roleType: asString(raw.role_type),
+    species: asString(raw.species),
     identitySummary: asString(raw.identity_summary),
     appearanceSummary: asString(raw.appearance_summary),
     personalityTags: parseJsonValue<string[]>(raw.personality_tags, []),
@@ -727,6 +865,10 @@ function normalizePrompt(raw: Record<string, unknown>): ShotPrompt {
     shotId: asNumber(raw.shot_id),
     versionNo: asNumber(raw.version_no, 1),
     promptText: asString(raw.prompt_text),
+    firstFramePrompt: asString(raw.first_frame_prompt),
+    firstFrameNegativePrompt: asString(raw.first_frame_negative_prompt),
+    videoPrompt: asString(raw.video_prompt),
+    videoNegativePrompt: asString(raw.video_negative_prompt),
     negativePrompt: asString(raw.negative_prompt),
     modelParams: parseJsonValue<JsonObject>(raw.model_params, {}),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
@@ -744,6 +886,7 @@ function normalizeTask(raw: Record<string, unknown>): GenerationTask {
     episodeId: raw.episode_id == null ? null : asNumber(raw.episode_id),
     shotId: raw.shot_id == null ? null : asNumber(raw.shot_id),
     shotPromptId: raw.shot_prompt_id == null ? null : asNumber(raw.shot_prompt_id),
+    taskType: asString(raw.task_type),
     provider: asString(raw.provider),
     modelName: asString(raw.model_name),
     status: asString(raw.status, "queued"),
@@ -757,6 +900,8 @@ function normalizeTask(raw: Record<string, unknown>): GenerationTask {
     durationMs: asNumber(raw.duration_ms, 0),
     submittedAt: asString(raw.submitted_at),
     finishedAt: raw.finished_at == null ? null : asString(raw.finished_at),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
   };
 }
 
@@ -956,6 +1101,14 @@ export async function generateCharacterImage(characterId: number) {
   return { character: normalizeCharacter(payload.character) };
 }
 
+export async function generateSceneImage(sceneId: number) {
+  const payload = await request<{ scene: Record<string, unknown> }>(`/api/scenes/${sceneId}/generate-image`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return { scene: normalizeScene(payload.scene) };
+}
+
 export async function listScenes(projectId: number) {
   const payload = await request<{ scenes: Record<string, unknown>[] }>(`/api/projects/${projectId}/scenes`);
   return { scenes: payload.scenes.map(normalizeScene) };
@@ -972,6 +1125,9 @@ export async function createScene(projectId: number, data: Partial<ScenePreset> 
       time_of_day: data.timeOfDay ?? "",
       weather: data.weather ?? "",
       prop_list: data.propList ?? [],
+      negative_constraints: data.negativeConstraints ?? "",
+      image_prompt: data.imagePrompt ?? "",
+      negative_prompt: data.negativePrompt ?? "",
       reference_asset_ids: data.referenceAssetIds ?? [],
       variants: data.variants ?? [],
       episode_id: data.episodeId ?? null,
@@ -995,6 +1151,9 @@ export async function updateScene(sceneId: number, projectId: number, data: Part
       ...(data.timeOfDay !== undefined ? { time_of_day: data.timeOfDay } : {}),
       ...(data.weather !== undefined ? { weather: data.weather } : {}),
       ...(data.propList !== undefined ? { prop_list: data.propList } : {}),
+      ...(data.negativeConstraints !== undefined ? { negative_constraints: data.negativeConstraints } : {}),
+      ...(data.imagePrompt !== undefined ? { image_prompt: data.imagePrompt } : {}),
+      ...(data.negativePrompt !== undefined ? { negative_prompt: data.negativePrompt } : {}),
       ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
       ...(data.variants !== undefined ? { variants: data.variants } : {}),
       ...(data.episodeId !== undefined ? { episode_id: data.episodeId } : {}),
@@ -1128,6 +1287,10 @@ export async function createShotPrompt(shotId: number, data: Partial<ShotPrompt>
     method: "POST",
     body: JSON.stringify({
       prompt_text: data.promptText,
+      first_frame_prompt: data.firstFramePrompt ?? "",
+      first_frame_negative_prompt: data.firstFrameNegativePrompt ?? "",
+      video_prompt: data.videoPrompt ?? "",
+      video_negative_prompt: data.videoNegativePrompt ?? "",
       negative_prompt: data.negativePrompt ?? "",
       model_params: data.modelParams ?? {},
       reference_asset_ids: data.referenceAssetIds ?? [],
@@ -1143,6 +1306,10 @@ export async function updateShotPromptVersion(promptId: number, data: Partial<Sh
     method: "PUT",
     body: JSON.stringify({
       ...(data.promptText !== undefined ? { prompt_text: data.promptText } : {}),
+      ...(data.firstFramePrompt !== undefined ? { first_frame_prompt: data.firstFramePrompt } : {}),
+      ...(data.firstFrameNegativePrompt !== undefined ? { first_frame_negative_prompt: data.firstFrameNegativePrompt } : {}),
+      ...(data.videoPrompt !== undefined ? { video_prompt: data.videoPrompt } : {}),
+      ...(data.videoNegativePrompt !== undefined ? { video_negative_prompt: data.videoNegativePrompt } : {}),
       ...(data.negativePrompt !== undefined ? { negative_prompt: data.negativePrompt } : {}),
       ...(data.modelParams !== undefined ? { model_params: data.modelParams } : {}),
       ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
@@ -1158,6 +1325,27 @@ export async function activateShotPrompt(promptId: number) {
     method: "POST",
   });
   return { prompt: normalizePrompt(payload.prompt) };
+}
+
+export interface ImageReference {
+  label: string;
+  type: "character" | "scene";
+  name: string;
+  path: string;
+}
+
+export async function generateShotPromptFromShot(shotId: number) {
+  const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
+    method: "POST",
+  });
+  return {
+    firstFramePrompt: payload.first_frame_prompt,
+    firstFrameNegativePrompt: payload.first_frame_negative_prompt,
+    videoPrompt: payload.video_prompt,
+    videoNegativePrompt: payload.video_negative_prompt,
+    negativePrompt: payload.negative_prompt,
+    imageReferences: payload.image_references ?? [],
+  };
 }
 
 export async function generateShot(shotId: number, data: { provider?: string; modelName?: string; shotPromptId?: number }) {
@@ -1331,6 +1519,8 @@ export async function streamCopilot(
               : normalizeCharacterCollectionProposal(event.proposal);
           } else if (requestPayload.moduleType === "episode") {
             normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "shot") {
+            normalizedProposal = normalizeShotCollectionProposal(event.proposal);
           } else {
             normalizedProposal = normalizeBriefProposal(event.proposal);
           }
@@ -1372,6 +1562,8 @@ export async function streamCopilot(
               : normalizeCharacterCollectionProposal(event.proposal);
           } else if (requestPayload.moduleType === "episode") {
             normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "shot") {
+            normalizedProposal = normalizeShotCollectionProposal(event.proposal);
           } else {
             normalizedProposal = normalizeBriefProposal(event.proposal);
           }
@@ -1388,37 +1580,44 @@ export async function streamCopilot(
 }
 
 // Legacy / tooling exports kept for non-project utility pages
-export function listDeletedProjects(): Promise<any> {
+export function listDeletedProjects(): Promise<{ projects: DeletedProject[] }> {
   return request("/api/projects/deleted");
 }
-export function restoreProject(projectId: number): Promise<any> {
+export function restoreProject(projectId: number): Promise<{ project: DeletedProject }> {
   return request(`/api/projects/${projectId}/restore`, { method: "POST" });
 }
-export function permanentDeleteProject(projectId: number): Promise<any> {
+export function permanentDeleteProject(projectId: number): Promise<{ ok: boolean }> {
   return request(`/api/projects/${projectId}/permanent`, { method: "DELETE" });
 }
-export function getConfig(): Promise<any> {
+export function getConfig(): Promise<{ config: AppConfig }> {
   return request("/api/config");
 }
-export function updateConfig(data: unknown): Promise<any> {
+export function updateConfig(data: unknown): Promise<{ config: AppConfig }> {
   return request("/api/config", { method: "PUT", body: JSON.stringify(data) });
 }
-export function getModels(): Promise<any> {
+export function getModels(): Promise<{ models: Record<string, ModelItem[]> }> {
   return request("/api/models");
 }
-export function addModel(category: string, id: string, label: string): Promise<any> {
+export function addModel(category: string, id: string, label: string): Promise<{ models: ModelItem[] }> {
   return request(`/api/models/${category}`, { method: "PUT", body: JSON.stringify({ id, label: label || id }) });
 }
-export function deleteModel(category: string, id: string): Promise<any> {
+export function deleteModel(category: string, id: string): Promise<{ models: ModelItem[] }> {
   return request(`/api/models/${category}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
 }
-export function getPrompts(): Promise<any> {
+export function getPrompts(): Promise<PromptsData> {
   return request("/api/prompts");
 }
-export function updatePrompts(data: unknown): Promise<any> {
+export function updatePrompts(data: unknown): Promise<PromptsData> {
   return request("/api/prompts", { method: "PUT", body: JSON.stringify(data) });
 }
-export async function streamChat(messages: unknown, onDelta?: (content: string) => void, onExtracted?: (projectParams: unknown) => void, onDone?: () => void, onError?: (error: unknown) => void, systemPromptKey = "") {
+export async function streamChat(
+  messages: ChatMessage[],
+  onDelta?: (content: string) => void,
+  onExtracted?: (projectParams: JsonObject) => void,
+  onDone?: () => void,
+  onError?: (error: unknown) => void,
+  systemPromptKey = "",
+) {
   try {
     const response = await fetch(`${API_BASE}/api/chat/stream`, {
       method: "POST",
@@ -1446,7 +1645,7 @@ export async function streamChat(messages: unknown, onDelta?: (content: string) 
         try {
           const event = JSON.parse(data) as { type?: string; content?: string; project_params?: unknown };
           if (event.type === "delta") onDelta?.(event.content ?? "");
-          if (event.type === "extracted") onExtracted?.(event.project_params);
+          if (event.type === "extracted") onExtracted?.(event.project_params as JsonObject);
         } catch {
           // Ignore malformed events.
         }
@@ -1457,63 +1656,63 @@ export async function streamChat(messages: unknown, onDelta?: (content: string) 
     onError?.(error);
   }
 }
-export function generateQuickVideo(input: unknown): Promise<any> {
+export function generateQuickVideo(input: unknown): Promise<{ task_id: number }> {
   return request("/api/generate-video", { method: "POST", body: JSON.stringify(input) });
 }
-export function getQuickVideoStatus(taskId: number): Promise<any> {
+export function getQuickVideoStatus(taskId: number): Promise<{ status: string; video_url?: string; error_message?: string }> {
   return request(`/api/generate-video/status?task_id=${taskId}`);
 }
-export function listQuickVideoTasks(): Promise<any> {
+export function listQuickVideoTasks(): Promise<{ tasks: VideoGenerationTask[] }> {
   return request("/api/generate-video/tasks");
 }
-export function generateImage(input: unknown): Promise<any> {
+export function generateImage(input: unknown): Promise<{ image_url: string }> {
   return request("/api/generate-image", { method: "POST", body: JSON.stringify(input) });
 }
-export function getSeedanceConfig(): Promise<any> {
+export function getSeedanceConfig(): Promise<{ config: SeedanceConfig }> {
   return request("/api/seedance/config");
 }
-export function updateSeedanceConfig(data: unknown): Promise<any> {
+export function updateSeedanceConfig(data: unknown): Promise<{ config: SeedanceConfig }> {
   return request("/api/seedance/config", { method: "PUT", body: JSON.stringify(data) });
 }
-export function seedanceT2V(input: unknown): Promise<any> {
+export function seedanceT2V(input: unknown): Promise<{ task_id: number }> {
   return request("/api/seedance/t2v", { method: "POST", body: JSON.stringify(input) });
 }
-export function seedanceI2V(input: unknown): Promise<any> {
+export function seedanceI2V(input: unknown): Promise<{ task_id: number }> {
   return request("/api/seedance/i2v", { method: "POST", body: JSON.stringify(input) });
 }
-export function seedanceCharacter(input: unknown): Promise<any> {
+export function seedanceCharacter(input: unknown): Promise<{ task_id: number }> {
   return request("/api/seedance/character", { method: "POST", body: JSON.stringify(input) });
 }
-export function getSeedanceStatus(taskId: number): Promise<any> {
+export function getSeedanceStatus(taskId: number): Promise<{ task_id: number; status: string; video_url: string | null; error_message: string | null }> {
   return request(`/api/seedance/status?task_id=${taskId}`);
 }
-export function listSeedanceTasks(): Promise<any> {
+export function listSeedanceTasks(): Promise<{ tasks: VideoGenerationTask[] }> {
   return request("/api/seedance/tasks");
 }
-export function getKlingConfig(): Promise<any> {
+export function getKlingConfig(): Promise<{ config: KlingConfig }> {
   return request("/api/kling/config");
 }
-export function updateKlingConfig(data: unknown): Promise<any> {
+export function updateKlingConfig(data: unknown): Promise<{ config: KlingConfig }> {
   return request("/api/kling/config", { method: "PUT", body: JSON.stringify(data) });
 }
-export function klingT2V(input: unknown): Promise<any> {
+export function klingT2V(input: unknown): Promise<{ task_id: number }> {
   return request("/api/kling/t2v", { method: "POST", body: JSON.stringify(input) });
 }
-export function klingI2V(input: unknown): Promise<any> {
+export function klingI2V(input: unknown): Promise<{ task_id: number }> {
   return request("/api/kling/i2v", { method: "POST", body: JSON.stringify(input) });
 }
-export function klingGenerateImage(input: unknown): Promise<any> {
+export function klingGenerateImage(input: unknown): Promise<{ task_id: number }> {
   return request("/api/kling/image", { method: "POST", body: JSON.stringify(input) });
 }
-export function klingOmniImage(input: unknown): Promise<any> {
+export function klingOmniImage(input: unknown): Promise<{ task_id: number }> {
   return request("/api/kling/omni-image", { method: "POST", body: JSON.stringify(input) });
 }
-export function klingOmniVideo(input: unknown): Promise<any> {
+export function klingOmniVideo(input: unknown): Promise<{ task_id: number }> {
   return request("/api/kling/omni-video", { method: "POST", body: JSON.stringify(input) });
 }
-export function getKlingStatus(taskId: number): Promise<any> {
+export function getKlingStatus(taskId: number): Promise<{ task_id: number; status: string; video_url: string | null; error_message: string | null }> {
   return request(`/api/kling/status?task_id=${taskId}`);
 }
-export function listKlingTasks(): Promise<any> {
+export function listKlingTasks(): Promise<{ tasks: VideoGenerationTask[] }> {
   return request("/api/kling/tasks");
 }

@@ -16,14 +16,18 @@ class PromptsService:
             "shot_id": shot_id,
             "version_no": version_no,
             "prompt_text": normalize_text(payload.get("prompt_text")),
+            "first_frame_prompt": normalize_text(payload.get("first_frame_prompt")),
+            "first_frame_negative_prompt": normalize_text(payload.get("first_frame_negative_prompt")),
+            "video_prompt": normalize_text(payload.get("video_prompt")),
+            "video_negative_prompt": normalize_text(payload.get("video_negative_prompt")),
             "negative_prompt": normalize_text(payload.get("negative_prompt")),
             "model_params": normalize_json_text(payload.get("model_params"), {}),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "status": normalize_text(payload.get("status"), "draft"),
             "is_active": 1 if bool(payload.get("is_active", False)) else 0,
         }
-        if not data["prompt_text"]:
-            raise DomainError("prompt_text is required")
+        if not data["prompt_text"] and not data["first_frame_prompt"]:
+            raise DomainError("prompt_text or first_frame_prompt is required")
         if data["is_active"]:
             self.repository.deactivate_shot_prompts(shot_id)
         return self.repository.create_prompt(data)
@@ -49,6 +53,14 @@ class PromptsService:
         data = {}
         if "prompt_text" in payload:
             data["prompt_text"] = normalize_text(payload.get("prompt_text"))
+        if "first_frame_prompt" in payload:
+            data["first_frame_prompt"] = normalize_text(payload.get("first_frame_prompt"))
+        if "first_frame_negative_prompt" in payload:
+            data["first_frame_negative_prompt"] = normalize_text(payload.get("first_frame_negative_prompt"))
+        if "video_prompt" in payload:
+            data["video_prompt"] = normalize_text(payload.get("video_prompt"))
+        if "video_negative_prompt" in payload:
+            data["video_negative_prompt"] = normalize_text(payload.get("video_negative_prompt"))
         if "negative_prompt" in payload:
             data["negative_prompt"] = normalize_text(payload.get("negative_prompt"))
         if "model_params" in payload:

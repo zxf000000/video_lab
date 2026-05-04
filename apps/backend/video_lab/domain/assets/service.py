@@ -54,6 +54,9 @@ class AssetsService:
             "time_of_day": normalize_text(payload.get("time_of_day")),
             "weather": normalize_text(payload.get("weather")),
             "prop_list": normalize_json_text(payload.get("prop_list"), []),
+            "negative_constraints": normalize_text(payload.get("negative_constraints")),
+            "image_prompt": normalize_text(payload.get("image_prompt")),
+            "negative_prompt": normalize_text(payload.get("negative_prompt")),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "variants": normalize_json_text(payload.get("variants"), []),
             "episode_id": payload.get("episode_id"),
@@ -88,6 +91,44 @@ class AssetsService:
         if not existing:
             raise DomainError("scene preset not found")
         self.repository.delete_scene_preset(scene_preset_id)
+
+    def generate_scene_image(self, scene_preset_id: int) -> dict:
+        scene = self.repository.get_scene_preset(scene_preset_id)
+        if not scene:
+            raise DomainError("scene preset not found")
+        prompt = normalize_text(scene.get("image_prompt"))
+        if not prompt:
+            raise DomainError("scene has no image_prompt")
+        negative_prompt = normalize_text(scene.get("negative_prompt"))
+        providers = _get_providers()
+        kling = providers.get("kling")
+        if kling and hasattr(kling, "generate_image"):
+            image_path = kling.generate_image(
+                task_id=scene_preset_id,
+                prompt=prompt,
+                model_name="kling-v2-1",
+                aspect_ratio="16:9",
+                negative_prompt=negative_prompt,
+            )
+        else:
+            project = self.repository.get_project(int(scene["project_id"]))
+            genre = normalize_text(project.get("genre"), "cinematic") if project else "cinematic"
+            image_path = providers["image"].generate_character_image(
+                scene_preset_id,
+                prompt,
+                genre,
+            )
+        variants = self.repository.parse_json_column(scene.get("variants"), [])
+        if isinstance(variants, list):
+            updated_variants = list(variants)
+            updated_variants.append({"id": f"gen_{scene_preset_id}", "imagePath": image_path})
+        else:
+            updated_variants = [{"id": f"gen_{scene_preset_id}", "imagePath": image_path}]
+        self.repository.update_scene_preset(
+            scene_preset_id,
+            {"variants": json.dumps(updated_variants, ensure_ascii=False)},
+        )
+        return self.repository.get_scene_preset(scene_preset_id) or {}
 
     def generate_character_image(self, character_id: int) -> dict:
         character = self.repository.get_character(character_id)
@@ -187,3 +228,9 @@ class AssetsService:
             "高一致性角色设定",
         ])
         return "。".join(segment for segment in segments if segment)
+
+    def get_scene_preset(self, scene_preset_id: int) -> dict | None:
+        return self.repository.get_scene_preset(scene_preset_id)
+
+    def get_character(self, character_id: int) -> dict | None:
+        return self.repository.get_character(character_id)

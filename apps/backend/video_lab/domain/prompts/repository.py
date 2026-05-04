@@ -55,14 +55,20 @@ class PromptsRepository:
             cur = conn.execute(
                 """
                 INSERT INTO shot_prompts (
-                    shot_id, version_no, prompt_text, negative_prompt, model_params,
+                    shot_id, version_no, prompt_text, first_frame_prompt, first_frame_negative_prompt,
+                    video_prompt, video_negative_prompt,
+                    negative_prompt, model_params,
                     reference_asset_ids, status, is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["shot_id"],
                     payload["version_no"],
                     payload["prompt_text"],
+                    payload.get("first_frame_prompt", ""),
+                    payload.get("first_frame_negative_prompt", ""),
+                    payload.get("video_prompt", ""),
+                    payload.get("video_negative_prompt", ""),
                     payload["negative_prompt"],
                     payload["model_params"],
                     payload["reference_asset_ids"],
@@ -82,6 +88,10 @@ class PromptsRepository:
         values = []
         for key in (
             "prompt_text",
+            "first_frame_prompt",
+            "first_frame_negative_prompt",
+            "video_prompt",
+            "video_negative_prompt",
             "negative_prompt",
             "model_params",
             "reference_asset_ids",

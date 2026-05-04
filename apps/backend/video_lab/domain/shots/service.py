@@ -33,6 +33,7 @@ class ShotsService:
             raise DomainError("episode not found")
         shot_no = max(1, normalize_int(payload.get("shot_no"), 1))
         data = {
+            "project_id": episode["project_id"],
             "episode_id": episode_id,
             "scene_block": normalize_text(payload.get("scene_block")),
             "shot_no": shot_no,

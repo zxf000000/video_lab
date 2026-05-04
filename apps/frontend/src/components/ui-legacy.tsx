@@ -4,19 +4,21 @@ import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { cn } from "@/src/lib/utils";
 
+type ActionButtonVariant = "default" | "primary" | "secondary" | "outline" | "ghost" | "inverted" | "destructive" | "link";
+
 interface ActionButtonProps {
   icon?: React.ComponentType<{ size?: number; stroke?: number }>;
   label?: string;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: string;
+  variant?: ActionButtonVariant;
   type?: "button" | "submit" | "reset";
   className?: string;
 }
 
 export function ActionButton({ icon: Icon, label, onClick, disabled = false, variant = "secondary", type = "button", className = "" }: ActionButtonProps) {
   return (
-    <Button variant={variant as any} disabled={disabled} onClick={onClick} type={type} className={className}>
+    <Button variant={variant} disabled={disabled} onClick={onClick} type={type} className={className}>
       {Icon && <Icon size={16} stroke={2} />}
       {label}
     </Button>
@@ -85,7 +87,7 @@ export function ImageViewer({ src, alt, onClose }: ImageViewerProps) {
   if (!src) return null;
 
   return (
-    <Dialog open={!!src} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+    <Dialog open={!!src} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         className="max-w-[90vw] border-0 bg-transparent p-0 shadow-none ring-0"
       >

@@ -1,0 +1,32 @@
+请根据以下镜头信息和关联素材，生成首帧图片提示词和视频提示词。
+
+## 镜头信息
+- 景别: {shot_size}
+- 角度: {camera_angle}
+- 运镜: {camera_motion}
+- 构图: {composition}
+- 动作描述: {action_description}
+- 表情/情绪: {facial_emotion}
+- 对白: {dialogue_excerpt}
+- 视觉目标: {visual_goal}
+- 场次块: {scene_block}
+
+## 可用图片引用（必须在首帧提示词中使用图N格式引用）
+{image_reference_list}
+
+## 场景详情
+{scene_context}
+
+## 角色详情
+{character_context}
+
+## 要求
+1. **首帧图片提示词 (first_frame_prompt)** 必须是英文，且必须在开头使用 `图N` 格式引用上面列出的图片
+   - 每个引用格式：`图N中的[名称]，[外观/环境描述]`
+   - 引用后紧跟该图片内容的具体描述（外观、服装、空间、光线等）
+   - 将图片引用自然融入画面描述
+2. **视频提示词 (video_prompt)** 必须是英文，描述运镜和动作
+3. 负向提示词必须是英文关键词列表
+4. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON
+
+项目 ID: {project_id}

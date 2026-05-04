@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { listDeletedProjects, restoreProject, permanentDeleteProject } from "../../src/api";
+import { listDeletedProjects, restoreProject, permanentDeleteProject, type DeletedProject } from "../../src/api";
 import { ActionButton } from "../../src/components/ui-legacy";
 import { useConfirm } from "../../src/hooks/useConfirm";
 import { IconRefresh, IconRotateClockwise, IconTrash } from "@tabler/icons-react";
 
 export default function RecycleBinPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<DeletedProject[]>([]);
   const [error, setError] = useState("");
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -21,29 +21,29 @@ export default function RecycleBinPage() {
       const payload = await listDeletedProjects();
       setProjects(payload.projects);
       setError("");
-    } catch (err: any) {
-      setError(String(err.message || err));
+    } catch (err: unknown) {
+      setError(String((err as Error).message || err));
     }
   }
 
-  async function handleRestore(id: any, title: any) {
+  async function handleRestore(id: number, title: string) {
     try {
       await restoreProject(id);
       toast.success(`项目「${title}」已恢复`);
       refresh();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     }
   }
 
-  async function handlePermanentDelete(id: any, title: any) {
+  async function handlePermanentDelete(id: number, title: string) {
     if (!await confirm(`确定永久删除项目「${title}」？此操作不可恢复！`)) return;
     try {
       await permanentDeleteProject(id);
       toast.success("已永久删除");
       refresh();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     }
   }
 

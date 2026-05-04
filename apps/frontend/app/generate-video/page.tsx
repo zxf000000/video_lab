@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
-import { generateQuickVideo, getQuickVideoStatus, listQuickVideoTasks, generateImage, getApiBase, getModels } from "../../src/api";
+import { generateQuickVideo, getQuickVideoStatus, listQuickVideoTasks, generateImage, getApiBase, getModels, type ModelItem, type VideoGenerationTask } from "../../src/api";
 import { ActionButton, ImageViewer } from "../../src/components/ui-legacy";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../src/components/ui/dialog";
 import { Textarea } from "../../src/components/ui/textarea";
@@ -101,7 +101,10 @@ function fileToBase64(file: File) {
   });
 }
 
-function timeAgo(iso: any) {
+type CharacterCard = { name: string; description: string; imageUrl: string; refImage: string; referenced?: boolean };
+type ImagePreview = { name: string; url: string };
+
+function timeAgo(iso: string) {
   if (!iso) return "";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return "刚刚";
@@ -122,7 +125,7 @@ export default function GenerateVideoPage() {
     const s = loadState();
     // Migrate old character data without referenced field
     if (s.characters) {
-      s.characters = s.characters.map((c: any) => ({
+      s.characters = (s.characters as CharacterCard[]).map((c) => ({
         ...c,
         referenced: c.referenced ?? false,
         refImage: c.refImage ?? "",
@@ -136,31 +139,31 @@ export default function GenerateVideoPage() {
   const [aspectRatio, setAspectRatio] = useState(saved.aspectRatio ?? "16:9");
   const [resolution, setResolution] = useState(saved.resolution ?? "720p");
   const [duration, setDuration] = useState(saved.duration ?? 8);
-  const [imageFiles, setImageFiles] = useState<any[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<any[]>(saved.imagePreviews ?? []);
-  const [imageUrls, setImageUrls] = useState<any[]>(saved.imageUrls ?? [""]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>(saved.imagePreviews ?? []);
+  const [imageUrls, setImageUrls] = useState<string[]>((saved.imageUrls as string[]) ?? [""]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Video model selection
-  const [videoModels, setVideoModels] = useState<any[]>([]);
+  const [videoModels, setVideoModels] = useState<ModelItem[]>([]);
   const [videoModel, setVideoModel] = useState(saved.videoModel ?? "");
   const modelConfig = getModelConfig(videoModel);
 
   // Reference images
-  const [characters, setCharacters] = useState<any[]>(saved.characters ?? []);
+  const [characters, setCharacters] = useState<CharacterCard[]>(saved.characters ?? []);
   const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
-  const [refImageHistory, setRefImageHistory] = useState<any[]>(saved.refImageHistory ?? []);
+  const [refImageHistory, setRefImageHistory] = useState<string[]>((saved.refImageHistory as string[]) ?? []);
 
   // Image viewer
-  const [viewerSrc, setViewerSrc] = useState<any>(null);
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null);
 
   // Ref image picker modal (index of character to pick for, or null)
   const [refPickerIdx, setRefPickerIdx] = useState<number | null>(null);
 
   // Task detail dialog
-  const [viewTask, setViewTask] = useState<any>(null);
+  const [viewTask, setViewTask] = useState<VideoGenerationTask | null>(null);
 
   // Persist state to localStorage
   useEffect(() => {
@@ -170,7 +173,7 @@ export default function GenerateVideoPage() {
 
   // Fetch available video models
   useEffect(() => {
-    getModels().then((data: any) => {
+    getModels().then((data) => {
       const models = data?.models?.video || [];
       setVideoModels(models);
       if (!videoModel && models.length > 0) {
@@ -180,7 +183,7 @@ export default function GenerateVideoPage() {
   }, []);
 
   // Task feed
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<VideoGenerationTask[]>([]);
   const feedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshTasks = useCallback(async () => {
@@ -210,9 +213,9 @@ export default function GenerateVideoPage() {
     }
   }, [tasks, refreshTasks]);
 
-  function handleFilesSelect(e: any) {
+  function handleFilesSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    const valid: any[] = files.filter((f: any) => {
+    const valid = files.filter((f) => {
       if (f.size > 20 * 1024 * 1024) {
         toast.error(`${f.name} 超过 20MB`);
         return false;
@@ -221,24 +224,24 @@ export default function GenerateVideoPage() {
     });
     if (valid.length === 0) return;
 
-    setImageFiles((prev: any) => [...prev, ...valid]);
+    setImageFiles((prev) => [...prev, ...valid]);
     valid.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
-        setImagePreviews((prev: any) => [...prev, { name: file.name, url: reader.result as string }]);
+        setImagePreviews((prev) => [...prev, { name: file.name, url: reader.result as string }]);
       };
       reader.readAsDataURL(file);
     });
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function removeFile(index: any) {
-    setImageFiles((prev: any) => prev.filter((_: any, i: any) => i !== index));
-    setImagePreviews((prev: any) => prev.filter((_: any, i: any) => i !== index));
+  function removeFile(index: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function updateUrl(index: any, value: any) {
-    setImageUrls((prev: any) => {
+  function updateUrl(index: number, value: string) {
+    setImageUrls((prev) => {
       const next = [...prev];
       next[index] = value;
       return next;
@@ -246,11 +249,11 @@ export default function GenerateVideoPage() {
   }
 
   function addUrl() {
-    setImageUrls((prev: any) => [...prev, ""]);
+    setImageUrls((prev) => [...prev, ""]);
   }
 
-  function removeUrl(index: any) {
-    setImageUrls((prev: any) => prev.filter((_: any, i: any) => i !== index));
+  function removeUrl(index: number) {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
   }
 
   function resetForm() {
@@ -273,12 +276,12 @@ export default function GenerateVideoPage() {
     setSubmitting(true);
     setError("");
     try {
-      const image_b64s = await Promise.all(imageFiles.map((f: any) => fileToBase64(f)));
-      const image_urls = imageUrls.map((u: any) => u.trim()).filter(Boolean);
+      const image_b64s = await Promise.all(imageFiles.map((f) => fileToBase64(f)));
+      const image_urls = imageUrls.map((u) => u.trim()).filter(Boolean);
       // Collect reference images from reference image cards
       const reference_image_urls = characters
-        .filter((c: any) => c.imageUrl && c.imageUrl.trim())
-        .map((c: any) => c.imageUrl.trim());
+        .filter((c) => c.imageUrl && c.imageUrl.trim())
+        .map((c) => c.imageUrl.trim());
       await generateQuickVideo({
         prompt: prompt.trim(),
         style,
@@ -293,40 +296,40 @@ export default function GenerateVideoPage() {
       toast.success("任务已提交");
       resetForm();
       refreshTasks();
-    } catch (err: any) {
-      setError(String(err.message || err));
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      setError(String((err as Error).message || err));
+      toast.error(String((err as Error).message || err));
     } finally {
       setSubmitting(false);
     }
   }
 
   function addCharacter() {
-    setCharacters((prev: any) => [...prev, { name: "", description: "", imageUrl: "", refImage: "" }]);
+    setCharacters((prev) => [...prev, { name: "", description: "", imageUrl: "", refImage: "" }]);
   }
 
-  function updateCharacter(index: any, field: any, value: any) {
-    setCharacters((prev: any) => prev.map((c: any, i: any) => i === index ? { ...c, [field]: value } : c));
+  function updateCharacter(index: number, field: string, value: string) {
+    setCharacters((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
   }
 
-  function removeCharacter(index: any) {
-    setCharacters((prev: any) => prev.filter((_: any, i: any) => i !== index));
+  function removeCharacter(index: number) {
+    setCharacters((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function addToRefHistory(url: any) {
+  function addToRefHistory(url: string) {
     if (!url) return;
-    setRefImageHistory((prev: any) => {
+    setRefImageHistory((prev) => {
       if (prev.includes(url)) return prev;
       return [url, ...prev].slice(0, 20);
     });
   }
 
-  function setRefImage(index: any, url: any) {
+  function setRefImage(index: number, url: string) {
     updateCharacter(index, "refImage", url);
     addToRefHistory(url);
   }
 
-  async function handleGenerateRefImage(index: any) {
+  async function handleGenerateRefImage(index: number) {
     const char = characters[index];
     if (!char.description?.trim()) {
       toast.error("请先填写描述");
@@ -340,16 +343,16 @@ export default function GenerateVideoPage() {
         addToRefHistory(data.image_url);
         toast.success("引用图已生成");
       }
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setGeneratingIdx(null);
     }
   }
 
-  const refImageCount = characters.filter((c: any) => c.imageUrl && c.imageUrl.trim()).length;
+  const refImageCount = characters.filter((c) => c.imageUrl && c.imageUrl.trim()).length;
 
-  const activeTask = tasks.find((t: any) => t.status === "queued" || t.status === "running");
+  const activeTask = tasks.find((t) => t.status === "queued" || t.status === "running");
 
   return (
     <>
@@ -473,7 +476,7 @@ export default function GenerateVideoPage() {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             const reader = new FileReader();
-                            reader.onload = () => updateCharacter(i, "imageUrl", reader.result);
+                            reader.onload = () => updateCharacter(i, "imageUrl", reader.result as string);
                             reader.readAsDataURL(file);
                           }}
                         />
@@ -490,7 +493,7 @@ export default function GenerateVideoPage() {
                             className="flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-[10px] outline-none placeholder:text-gray-500 focus:border-mint"
                             placeholder="或粘贴图片 URL"
                             id={`ref-url-${i}`}
-                            onKeyDown={(e: any) => {
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                                 updateCharacter(i, "imageUrl", (e.target as HTMLInputElement).value.trim());
                               }
@@ -541,7 +544,7 @@ export default function GenerateVideoPage() {
                   <div>
                     <label className="mb-2 block text-xs text-gray-500">视频模型</label>
                     <div className="flex flex-wrap gap-2">
-                      {videoModels.map((m: any) => (
+                      {videoModels.map((m) => (
                         <button
                           key={m.id}
                           type="button"
@@ -683,7 +686,7 @@ export default function GenerateVideoPage() {
 
                   {imagePreviews.length > 0 ? (
                     <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                      {imagePreviews.map((img: any, i: any) => (
+                      {imagePreviews.map((img, i) => (
                         <div key={i} className="group relative">
                           <img src={img.url} alt={img.name} className="h-[120px] w-full rounded-xl object-cover" />
                           <button
@@ -725,7 +728,7 @@ export default function GenerateVideoPage() {
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[11px] text-gray-500">或填写图片链接</label>
-                    {imageUrls.map((url: any, i: any) => (
+                    {imageUrls.map((url, i) => (
                       <div key={i} className="flex gap-2">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-panel2 text-gray-500">
                           <IconLink size={16} stroke={2} />
@@ -788,7 +791,7 @@ export default function GenerateVideoPage() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {tasks.map((task: any) => (
+                  {tasks.map((task) => (
                     <TaskCard key={task.id} task={task} onRefresh={refreshTasks} onView={setViewTask} />
                   ))}
                 </div>
@@ -807,20 +810,20 @@ export default function GenerateVideoPage() {
         open={refPickerIdx !== null}
         history={refImageHistory}
         onClose={() => setRefPickerIdx(null)}
-        onSelect={(url: any) => {
+        onSelect={(url) => {
           if (refPickerIdx !== null) {
             setRefImage(refPickerIdx, url);
           }
           setRefPickerIdx(null);
         }}
-        onUpload={(url: any) => {
+        onUpload={(url) => {
           if (refPickerIdx !== null) {
             setRefImage(refPickerIdx, url);
           }
           setRefPickerIdx(null);
         }}
-        onRemoveHistory={(idx: any) => {
-          setRefImageHistory((prev: any) => prev.filter((_: any, i: any) => i !== idx));
+        onRemoveHistory={(idx) => {
+          setRefImageHistory((prev) => prev.filter((_, i) => i !== idx));
         }}
         onView={setViewerSrc}
       />
@@ -828,12 +831,17 @@ export default function GenerateVideoPage() {
   );
 }
 
-function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onView: any }) {
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const styleLabel = STYLE_LABEL_MAP[params.style] || params.style || "";
-  const dur = params.target_duration || task.target_duration || 5;
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
+function TaskCard({ task, onRefresh, onView }: {
+  task: VideoGenerationTask;
+  onRefresh: () => void;
+  onView: (t: VideoGenerationTask) => void;
+}) {
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const styleKey = String(params.style || "");
+  const styleLabel = STYLE_LABEL_MAP[styleKey] || styleKey || "";
+  const dur = Number(params.target_duration || task.target_duration || 5);
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
   const isActive = task.status === "queued" || task.status === "running";
   const isDone = task.status === "succeeded";
   const isFailed = task.status === "failed";
@@ -963,18 +971,19 @@ function TaskCard({ task, onRefresh, onView }: { task: any; onRefresh: any; onVi
   );
 }
 
-function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
+function TaskDetailDialog({ task, onClose }: { task: VideoGenerationTask | null; onClose: () => void }) {
   if (!task) return null;
 
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const styleLabel = STYLE_LABEL_MAP[params.style] || params.style || params.style || "";
-  const dur = params.target_duration || task.target_duration || 5;
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const styleKey = String(params.style || "");
+  const styleLabel = STYLE_LABEL_MAP[styleKey] || styleKey || "";
+  const dur = Number(params.target_duration || task.target_duration || 5);
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
   const videoUrl = task.video_url ? `${getApiBase()}${task.video_url}` : "";
 
   return (
-    <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+    <Dialog open={!!task} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >
@@ -1029,7 +1038,7 @@ function TaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
 
 function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHistory, onView }: {
   open: boolean;
-  history: any[];
+  history: string[];
   onClose: () => void;
   onSelect: (url: string) => void;
   onUpload: (url: string) => void;
@@ -1040,7 +1049,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
 
   if (!open) return null;
 
-  function handleFileChange(e: any) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1049,7 +1058,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen: any) => { if (!nextOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent
         className="max-h-[80vh] max-w-lg overflow-y-auto rounded-lg border border-line bg-panel p-5"
       >
@@ -1086,7 +1095,7 @@ function RefPickerModal({ open, history, onClose, onSelect, onUpload, onRemoveHi
           <div>
             <p className="mb-2 text-[11px] text-gray-500">历史参考图</p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-              {history.map((url: any, idx: any) => (
+              {history.map((url, idx) => (
                 <div key={idx} className="group relative">
                   <img
                     src={url}

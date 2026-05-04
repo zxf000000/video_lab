@@ -3,6 +3,16 @@ import Link from "next/link";
 import ApiBaseBadge from "./ApiBaseBadge";
 import ProjectGenerationProgress from "./ProjectGenerationProgress";
 import { IconArrowLeft, IconRefresh, IconChevronDown } from "@tabler/icons-react";
+import type { ProjectDetail } from "../api";
+
+interface ProjectHeaderProps {
+  project: ProjectDetail | null;
+  title: string;
+  backHref?: string;
+  backLabel?: string;
+  onRegenerate?: (keepStory: boolean) => void;
+  regenerating?: boolean;
+}
 
 export default function ProjectHeader({
   project,
@@ -11,7 +21,7 @@ export default function ProjectHeader({
   backLabel = "返回项目首页",
   onRegenerate,
   regenerating = false,
-}: any) {
+}: ProjectHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +52,7 @@ export default function ProjectHeader({
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold tracking-tight text-gray-100">{title}</h1>
           {project ? (
-            <p className="truncate text-xs text-gray-500">{project.story_prompt}</p>
+            <p className="truncate text-xs text-gray-500">{project.storyPrompt}</p>
           ) : null}
         </div>
         {onRegenerate ? (

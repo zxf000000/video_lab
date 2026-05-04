@@ -1,11 +1,22 @@
 import { IconCheck } from "@tabler/icons-react";
 
-export default function StepIndicator({ steps, activeStep, onStepClick }: any) {
-  const activeIndex = steps.findIndex((s: any) => s.key === activeStep);
+interface StepItem {
+  key: string;
+  label: string;
+}
+
+interface StepIndicatorProps {
+  steps: StepItem[];
+  activeStep: string;
+  onStepClick: (key: string) => void;
+}
+
+export default function StepIndicator({ steps, activeStep, onStepClick }: StepIndicatorProps) {
+  const activeIndex = steps.findIndex((s) => s.key === activeStep);
 
   return (
     <div className="sticky top-[76px] z-10 flex items-center gap-2 overflow-x-auto rounded-lg border border-line bg-panel/80 px-3 py-3 shadow-glow backdrop-blur-xl">
-      {steps.map((step: any, i: number) => {
+      {steps.map((step, i) => {
         const isCompleted = i < activeIndex;
         const isActive = i === activeIndex;
 

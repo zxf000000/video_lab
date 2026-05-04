@@ -37,7 +37,7 @@ export function useConfirm() {
     return (
       <AlertDialog
         open={state.open}
-        onOpenChange={(open: any) => {
+        onOpenChange={(open) => {
           if (!open) handleCancel();
         }}
       >

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { streamChat } from "../api";
+import { streamChat, type ChatMessage } from "../api";
 import { Textarea } from "./ui/textarea";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { IconX, IconSend, IconCheck } from "@tabler/icons-react";
@@ -26,7 +26,7 @@ export default function RefineDrawer({
   systemPromptKey = "",
   initialPrompt,
 }: RefineDrawerProps) {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -65,28 +65,28 @@ export default function RefineDrawer({
     }
   }, [open]);
 
-  function sendMessages(msgs: any[]) {
+  function sendMessages(msgs: ChatMessage[]) {
     setIsStreaming(true);
     setStreamingContent("");
     let accumulated = "";
 
     streamChat(
       msgs,
-      (delta: any) => {
+      (delta) => {
         accumulated += delta;
         setStreamingContent(accumulated);
       },
       () => {},
       () => {
-        setMessages((prev: any[]) => [
+        setMessages((prev) => [
           ...prev,
           { role: "assistant", content: accumulated },
         ]);
         setStreamingContent("");
         setIsStreaming(false);
       },
-      (err: any) => {
-        toast.error(String(err.message || err));
+      (err) => {
+        toast.error(String((err as Error).message || err));
         setIsStreaming(false);
       },
       systemPromptKey,
@@ -102,7 +102,7 @@ export default function RefineDrawer({
     sendMessages(newMessages);
   }
 
-  function handleKeyDown(e: any) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -118,7 +118,7 @@ export default function RefineDrawer({
   return (
     <Sheet
       open={open}
-      onOpenChange={(o: any) => {
+      onOpenChange={(o) => {
         if (!o) onClose();
       }}
     >
@@ -152,7 +152,7 @@ export default function RefineDrawer({
           className="flex flex-col gap-3 overflow-y-auto px-5 py-4"
           style={{ height: "calc(100vh - 65px - 60px)" }}
         >
-          {messages.slice(1).map((msg: any, i: number) => (
+          {messages.slice(1).map((msg, i) => (
             <div
               key={i}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -216,7 +216,7 @@ export default function RefineDrawer({
               className="min-h-[44px] flex-1 resize-none rounded-2xl py-2.5 text-sm"
               placeholder="输入修改要求，如：让描述更生动..."
               value={input}
-              onChange={(e: any) => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isStreaming}
               rows={1}

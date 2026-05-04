@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { createProject, streamChat } from "../api";
+import { createProject, streamChat, type ChatMessage } from "../api";
 import { ActionButton, StatusBadge } from "./ui-legacy";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -21,17 +21,31 @@ const STYLE_PRESETS = [
 
 const RATIOS = ["16:9", "9:16", "1:1", "4:3"];
 
-const STARTER_MESSAGES = [
+const STARTER_MESSAGES: ChatMessage[] = [
   { role: "user", content: "你好，我想创建一个视频项目" },
 ];
 
-export default function ChatDrawer({ open, onClose }: any) {
+interface ExtractedParams {
+  title: string;
+  story_prompt: string;
+  style: string;
+  aspect_ratio: string;
+  target_duration: number;
+  [key: string]: unknown;
+}
+
+interface ChatDrawerProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function ChatDrawer({ open, onClose }: ChatDrawerProps) {
   const router = useRouter();
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [extractedParams, setExtractedParams] = useState<any>(null);
+  const [extractedParams, setExtractedParams] = useState<ExtractedParams | null>(null);
   const [creating, setCreating] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,7 +82,7 @@ export default function ChatDrawer({ open, onClose }: any) {
     onClose();
   }
 
-  function sendMessages(msgs: any[]) {
+  function sendMessages(msgs: ChatMessage[]) {
     console.log("[sendMessages] called with", msgs.length, "messages");
     setIsStreaming(true);
     setStreamingContent("");
@@ -76,20 +90,20 @@ export default function ChatDrawer({ open, onClose }: any) {
 
     streamChat(
       msgs,
-      (delta: any) => {
+      (delta) => {
         accumulated += delta;
         setStreamingContent(accumulated);
       },
-      (params: any) => {
-        setExtractedParams(params);
+      (params) => {
+        setExtractedParams(params as ExtractedParams);
       },
       () => {
-        setMessages((prev: any[]) => [...prev, { role: "assistant", content: accumulated }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: accumulated }]);
         setStreamingContent("");
         setIsStreaming(false);
       },
-      (err: any) => {
-        toast.error(String(err.message || err));
+      (err) => {
+        toast.error(String((err as Error).message || err));
         setIsStreaming(false);
       }
     );
@@ -106,7 +120,7 @@ export default function ChatDrawer({ open, onClose }: any) {
     sendMessages(newMessages);
   }
 
-  function handleKeyDown(e: any) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -117,23 +131,32 @@ export default function ChatDrawer({ open, onClose }: any) {
     if (!extractedParams) return;
     setCreating(true);
     try {
-      const payload = await createProject(extractedParams);
+      const payload = await createProject({
+        name: extractedParams.title,
+        genre: "other",
+        targetPlatform: "web",
+        episodeCountPlanned: 1,
+        logline: extractedParams.story_prompt,
+        targetAudience: "general",
+        genreTags: [],
+        styleKeywords: extractedParams.style ? [extractedParams.style] : [],
+      });
       reset();
       onClose();
       toast.success("项目已创建，AI 正在生成中...");
       router.push(`/projects/${payload.project.id}?tab=overview`);
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
       setCreating(false);
     }
   }
 
-  function updateParam(field: any, value: any) {
-    setExtractedParams((prev: any) => prev ? { ...prev, [field]: value } : null);
+  function updateParam(field: string, value: string | number) {
+    setExtractedParams((prev) => prev ? { ...prev, [field]: value } : null);
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o: any) => { if (!o) handleClose(); }}>
+    <Sheet open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <SheetContent side="right" showCloseButton={false} className="w-full max-w-3xl border-l border-line bg-panel p-0">
         <SheetTitle className="sr-only">对话式创建</SheetTitle>
 
@@ -163,7 +186,7 @@ export default function ChatDrawer({ open, onClose }: any) {
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
               <div className="flex flex-col gap-4">
-                {messages.map((msg: any, i: number) => (
+                {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
@@ -207,7 +230,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                   className="min-h-[44px] flex-1 resize-none rounded-2xl py-2.5 text-sm"
                   placeholder="描述你想要的视频..."
                   value={input}
-                  onChange={(e: any) => setInput(e.target.value)}
+                  onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isStreaming}
                   rows={1}
@@ -238,7 +261,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                     className="rounded-xl"
                     type="text"
                     value={extractedParams.title}
-                    onChange={(e: any) => updateParam("title", e.target.value)}
+                    onChange={(e) => updateParam("title", e.target.value)}
                   />
                 </div>
                 <div>
@@ -246,7 +269,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                   <Textarea
                     className="min-h-[120px] resize-y"
                     value={extractedParams.story_prompt}
-                    onChange={(e: any) => updateParam("story_prompt", e.target.value)}
+                    onChange={(e) => updateParam("story_prompt", e.target.value)}
                   />
                 </div>
                 <div>
@@ -299,7 +322,7 @@ export default function ChatDrawer({ open, onClose }: any) {
                       min={5}
                       max={120}
                       value={extractedParams.target_duration}
-                      onChange={(e: any) => updateParam("target_duration", Number(e.target.value))}
+                      onChange={(e) => updateParam("target_duration", Number(e.target.value))}
                     />
                     <div className="mt-2 flex gap-2">
                       {[15, 30, 60, 90].map((d) => (

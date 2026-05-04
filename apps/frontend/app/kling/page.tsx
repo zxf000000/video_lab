@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
   klingT2V, klingI2V, klingGenerateImage, klingOmniImage, klingOmniVideo,
-  listKlingTasks, getKlingStatus, getApiBase,
+  listKlingTasks, getKlingStatus, getApiBase, type VideoGenerationTask,
 } from "../../src/api";
 import { ActionButton, ImageViewer } from "../../src/components/ui-legacy";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../src/components/ui/dialog";
@@ -58,7 +58,7 @@ function fileToBase64(file: File) {
   });
 }
 
-function timeAgo(iso: any) {
+function timeAgo(iso: string) {
   if (!iso) return "";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return "刚刚";
@@ -94,17 +94,17 @@ export default function KlingPage() {
   const omniVideoFileRef = useRef<HTMLInputElement>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [viewTask, setViewTask] = useState<any>(null);
+  const [viewTask, setViewTask] = useState<VideoGenerationTask | null>(null);
 
   // Reference images (生成图片模块)
-  const [refImages, setRefImages] = useState<any[]>([]);
+  const [refImages, setRefImages] = useState<{ name: string; prompt: string; negativePrompt: string; images: string[]; imageUrl: string }[]>([]);
   const [generatingRefIdx, setGeneratingRefIdx] = useState<number | null>(null);
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
   const refFileInputIdx = useRef<number | null>(null);
   const refFileInput = useRef<HTMLInputElement>(null);
 
   // Task feed
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<VideoGenerationTask[]>([]);
   const feedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileTailInputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +132,7 @@ export default function KlingPage() {
     }
   }, [tasks, refreshTasks]);
 
-  function handleFileSelect(e: any, type: "start" | "tail") {
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>, type: "start" | "tail") {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -175,7 +175,7 @@ export default function KlingPage() {
     setRefImages((prev) => [...prev, { name: "", prompt: "", negativePrompt: "", images: [], imageUrl: "" }]);
   }
 
-  function updateRefImage(index: number, field: string, value: any) {
+  function updateRefImage(index: number, field: string, value: string) {
     setRefImages((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
   }
 
@@ -197,7 +197,7 @@ export default function KlingPage() {
   function removeRefImageAt(cardIdx: number, imgIdx: number) {
     setRefImages((prev) => prev.map((c, i) => {
       if (i !== cardIdx) return c;
-      return { ...c, images: c.images.filter((_: any, j: number) => j !== imgIdx) };
+      return { ...c, images: c.images.filter((_, j) => j !== imgIdx) };
     }));
   }
 
@@ -248,8 +248,8 @@ export default function KlingPage() {
         }
       }
       toast.error("生成超时");
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setGeneratingRefIdx(null);
     }
@@ -267,7 +267,7 @@ export default function KlingPage() {
     }
   }
 
-  async function handleRetry(task: any) {
+  async function handleRetry(task: VideoGenerationTask) {
     const p = task.params || {};
     const method = p.method || "";
     try {
@@ -320,8 +320,8 @@ export default function KlingPage() {
       }
       toast.success("已重新提交");
       refreshTasks();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     }
   }
 
@@ -337,7 +337,7 @@ export default function KlingPage() {
         model_name: modelName.startsWith("kling") && !IMAGE_MODELS.find(m => m.id === modelName) ? "kling-v2-1" : modelName,
         aspect_ratio: aspectRatio,
         negative_prompt: "",
-      });
+      }) as { task_id: number; output_path?: string };
       // The backend returns the saved asset path; build full URL
       const outputUrl = data.output_path ? `${getApiBase()}/assets/${data.output_path}` : "";
       if (outputUrl) {
@@ -347,8 +347,8 @@ export default function KlingPage() {
       } else {
         toast.error("生成成功但未获取到图片地址");
       }
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setGeneratingFirstFrame(false);
     }
@@ -418,8 +418,8 @@ export default function KlingPage() {
       }
       toast.success("任务已提交");
       refreshTasks();
-    } catch (err: any) {
-      toast.error(String(err.message || err));
+    } catch (err: unknown) {
+      toast.error(String((err as Error).message || err));
     } finally {
       setSubmitting(false);
     }
@@ -892,7 +892,7 @@ export default function KlingPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {tasks.map((task: any) => (
+              {tasks.map((task) => (
                 <KlingTaskCard key={task.id} task={task} allTasks={tasks} onRefresh={refreshTasks} onView={setViewTask} onRetry={handleRetry} />
               ))}
             </div>
@@ -922,21 +922,21 @@ export default function KlingPage() {
   );
 }
 
-function estimateAvgDuration(tasks: any[], currentTask: any): number | null {
+function estimateAvgDuration(tasks: VideoGenerationTask[], currentTask: VideoGenerationTask): number | null {
   const type = currentTask.task_type;
   const completed = tasks.filter(
-    (t: any) => t.status === "succeeded" && t.created_at && t.updated_at && t.task_type === type
+    (t) => t.status === "succeeded" && t.created_at && t.updated_at && t.task_type === type
   );
   if (completed.length === 0) return null;
 
   const total = completed.reduce(
-    (sum: number, t: any) => sum + (new Date(t.updated_at).getTime() - new Date(t.created_at).getTime()) / 1000,
+    (sum, t) => sum + (new Date(t.updated_at).getTime() - new Date(t.created_at).getTime()) / 1000,
     0
   );
   return total / completed.length;
 }
 
-function taskTypeLabel(taskType: string, params?: any): string {
+function taskTypeLabel(taskType: string, params?: Record<string, unknown>): string {
   if (taskType === "kling_t2v") return "文生视频";
   if (taskType === "kling_i2v") return "图生视频";
   if (taskType === "kling_image") return "图片生成";
@@ -951,16 +951,22 @@ function taskTypeLabel(taskType: string, params?: any): string {
   return taskType;
 }
 
-function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: any; allTasks: any[]; onRefresh: any; onView: any; onRetry: any }) {
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const dur = params.duration || "";
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
-  const modeVal = params.mode || "";
+function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: {
+  task: VideoGenerationTask;
+  allTasks: VideoGenerationTask[];
+  onRefresh: () => void;
+  onView: (t: VideoGenerationTask) => void;
+  onRetry: (t: VideoGenerationTask) => void;
+}) {
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const dur = String(params.duration || "");
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
+  const modeVal = String(params.mode || "");
   const isActive = task.status === "queued" || task.status === "running";
   const isDone = task.status === "succeeded";
   const isFailed = task.status === "failed";
-  const isImage = task.task_type === "kling_image" || (task.task_type === "kling" && (task.params?.method === "generate_image" || task.params?.method === "generate_omni_image"));
+  const isImage = task.task_type === "kling_image" || (task.task_type === "kling" && (String(task.params?.method || "") === "generate_image" || String(task.params?.method || "") === "generate_omni_image"));
   const outputUrl = task.output_path ? `${getApiBase()}/assets/${task.output_path}` : "";
 
   useEffect(() => {
@@ -1065,8 +1071,8 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
         ) : null}
       </div>
 
-      {isActive && task.status === "running" && task.params?.progress_step && (
-        <p className="mb-1 text-[11px] text-amber-600">{task.params.progress_step}</p>
+      {isActive && task.status === "running" && !!task.params?.progress_step && (
+        <p className="mb-1 text-[11px] text-amber-600">{String(task.params.progress_step)}</p>
       )}
 
       {isActive && (
@@ -1106,19 +1112,19 @@ function KlingTaskCard({ task, allTasks, onRefresh, onView, onRetry }: { task: a
   );
 }
 
-function KlingTaskDetailDialog({ task, onClose }: { task: any; onClose: any }) {
+function KlingTaskDetailDialog({ task, onClose }: { task: VideoGenerationTask | null; onClose: () => void }) {
   if (!task) return null;
 
-  const params = task.params || {};
-  const promptText = params.prompt || task.story_prompt || "";
-  const dur = params.duration || "";
-  const ratio = params.aspect_ratio || task.aspect_ratio || "16:9";
-  const modeVal = params.mode || "";
-  const isImage = task.task_type === "kling_image" || (task.task_type === "kling" && (task.params?.method === "generate_image" || task.params?.method === "generate_omni_image"));
+  const params = (task.params || {}) as Record<string, string | number | undefined>;
+  const promptText = String(params.prompt || task.story_prompt || "");
+  const dur = String(params.duration || "");
+  const ratio = String(params.aspect_ratio || task.aspect_ratio || "16:9");
+  const modeVal = String(params.mode || "");
+  const isImage = task.task_type === "kling_image" || (task.task_type === "kling" && (String(task.params?.method || "") === "generate_image" || String(task.params?.method || "") === "generate_omni_image"));
   const outputUrl = task.output_path ? `${getApiBase()}/assets/${task.output_path}` : "";
 
   return (
-    <Dialog open={!!task} onOpenChange={(open: any) => { if (!open) onClose(); }}>
+    <Dialog open={!!task} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         className="max-h-[90vh] max-w-3xl overflow-y-auto rounded-lg border border-white/10 bg-[#1a1a2e] p-6 text-white ring-white/10"
       >

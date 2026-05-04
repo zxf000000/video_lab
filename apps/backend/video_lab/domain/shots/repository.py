@@ -124,15 +124,25 @@ class ShotsRepository:
             cur = conn.execute(
                 """
                 INSERT INTO shots (
-                    episode_id, scene_block, shot_no, visual_goal, character_ids,
-                    scene_preset_id, shot_size, camera_angle, composition,
-                    action_description, facial_emotion, camera_motion,
-                    dialogue_excerpt, estimated_duration_ms, status, sort_order,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    project_id, episode_id, order_index, shot_title, shot_description,
+                    shot_prompt, duration_seconds, status, created_at, updated_at,
+                    scene_block, shot_no, visual_goal, character_ids,
+                    scene_preset_id, shot_size, camera_angle, camera_motion, composition,
+                    action_description, facial_emotion, dialogue_excerpt,
+                    estimated_duration_ms, sort_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    payload["project_id"],
                     payload["episode_id"],
+                    payload["shot_no"],
+                    "",
+                    "",
+                    "",
+                    payload["estimated_duration_ms"] // 1000,
+                    payload["status"],
+                    ts,
+                    ts,
                     payload["scene_block"],
                     payload["shot_no"],
                     payload["visual_goal"],
@@ -140,16 +150,13 @@ class ShotsRepository:
                     payload.get("scene_preset_id"),
                     payload["shot_size"],
                     payload["camera_angle"],
+                    payload["camera_motion"],
                     payload["composition"],
                     payload["action_description"],
                     payload["facial_emotion"],
-                    payload["camera_motion"],
                     payload["dialogue_excerpt"],
                     payload["estimated_duration_ms"],
-                    payload["status"],
                     payload["sort_order"],
-                    ts,
-                    ts,
                 ),
             )
             conn.commit()

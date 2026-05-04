@@ -180,6 +180,17 @@ def delete_scene(environ, start_response, scene_id: str):
     return respond_json(start_response, {"ok": True})
 
 
+@register("POST", r"/api/scenes/(?P<scene_id>\d+)/generate-image")
+def generate_scene_image(environ, start_response, scene_id: str):
+    try:
+        scene = assets_service.generate_scene_image(int(scene_id))
+    except ValueError:
+        return respond_json(start_response, {"error": "Scene not found"}, status="404 Not Found")
+    except Exception as exc:
+        return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
+    return respond_json(start_response, {"scene": serialize_scene(scene)})
+
+
 @register("GET", r"/api/projects/(?P<project_id>\d+)/episodes")
 def list_episodes(environ, start_response, project_id: str):
     episodes = shots_service.list_episodes(int(project_id))
