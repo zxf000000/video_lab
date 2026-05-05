@@ -139,7 +139,7 @@ export interface ProjectBrief {
 }
 
 export type CopilotModuleType = "brief" | "character" | "scene" | "episode" | "shot";
-export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing" | "regenerate";
+export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing" | "regenerate" | "optimize_prompt";
 
 export interface BriefProposal {
   logline: string;
@@ -408,6 +408,8 @@ export interface Shot {
   estimatedDurationMs: number;
   status: string;
   sortOrder: number;
+  firstFrameUrl: string;
+  videoUrl: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -424,6 +426,8 @@ export interface ShotPrompt {
   negativePrompt: string;
   modelParams: JsonObject;
   referenceAssetIds: unknown[];
+  firstFrameUrl: string;
+  videoUrl: string;
   status: string;
   isActive: boolean;
   createdAt: string;
@@ -854,6 +858,8 @@ function normalizeShot(raw: Record<string, unknown>): Shot {
     estimatedDurationMs: asNumber(raw.estimated_duration_ms, 0),
     status: asString(raw.status, "draft"),
     sortOrder: asNumber(raw.sort_order, 0),
+    firstFrameUrl: asString(raw.firstFrameUrl),
+    videoUrl: asString(raw.videoUrl),
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
   };
@@ -872,6 +878,8 @@ function normalizePrompt(raw: Record<string, unknown>): ShotPrompt {
     negativePrompt: asString(raw.negative_prompt),
     modelParams: parseJsonValue<JsonObject>(raw.model_params, {}),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
+    firstFrameUrl: asString(raw.first_frame_url),
+    videoUrl: asString(raw.video_url),
     status: asString(raw.status, "draft"),
     isActive: Boolean(raw.is_active),
     createdAt: asString(raw.created_at),
@@ -1334,9 +1342,10 @@ export interface ImageReference {
   path: string;
 }
 
-export async function generateShotPromptFromShot(shotId: number) {
+export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean }) {
   const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
     method: "POST",
+    body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false }),
   });
   return {
     firstFramePrompt: payload.first_frame_prompt,
@@ -1346,6 +1355,22 @@ export async function generateShotPromptFromShot(shotId: number) {
     negativePrompt: payload.negative_prompt,
     imageReferences: payload.image_references ?? [],
   };
+}
+
+export async function generatePromptFrame(promptId: number, referenceImages: string[]) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/shot-prompts/${promptId}/generate-frame`, {
+    method: "POST",
+    body: JSON.stringify({ referenceImages }),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function generatePromptVideo(promptId: number, opts?: { aspectRatio?: string; withFirstFrame?: boolean }) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/shot-prompts/${promptId}/generate-video`, {
+    method: "POST",
+    body: JSON.stringify({ aspect_ratio: opts?.aspectRatio ?? "16:9", with_first_frame: opts?.withFirstFrame ?? false }),
+  });
+  return { task: normalizeTask(payload.task) };
 }
 
 export async function generateShot(shotId: number, data: { provider?: string; modelName?: string; shotPromptId?: number }) {
@@ -1665,7 +1690,7 @@ export function getQuickVideoStatus(taskId: number): Promise<{ status: string; v
 export function listQuickVideoTasks(): Promise<{ tasks: VideoGenerationTask[] }> {
   return request("/api/generate-video/tasks");
 }
-export function generateImage(input: unknown): Promise<{ image_url: string }> {
+export function generateImage(input: { prompt: string; aspect_ratio?: string; reference_image?: string; reference_images?: string[] }): Promise<{ image_url: string }> {
   return request("/api/generate-image", { method: "POST", body: JSON.stringify(input) });
 }
 export function getSeedanceConfig(): Promise<{ config: SeedanceConfig }> {

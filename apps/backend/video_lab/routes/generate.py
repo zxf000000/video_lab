@@ -76,9 +76,15 @@ def generate_image(environ, start_response):
     size = size_map.get(aspect_ratio, "2560x1440")
     cfg = load_config()
     api_body = {"model": cfg.image_model, "prompt": prompt, "size": size, "n": 1}
-    ref_image = payload.get("reference_image")
-    if ref_image:
-        api_body["image"] = ref_image
+    ref_images = payload.get("reference_images")
+    if ref_images and isinstance(ref_images, list):
+        ref_images = [str(u).strip() for u in ref_images if str(u).strip()]
+        if len(ref_images) == 1:
+            api_body["image"] = ref_images[0]
+        elif len(ref_images) > 1:
+            api_body["reference_images"] = ref_images
+    elif payload.get("reference_image"):
+        api_body["image"] = str(payload["reference_image"]).strip()
     resp = _req.post(
         f"{cfg.api_base}/v1/images/generations",
         headers={"Authorization": f"Bearer {cfg.api_key}", "Content-Type": "application/json"},

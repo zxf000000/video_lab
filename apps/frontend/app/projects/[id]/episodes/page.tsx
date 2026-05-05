@@ -680,6 +680,9 @@ export default function EpisodesPage() {
                   >
                     {generatingShots === ep.id ? "生成中..." : "生成镜头"}
                   </Button>
+                  <Link href={`/projects/${projectId}/shots`}>
+                    <Button variant="secondary">查看镜头</Button>
+                  </Link>
                   <Button
                     variant="destructive"
                     onClick={() => void handleDelete(ep)}

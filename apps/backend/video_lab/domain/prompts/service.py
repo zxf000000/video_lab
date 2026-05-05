@@ -23,6 +23,8 @@ class PromptsService:
             "negative_prompt": normalize_text(payload.get("negative_prompt")),
             "model_params": normalize_json_text(payload.get("model_params"), {}),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
+            "first_frame_url": normalize_text(payload.get("first_frame_url")),
+            "video_url": normalize_text(payload.get("video_url")),
             "status": normalize_text(payload.get("status"), "draft"),
             "is_active": 1 if bool(payload.get("is_active", False)) else 0,
         }
@@ -67,6 +69,10 @@ class PromptsService:
             data["model_params"] = normalize_json_text(payload.get("model_params"), {})
         if "reference_asset_ids" in payload:
             data["reference_asset_ids"] = normalize_json_text(payload.get("reference_asset_ids"), [])
+        if "first_frame_url" in payload:
+            data["first_frame_url"] = normalize_text(payload.get("first_frame_url"))
+        if "video_url" in payload:
+            data["video_url"] = normalize_text(payload.get("video_url"))
         if "status" in payload:
             data["status"] = normalize_text(payload.get("status"), prompt.get("status", "draft"))
         if "is_active" in payload:

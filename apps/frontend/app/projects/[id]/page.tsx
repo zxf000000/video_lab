@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { listEpisodeExports, listReviewIssues } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
-import { EmptyState, SectionCard, StatCard, StatusPill } from "@/src/components/project/project-ui";
+import { EmptyState, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 
 export default function ProjectOverviewPage() {
   const { project, loading } = useProjectWorkspace();
@@ -46,26 +46,18 @@ export default function ProjectOverviewPage() {
   const latestTasks = currentProject.tasks.slice(0, 6);
 
   return (
-    <div className="grid gap-5">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="计划集数" value={String(currentProject.episodeCountPlanned)} meta="planned episodes" tone="purple" />
-        <StatCard label="角色资产" value={String(currentProject.characters.length)} meta="character assets" tone="blue" />
-        <StatCard label="审核问题" value={String(reviewCount)} meta="review issues" tone="amber" />
-        <StatCard label="导出版本" value={String(exportCount)} meta="episode exports" tone="green" />
-      </section>
-
-      <SectionCard title="Brief 摘要" description="项目级约束会持续影响后续角色、场景、镜头和 Prompt。">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl bg-panel2 px-5 py-4">
-            <p className="text-xs font-medium text-gray-500">一句话钩子</p>
-            <p className="mt-2 text-sm leading-6 text-gray-300">{currentProject.brief.logline || "未填写"}</p>
-          </div>
-          <div className="rounded-2xl bg-panel2 px-5 py-4">
-            <p className="text-xs font-medium text-gray-500">主冲突</p>
-            <p className="mt-2 text-sm leading-6 text-gray-300">{currentProject.brief.mainConflict || "未填写"}</p>
-          </div>
+    <div className="grid gap-4">
+      {/* 顶部统计 + Brief 压缩行 */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <CompactStat label="计划集数" value={String(currentProject.episodeCountPlanned)} tone="purple" />
+        <CompactStat label="角色资产" value={String(currentProject.characters.length)} tone="blue" />
+        <CompactStat label="审核问题" value={String(reviewCount)} tone="amber" />
+        <CompactStat label="导出版本" value={String(exportCount)} tone="green" />
+        <div className="rounded-lg border border-line bg-panel px-3 py-2 flex items-center gap-3 sm:col-span-2 lg:col-span-1">
+          <p className="text-[11px] font-medium text-gray-500 shrink-0">Brief</p>
+          <p className="text-xs text-gray-300 truncate">{currentProject.brief.logline || "未填写"}</p>
         </div>
-      </SectionCard>
+      </section>
 
       <SectionCard title="最近任务" description="查看项目级最近生成任务，快速定位出错批次和当前活跃阶段。">
         {latestTasks.length ? (
@@ -101,6 +93,21 @@ export default function ProjectOverviewPage() {
         </div>
       </SectionCard>
     </div>
+  );
+}
+
+function CompactStat({ label, value, tone = "purple" }: { label: string; value: string; tone?: "purple" | "green" | "amber" | "blue" }) {
+  const toneMap: Record<string, string> = {
+    purple: "bg-purple-500/10 text-purple-400",
+    green: "bg-emerald-500/10 text-emerald-400",
+    amber: "bg-amber-500/10 text-amber-400",
+    blue: "bg-cyan-500/10 text-cyan-400",
+  };
+  return (
+    <article className="rounded-lg border border-line bg-panel px-3 py-2 flex items-center gap-2">
+      <span className={`shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-semibold ${toneMap[tone]}`}>{label}</span>
+      <span className="text-base font-semibold tracking-tight text-gray-100">{value}</span>
+    </article>
   );
 }
 

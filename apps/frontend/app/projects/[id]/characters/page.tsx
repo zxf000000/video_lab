@@ -586,6 +586,7 @@ export default function CharactersPage() {
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState("");
   const [regenerateCharacter, setRegenerateCharacter] = useState<CharacterFormState | null>(null);
+  const [optimizingPrompt, setOptimizingPrompt] = useState<number | null>(null);
 
   const currentProject = project;
   const isVisualStage = editing !== null;
@@ -1224,6 +1225,68 @@ export default function CharactersPage() {
     }
   }
 
+  async function handleOptimizePrompt(character: CharacterAsset) {
+    setOptimizingPrompt(character.id);
+    try {
+      let proposal: CopilotProposal | null = null;
+      await streamCopilot(
+        {
+          moduleType: "character",
+          projectId: readyProject.id,
+          entityId: character.id,
+          intent: "optimize_prompt",
+          messages: [
+            {
+              role: "user",
+              content: "请优化当前角色的 image_prompt，使其更适合素描风格出图",
+            },
+          ],
+          context: {
+            generation_stage: "visual_refine",
+            current_character: {
+              character_profile: {
+                name: character.name,
+                role_type: character.roleType,
+                species: character.species,
+                identity_summary: character.identitySummary,
+                appearance_summary: character.appearanceSummary,
+                personality_tags: character.personalityTags,
+                speech_style: character.speechStyle,
+                negative_constraints: character.negativeConstraints,
+              },
+              image_spec: {
+                image_prompt: character.imagePrompt || "",
+                negative_prompt: character.negativePrompt || "",
+              },
+            },
+          },
+        },
+        {
+          onProposal: (event) => {
+            proposal = event.proposal;
+          },
+          onError: (error) => {
+            throw new Error(error);
+          },
+        },
+      );
+      if (!proposal) throw new Error("没有生成可用的优化结果");
+      const role = (proposal as CharacterCollectionProposal).roles?.[0] ?? null;
+      const imageSpec = role?.imageSpec;
+      if (!imageSpec?.imagePrompt) throw new Error("优化结果中缺少 image_prompt");
+      await updateCharacter(character.id, readyProject.id, {
+        imagePrompt: imageSpec.imagePrompt,
+        negativePrompt: imageSpec.negativePrompt || character.negativePrompt,
+      });
+      await refresh();
+      toast.success("Prompt 已优化并保存");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOptimizingPrompt(null);
+    }
+  }
+
   async function handleRegenerate() {
     if (!currentProject || !regenerateCharacter || !regenerateInput.trim()) return;
     setRegenerating(true);
@@ -1473,6 +1536,14 @@ export default function CharactersPage() {
                     disabled={generatingImage === character.id}
                   >
                     {generatingImage === character.id ? "生成中..." : (variantSummary.activeImagePath ? "重生成当前形态主图" : "生成当前形态主图")}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void handleOptimizePrompt(character)}
+                    disabled={optimizingPrompt === character.id}
+                  >
+                    {optimizingPrompt === character.id ? "优化中..." : "优化 Prompt"}
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => handleDelete(character)}>
                     删除

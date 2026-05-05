@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { toast } from "react-toastify";
+import ImagePreview from "@/src/components/project/ImagePreview";
 import {
   activateShotPrompt,
   createShotPrompt,
-  generateShot,
+  generatePromptFrame,
+  generatePromptVideo,
   generateShotPromptFromShot,
+  getApiBase,
   getShot,
+  getTask,
   listShotPrompts,
   retryTask,
   type GenerationTask,
@@ -49,9 +54,11 @@ export default function ShotPromptsPage() {
 
   // AI generation
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
+  const [withFirstFrame, setWithFirstFrame] = useState(false);
 
   // Generate
-  const [generating, setGenerating] = useState<number | null>(null);
+  const [generatingFrame, setGeneratingFrame] = useState<number | null>(null);
+  const [generatingVideo, setGeneratingVideo] = useState<number | null>(null);
   const [retrying, setRetrying] = useState<number | null>(null);
 
   const shotId = Number(params.shotId);
@@ -79,7 +86,7 @@ export default function ShotPromptsPage() {
   async function handleGeneratePrompt() {
     setGeneratingPrompt(true);
     try {
-      const result = await generateShotPromptFromShot(shotId);
+      const result = await generateShotPromptFromShot(shotId, { withFirstFrame });
       setFirstFramePrompt(result.firstFramePrompt);
       setFirstFrameNegative(result.firstFrameNegativePrompt);
       setVideoPrompt(result.videoPrompt);
@@ -167,15 +174,70 @@ export default function ShotPromptsPage() {
     }
   }
 
-  async function handleGenerate(prompt: ShotPrompt) {
-    setGenerating(prompt.id);
+  async function handleGenerateFrame(prompt: ShotPrompt) {
+    if (!project) return;
+    setGeneratingFrame(prompt.id);
     try {
-      await generateShot(shotId, { shotPromptId: prompt.id });
-      toast.success("生成任务已提交");
+      const assetIds = (prompt.referenceAssetIds ?? []) as number[];
+      const apiBase = getApiBase();
+      const refImages: string[] = [];
+      for (const id of assetIds) {
+        const char = project.characters.find((c) => c.id === id);
+        if (char?.imagePath) {
+          refImages.push(`${apiBase}/assets/${char.imagePath}`);
+          continue;
+        }
+        const scene = project.scenes.find((s) => s.id === id);
+        if (scene) {
+          const sceneImage = (scene.variants as { imagePath?: string }[] | undefined)
+            ?.find((v) => v.imagePath)?.imagePath;
+          if (sceneImage) refImages.push(`${apiBase}/assets/${sceneImage}`);
+        }
+      }
+      const { task } = await generatePromptFrame(prompt.id, refImages);
+      toast.info("首帧生成任务已提交");
+      // Poll until complete
+      let currentTask = task;
+      while (currentTask.status !== "succeeded" && currentTask.status !== "failed") {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const { task: updated } = await getTask(currentTask.id);
+        currentTask = updated;
+      }
+      if (currentTask.status === "failed") {
+        toast.error(currentTask.errorMessage || "首帧生成失败");
+      } else {
+        toast.success("首帧生成完成");
+      }
+      await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setGenerating(null);
+      setGeneratingFrame(null);
+    }
+  }
+
+  async function handleGenerateVideo(prompt: ShotPrompt) {
+    if (!project) return;
+    setGeneratingVideo(prompt.id);
+    try {
+      const { task } = await generatePromptVideo(prompt.id, { withFirstFrame });
+      toast.info("视频生成任务已提交");
+      let currentTask = task;
+      while (currentTask.status !== "succeeded" && currentTask.status !== "failed") {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const { task: updated } = await getTask(currentTask.id);
+        currentTask = updated;
+      }
+      if (currentTask.status === "failed") {
+        toast.error(currentTask.errorMessage || "视频生成失败");
+      } else {
+        toast.success("视频生成完成");
+      }
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGeneratingVideo(null);
     }
   }
 
@@ -199,7 +261,25 @@ export default function ShotPromptsPage() {
   const latestTask = getLatestTask();
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
+      {/* 面包屑导航 */}
+      <nav className="flex items-center gap-1.5 text-xs text-gray-500">
+        <Link href={`/projects/${project.id}`} className="transition hover:text-gray-300">
+          {project.name}
+        </Link>
+        <span className="text-gray-600">/</span>
+        <Link href={`/projects/${project.id}/shots`} className="transition hover:text-gray-300">
+          镜头列表
+        </Link>
+        {shot ? (
+          <>
+            <span className="text-gray-600">/</span>
+            <span className="text-gray-400">Shot {shot.shotNo} Prompt</span>
+          </>
+        ) : null}
+      </nav>
+
+      <div className="grid gap-5">
       <SectionCard title={shot ? `Shot ${shot.shotNo} Prompt` : "Prompt"} description="Prompt 版本是镜头生成的正式输入，激活后才会被任务读取。">
         <div className="grid gap-5">
           <div>
@@ -228,7 +308,11 @@ export default function ShotPromptsPage() {
               <Input value={status} onChange={(e) => setStatus(e.target.value)} />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 items-center">
+            <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
+              <input type="checkbox" checked={withFirstFrame} onChange={(e) => setWithFirstFrame(e.target.checked)} className="rounded" />
+              视频引用首帧
+            </label>
             <Button variant="secondary" onClick={handleGeneratePrompt} disabled={generatingPrompt}>
               {generatingPrompt ? "AI 生成中..." : "AI 生成 Prompt"}
             </Button>
@@ -324,7 +408,16 @@ export default function ShotPromptsPage() {
                         {prompt.firstFramePrompt ? (
                           <div className="mt-3">
                             <span className="text-[11px] font-medium text-gray-500">首帧图片</span>
-                            <p className="text-sm leading-6 text-gray-400 whitespace-pre-wrap">{prompt.firstFramePrompt}</p>
+                            <div className="flex gap-3 mt-1">
+                              <p className="text-sm leading-6 text-gray-400 whitespace-pre-wrap min-w-0 flex-1">{prompt.firstFramePrompt}</p>
+                              {prompt.firstFrameUrl ? (
+                                <ImagePreview
+                                  src={prompt.firstFrameUrl.startsWith("http") ? prompt.firstFrameUrl : `${getApiBase()}/assets/${prompt.firstFrameUrl}`}
+                                  alt="首帧预览"
+                                  className="w-[160px] h-[90px] rounded-md border border-line/50 overflow-hidden shrink-0"
+                                />
+                              ) : null}
+                            </div>
                             {prompt.firstFrameNegativePrompt ? <p className="mt-1 text-[11px] text-gray-500">Negative: {prompt.firstFrameNegativePrompt}</p> : null}
                           </div>
                         ) : null}
@@ -350,12 +443,18 @@ export default function ShotPromptsPage() {
                           编辑
                         </Button>
                         <Button
-                          variant="secondary"
                           size="sm"
-                          disabled={generating === prompt.id}
-                          onClick={() => handleGenerate(prompt)}
+                          disabled={generatingFrame === prompt.id || !prompt.isActive}
+                          onClick={() => handleGenerateFrame(prompt)}
                         >
-                          {generating === prompt.id ? "提交中" : "生成"}
+                          {generatingFrame === prompt.id ? "生成中..." : "生成首帧"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={generatingVideo === prompt.id || !prompt.isActive}
+                          onClick={() => handleGenerateVideo(prompt)}
+                        >
+                          {generatingVideo === prompt.id ? "生成中..." : "生成视频"}
                         </Button>
                       </div>
                     </div>
@@ -368,6 +467,7 @@ export default function ShotPromptsPage() {
           <EmptyState title="还没有 Prompt 版本" description="先创建至少一个 Prompt 版本，再提交生成任务。" />
         )}
       </SectionCard>
+    </div>
     </div>
   );
 }

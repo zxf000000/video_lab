@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..domain.assets import AssetsService
 from ..domain.generation import GenerationService
 from ..domain.projects import ProjectsService
+from ..domain.prompts import PromptsService
 from ..domain.shots import ShotsService
 from . import (
     parse_json,
@@ -234,7 +235,17 @@ def list_episode_shots(environ, start_response, episode_id: str):
     except ValueError:
         return respond_json(start_response, {"error": "Episode not found"}, status="404 Not Found")
     shots = shots_service.list_shots(int(episode_id))
-    return respond_json(start_response, {"shots": [serialize_shot(s) for s in shots]})
+    prompts_service = PromptsService()
+    shot_ids = [int(s["id"]) for s in shots]
+    active_prompts = prompts_service.repository.get_active_prompts_for_shots(shot_ids)
+    result = []
+    for s in shots:
+        serialized = serialize_shot(s)
+        prompt = active_prompts.get(int(s["id"]))
+        serialized["firstFrameUrl"] = prompt.get("first_frame_url", "") if prompt else ""
+        serialized["videoUrl"] = prompt.get("video_url", "") if prompt else ""
+        result.append(serialized)
+    return respond_json(start_response, {"shots": result})
 
 
 @register("POST", r"/api/episodes/(?P<episode_id>\d+)/shots")

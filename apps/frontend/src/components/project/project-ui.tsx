@@ -59,11 +59,11 @@ export function EmptyState({ title, description, action }: { title: string; desc
 
 export function KeyValueGrid({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
       {items.map((item) => (
-        <div key={item.label} className="rounded-2xl bg-panel2 px-4 py-3">
-          <p className="text-xs font-medium text-gray-500">{item.label}</p>
-          <div className="mt-2 text-sm font-semibold text-gray-200">{item.value}</div>
+        <div key={item.label} className="rounded-xl bg-panel2 px-2.5 py-1.5">
+          <p className="text-[10px] font-medium text-gray-500">{item.label}</p>
+          <div className="text-sm font-semibold text-gray-200">{item.value}</div>
         </div>
       ))}
     </div>
@@ -98,7 +98,7 @@ export function ProjectStageNav({ items }: { items: ProjectStageNavItem[] }) {
       {items.map((item, index) => {
         const active = item.active ?? (matchLengths[index] > -1 && matchLengths[index] === strongestMatch);
         const className = cn(
-          "group inline-flex min-w-[108px] flex-1 items-center gap-3 rounded-sm border px-3 py-2 transition md:flex-none",
+          "group inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-sm border px-2 py-1 transition md:flex-none",
           active ? "border-mint bg-mint/10 text-mint shadow-[0_0_0_1px_rgba(112,209,179,0.18)]" : "border-line bg-panel text-gray-400",
           item.disabled ? "cursor-not-allowed opacity-50" : "hover:border-mint/40 hover:bg-panel/5",
         );
@@ -106,15 +106,15 @@ export function ProjectStageNav({ items }: { items: ProjectStageNavItem[] }) {
           <>
             <span
               className={cn(
-                "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-[11px] font-semibold",
+                "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-[10px] font-semibold",
                 active ? "bg-mint text-gray-900" : "bg-panel2 text-gray-500 group-hover:text-gray-300",
               )}
             >
               {index + 1}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold leading-5">{item.label}</span>
-              <span className={cn("hidden text-[11px] leading-4 md:block", active ? "text-mint/80" : "text-gray-500")}>
+              <span className="block truncate text-xs font-semibold leading-4">{item.label}</span>
+              <span className={cn("hidden text-[10px] leading-3 md:block", active ? "text-mint/80" : "text-gray-500")}>
                 {item.description}
               </span>
             </span>

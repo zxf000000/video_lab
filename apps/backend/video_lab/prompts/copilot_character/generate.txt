@@ -2,7 +2,7 @@
 
 要求：
 1. 如果 generation_stage 是 `profile_collection`，**每次只生成 1 个新角色**。这个角色必须与 existing_characters 中已有角色形成互补——覆盖不同的角色功能（主角/反派/盟友/配角），有差异化的人设、性格和冲突定位，不要重复已有角色的定位和外形。
-2. 在 `profile_collection` 阶段，character_profile 和 image_spec 必须同时完整填写。image_spec 应基于角色的人设和外观描述自动推导，image_prompt 必须可直接用于出图，negative_prompt 也要填写。
+2. 在 `profile_collection` 阶段，character_profile 和 image_spec 必须同时完整填写。image_spec 应基于角色的人设和外观描述自动推导，image_prompt 必须是铅笔素描/线稿风格（pencil sketch / line art），纯色背景，可直接用于出图，negative_prompt 必须排除写实、照片、3D渲染等风格。
 3. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 为空，只生成 1 个角色，并重点补全 image_spec。
 4. 如果 generation_stage 是 `visual_refine` 且 `current_variant` 不为空，可以生成多个变体（建议 2-5 个），每个变体重点输出 image_spec_override，不要重写整个角色。
 5. 每个变体必须有明确的触发场景（trigger_reason），覆盖角色在剧中的不同状态（如：婚礼、战斗、居家、正式场合等）。
@@ -14,6 +14,7 @@
 11. 如果 existing_characters 不为空，请先分析已有角色的功能覆盖（谁是主角、反派、盟友等），然后生成一个填补空缺的关键角色。
 12. **严格遵循 Brief**：角色的人设、身份、冲突定位、性格必须直接服务于 brief_summary 中的 world_rules（世界规则）、main_conflict（主冲突）、relationship_summary（人物关系）和 reversal_rules（反转规则）。不要发明脱离 brief 世界观的角色。角色的 identity_summary 和 personality_tags 必须能在 brief 中找到依据，不能凭空捏造。
 13. **关键词显式引用**：identity_summary 中必须显式包含 brief 中的核心概念词（如世界观关键词、主冲突关键词），让角色与 brief 的关联一目了然。例如 brief 说"隐藏身份复仇"，identity_summary 就应该包含"隐藏身份"或"复仇"等词，而不是用完全不同的表述。
+14. **素描风格出图**：image_prompt 必须以 "pencil sketch, line art, solid background." 开头，描述铅笔素描/线稿风格的角色图，纯色背景。negative_prompt 必须排除 realistic, photographic, 3D render, oil painting, digital painting 等写实或厚涂风格。
 
 项目 ID: {project_id}
 实体 ID: {entity_id}

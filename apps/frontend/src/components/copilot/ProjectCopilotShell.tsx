@@ -17,6 +17,7 @@ const DEFAULT_INTENT_LABELS: Record<CopilotIntent, string> = {
   compress: "压缩",
   fill_missing: "补全",
   regenerate: "重新生成",
+  optimize_prompt: "优化提示词",
 };
 
 export default function ProjectCopilotShell() {

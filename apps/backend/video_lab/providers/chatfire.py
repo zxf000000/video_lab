@@ -565,7 +565,8 @@ class ChatfireProvider:
         return download_asset(image_url, filename, ASSETS_DIR)
 
     def generate_character_image(self, char_id: int, appearance_prompt: str, style: str) -> str:
-        prompt = f"全身角色参考图，{style}风格：{appearance_prompt}。全身从头到脚，站立姿势，纯色背景（白色或浅灰色），均匀摄影棚灯光，完整角色可见，无裁剪，详细服装和比例，电影级品质，8K分辨率。"
+        prompt = self._p("prompt_character_image").format(style=style, appearance_prompt=appearance_prompt)
+        print(f"[PROMPT_DEBUG] provider=chatfire model={self._config.image_model} action=character_image char_id={char_id} final_prompt={prompt!r}")
         data = self._request("POST", f"{self._base_url}/v1/images/generations", {
             "model": self._config.image_model,
             "prompt": prompt,
@@ -577,7 +578,8 @@ class ChatfireProvider:
         return download_asset(image_url, filename, ASSETS_DIR)
 
     def generate_scene_image(self, scene_id: int, description: str, style: str) -> str:
-        prompt = f"场景环境，{style}风格：{description}。透视感氛围，体积光，细腻纹理，电影级构图，8K分辨率。"
+        prompt = self._p("prompt_scene_image").format(style=style, description=description)
+        print(f"[PROMPT_DEBUG] provider=chatfire model={self._config.image_model} action=scene_image scene_id={scene_id} final_prompt={prompt!r}")
         data = self._request("POST", f"{self._base_url}/v1/images/generations", {
             "model": self._config.image_model,
             "prompt": prompt,
@@ -860,7 +862,6 @@ class ChatfireProvider:
                 resp = requests.post(
                     url, json=payload, headers=self._headers,
                     timeout=_timeout, stream=True,
-                    proxies={"http": "", "https": ""},  # 跳过系统代理
                 )
                 if resp.status_code >= 500 and attempt < retries:
                     time.sleep(2 ** attempt)
@@ -898,7 +899,6 @@ class ChatfireProvider:
             try:
                 resp = requests.request(
                     method, url, json=json_body, headers=self._headers, timeout=_timeout,
-                    proxies={"http": "", "https": ""},  # 跳过系统代理
                 )
                 if resp.status_code >= 500 and attempt < retries:
                     time.sleep(2 ** attempt)

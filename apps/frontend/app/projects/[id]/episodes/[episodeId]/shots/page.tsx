@@ -9,7 +9,7 @@ export default function EpisodeShotsPage() {
   const projectId = Number(params.id);
 
   useEffect(() => {
-    router.replace(`/projects/${projectId}/prompts`);
+    router.replace(`/projects/${projectId}/shots`);
   }, [projectId, router]);
 
   return null;

@@ -58,8 +58,8 @@ class PromptsRepository:
                     shot_id, version_no, prompt_text, first_frame_prompt, first_frame_negative_prompt,
                     video_prompt, video_negative_prompt,
                     negative_prompt, model_params,
-                    reference_asset_ids, status, is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    reference_asset_ids, first_frame_url, video_url, status, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["shot_id"],
@@ -72,6 +72,8 @@ class PromptsRepository:
                     payload["negative_prompt"],
                     payload["model_params"],
                     payload["reference_asset_ids"],
+                    payload.get("first_frame_url", ""),
+                    payload.get("video_url", ""),
                     payload["status"],
                     payload["is_active"],
                     ts,
@@ -95,6 +97,8 @@ class PromptsRepository:
             "negative_prompt",
             "model_params",
             "reference_asset_ids",
+            "first_frame_url",
+            "video_url",
             "status",
             "is_active",
         ):
@@ -111,6 +115,25 @@ class PromptsRepository:
                 values,
             )
             conn.commit()
+        finally:
+            conn.close()
+
+    def get_active_prompts_for_shots(self, shot_ids: list[int]) -> dict[int, dict]:
+        if not shot_ids:
+            return {}
+        conn = self.get_connection()
+        try:
+            placeholders = ",".join(["?" for _ in shot_ids])
+            rows = conn.execute(
+                f"SELECT * FROM shot_prompts WHERE shot_id IN ({placeholders}) AND is_active = 1",
+                shot_ids,
+            ).fetchall()
+            result = {}
+            for row in rows_to_dicts(rows):
+                sid = int(row["shot_id"])
+                if sid not in result:
+                    result[sid] = row
+            return result
         finally:
             conn.close()
 

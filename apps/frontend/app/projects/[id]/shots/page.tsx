@@ -8,6 +8,7 @@ import {
   deleteShot,
   generateEpisodeBatch,
   generateShot,
+  getApiBase,
   listShots,
   retryTask,
   updateShot,
@@ -21,6 +22,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
+import ImagePreview from "@/src/components/project/ImagePreview";
 
 type EpisodeShots = {
   episodeId: number;
@@ -277,8 +279,31 @@ export default function ProjectPromptsPage() {
                 <div className="grid gap-2">
                   {ep.shots.map((shot) => {
                     const latestTask = getLatestTaskStatus(shot.id, ep.tasks);
+                    const apiBase = getApiBase();
+                    const imageUrl = shot.firstFrameUrl
+                      ? (shot.firstFrameUrl.startsWith("http") ? shot.firstFrameUrl : `${apiBase}/assets/${shot.firstFrameUrl}`)
+                      : null;
+                    const videoUrl = shot.videoUrl
+                      ? (shot.videoUrl.startsWith("http") ? shot.videoUrl : `${apiBase}/assets/${shot.videoUrl}`)
+                      : null;
                     return (
-                      <div key={shot.id} className="flex flex-wrap items-center gap-3 rounded-md border border-line/50 bg-panel px-4 py-3">
+                      <div key={shot.id} className="flex items-center gap-3 rounded-md border border-line/50 bg-panel px-4 py-3">
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="w-[120px] h-[68px] rounded-md bg-panel2 border border-line/50 overflow-hidden flex-shrink-0">
+                            {imageUrl ? (
+                              <ImagePreview src={imageUrl} alt={`Shot ${shot.shotNo}`} className="w-full h-full" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600">无首帧</div>
+                            )}
+                          </div>
+                          <div className="w-[120px] h-[68px] rounded-md bg-panel2 border border-line/50 overflow-hidden flex-shrink-0">
+                            {videoUrl ? (
+                              <video src={videoUrl} className="w-full h-full object-cover" muted />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600">无视频</div>
+                            )}
+                          </div>
+                        </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-gray-200">Shot {shot.shotNo}</span>
@@ -303,7 +328,7 @@ export default function ProjectPromptsPage() {
                             <p className="mt-1 text-xs text-red-400 line-clamp-1">{latestTask.errorMessage}</p>
                           ) : null}
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
                           <a
                             href={`/projects/${projectId}/shots/${shot.id}/prompts`}
                             className="inline-flex rounded-lg border border-line bg-panel2 px-2.5 py-1 text-[11px] font-medium text-gray-400 transition hover:border-mint hover:text-mint"

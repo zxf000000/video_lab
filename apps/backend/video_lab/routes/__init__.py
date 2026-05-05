@@ -374,6 +374,8 @@ def serialize_prompt(prompt: dict[str, object] | None) -> dict[str, object]:
         "negative_prompt": prompt.get("negative_prompt", ""),
         "model_params": prompt.get("model_params", "{}"),
         "reference_asset_ids": prompt.get("reference_asset_ids", "[]"),
+        "first_frame_url": prompt.get("first_frame_url", ""),
+        "video_url": prompt.get("video_url", ""),
         "status": prompt.get("status", "draft"),
         "is_active": bool(prompt.get("is_active", 0)),
         "created_at": prompt.get("created_at"),
@@ -468,6 +470,12 @@ def dispatch(environ, start_response) -> list[bytes] | None:
             kwargs = m.groupdict()
             return handler(environ, start_response, **kwargs)
     return None
+
+
+# ── Health check ──────────────────────────────────────────────────
+@register("GET", r"/api/health")
+def health(environ, start_response):
+    return respond_json(start_response, {"status": "ok"})
 
 
 # ── Import all route modules to populate ROUTES ──────────────────

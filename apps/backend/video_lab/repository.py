@@ -309,7 +309,7 @@ def replace_project_shots(project_id: int, shots: list[dict[str, Any]], characte
                     start_frame_prompt, end_frame_prompt,
                     character_ids, scene_id,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     project_id,
@@ -644,14 +644,14 @@ def create_shot(project_id: int, data: dict[str, Any]) -> int:
         cur = conn.execute(
             """
             INSERT INTO shots (
-                project_id, order_index, shot_title, shot_description,
+                project_id, episode_id, order_index, shot_title, shot_description,
                 shot_prompt, duration_seconds, status,
                 character_action, scene_description, camera_movement,
                 emotion_keywords, narration_text,
                 start_frame_prompt, end_frame_prompt, video_prompt,
                 character_ids, scene_id,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 project_id,

@@ -58,7 +58,10 @@
 - 每次只输出 1 个关键角色（roles 数组只包含 1 项）
 - character_profile 和 image_spec 必须同时完整填写
 - image_spec 应基于 character_profile 中的 appearance_summary 自动推导各字段
-- image_prompt 必须可直接用于出图，negative_prompt 也要填写
+- image_prompt 必须是铅笔素描/线稿风格（pencil sketch / line art），纯色背景，可直接用于出图
+- image_prompt 中必须包含 "pencil sketch"、"line art"、"solid background" 等关键词
+- negative_prompt 必须排除写实、照片、3D渲染、厚涂等风格：realistic, photographic, 3D render, oil painting, digital painting, textured shading
+- negative_prompt 也要填写
 - 如果上下文中已有 existing_characters，必须分析已有角色的功能覆盖，生成一个填补空缺的差异化角色，不要重复已有角色的定位
 14. `visual_refine` 阶段：
 - 如果 `current_variant` 为空，只输出 1 个角色，并重点填写 image_spec
@@ -105,8 +108,8 @@
         "color_palette": ["black", "charcoal"],
         "visual_keywords": ["modern revenge drama", "wealthy mystery man"],
         "negative_visual_constraints": ["no cartoon styling", "no teenage appearance"],
-        "image_prompt": "A full-body modern Chinese revenge-drama male lead...",
-        "negative_prompt": "cartoon, blurry, teenage"
+        "image_prompt": "pencil sketch, line art, solid background. A full-body modern Chinese revenge-drama male lead standing...",
+        "negative_prompt": "realistic, photographic, 3D render, oil painting, digital painting, cartoon, blurry, teenage"
       }
     }
   ]
@@ -164,8 +167,8 @@ variant 模式示例（支持多个变体）：
         "color_palette": ["ivory", "silver", "black"],
         "visual_keywords": ["wedding confrontation", "high-status ceremony"],
         "negative_visual_constraints": ["no fantasy styling"],
-        "image_prompt": "same man as base character, wedding variant...",
-        "negative_prompt": "different face, cartoon, fantasy costume"
+        "image_prompt": "pencil sketch, line art, solid background. same man as base character, wedding variant...",
+        "negative_prompt": "realistic, photographic, 3D render, different face, cartoon, fantasy costume"
       }
     },
     {
@@ -184,8 +187,8 @@ variant 模式示例（支持多个变体）：
         "signature_pose": "fists clenched, leaning forward",
         "clothing_style": "rumpled black shirt, sleeves rolled up",
         "visual_keywords": ["bar fight", "dangerous energy", "unrestrained"],
-        "image_prompt": "same man, combat-ready variant...",
-        "negative_prompt": "different face, cartoon, overly muscular"
+        "image_prompt": "pencil sketch, line art, solid background. same man, combat-ready variant...",
+        "negative_prompt": "realistic, photographic, 3D render, different face, cartoon, overly muscular"
       }
     },
     {
@@ -205,8 +208,8 @@ variant 模式示例（支持多个变体）：
         "clothing_style": "loose grey sweater, barefoot",
         "color_palette": ["grey", "muted blue"],
         "visual_keywords": ["solitude", "vulnerability", "late night"],
-        "image_prompt": "same man, casual home variant...",
-        "negative_prompt": "different face, cartoon, too neat"
+        "image_prompt": "pencil sketch, line art, solid background. same man, casual home variant...",
+        "negative_prompt": "realistic, photographic, 3D render, different face, cartoon, too neat"
       }
     }
   ]

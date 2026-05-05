@@ -221,10 +221,10 @@ class AssetsService:
         segments.extend([
             "全身从头到脚完整可见",
             "站立角色参考图",
-            "纯净浅色背景",
-            "均匀摄影棚灯光",
-            "服装与比例细节清晰",
-            "电影级质感",
+            "纯色背景",
+            "铅笔素描风格",
+            "黑白线稿",
+            "清晰轮廓线条",
             "高一致性角色设定",
         ])
         return "。".join(segment for segment in segments if segment)

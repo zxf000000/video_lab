@@ -40,7 +40,7 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
       { id: "characters", href: `/projects/${projectId}/characters`, label: "角色", description: "角色资产与语言风格", matchPrefixes: [`/projects/${projectId}/characters`] },
       { id: "scenes", href: `/projects/${projectId}/scenes`, label: "场景", description: "场景模板与视觉设定", matchPrefixes: [`/projects/${projectId}/scenes`] },
       { id: "episodes", href: episodesHref, label: "分集", description: "分集结构与状态推进", matchPrefixes: [`/projects/${projectId}/episodes`] },
-      { id: "prompts", href: `/projects/${projectId}/prompts`, label: "Prompt", description: "镜头提示词与版本入口", matchPrefixes: [`/projects/${projectId}/prompts`, `/projects/${projectId}/shots`] },
+      { id: "shots", href: `/projects/${projectId}/shots`, label: "镜头", description: "镜头列表与生成管理", matchPrefixes: [`/projects/${projectId}/shots`] },
       { id: "tasks", href: `/projects/${projectId}/tasks`, label: "任务", description: "生成任务与重试", matchPrefixes: [`/projects/${projectId}/tasks`] },
       {
         id: "review",
@@ -64,31 +64,28 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
   return (
     <ProjectWorkspaceContext.Provider value={{ projectId, project, loading, error, refresh }}>
       <ProjectCopilotProvider>
-        <div className="flex flex-col gap-4">
-          <section className="rounded-lg border border-line bg-panel px-5 py-5 shadow-glow">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-gray-300">
-                  <IconArrowLeft size={16} stroke={2} />
-                  返回项目列表
+        <div className="flex flex-col gap-2">
+          <section className="rounded-lg border border-line bg-panel px-4 py-3 shadow-glow">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 flex items-center gap-3">
+                <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-500 transition hover:text-gray-300 shrink-0">
+                  <IconArrowLeft size={14} stroke={2} />
+                  返回
                 </Link>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-gray-100">{project ? project.name : `项目 #${projectId}`}</h1>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1 className="text-lg font-semibold tracking-tight text-gray-100 truncate">{project ? project.name : `项目 #${projectId}`}</h1>
                   {project ? <StatusPill value={project.currentStage} tone="blue" /> : null}
                   {project ? <StatusPill value={project.status} tone="purple" /> : null}
                 </div>
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-gray-400">
-                  {project?.brief.logline || "正在加载项目概要。这里汇总项目约束、资产进度和后续生产入口。"}
-                </p>
               </div>
-              <Button size="sm" variant="outline" onClick={refresh}>
-                <IconRefresh size={16} stroke={2} />
+              <Button size="sm" variant="outline" onClick={refresh} className="shrink-0">
+                <IconRefresh size={14} stroke={2} />
                 刷新
               </Button>
             </div>
 
             {project ? (
-              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+              <div className="mt-2 grid gap-2">
                 <KeyValueGrid
                   items={[
                     { label: "题材", value: project.genre || "未填写" },
@@ -99,11 +96,7 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
                     { label: "任务数量", value: String(project.tasks.length) },
                   ]}
                 />
-                <div className="rounded-2xl bg-panel2 px-4 py-3">
-                  <div className="mb-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">流程导航</p>
-                    <p className="mt-1 text-xs text-gray-500">按生产链路流转，当前阶段会以 tab 形式高亮显示。</p>
-                  </div>
+                <div className="rounded-2xl bg-panel2 px-3 py-2">
                   <ProjectStageNav items={navItems} />
                 </div>
               </div>

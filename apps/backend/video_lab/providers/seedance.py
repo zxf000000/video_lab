@@ -119,6 +119,7 @@ class SeedanceProvider:
             "duration": duration,
             "watermark": remove_watermark,
         }
+        print(f"[PROMPT_DEBUG] provider=seedance model={DEFAULT_MODEL} action=i2v task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}")
         self._on_progress("提交生成请求")
         result = self._request("POST", TASKS_PATH, payload)
         ark_task_id = result.get("id")
@@ -155,6 +156,7 @@ class SeedanceProvider:
             "duration": duration,
             "watermark": remove_watermark,
         }
+        print(f"[PROMPT_DEBUG] provider=seedance model={DEFAULT_MODEL} action=character task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}")
         self._on_progress("提交生成请求")
         result = self._request("POST", TASKS_PATH, payload)
         ark_task_id = result.get("id")

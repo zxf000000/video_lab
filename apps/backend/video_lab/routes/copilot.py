@@ -18,7 +18,7 @@ from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
 SUPPORTED_MODULES = {"brief", "character", "scene", "episode", "shot"}
-SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"}
+SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate", "optimize_prompt"}
 START_MARKER = "===PROPOSAL==="
 END_MARKER = "===END_PROPOSAL==="
 
@@ -469,52 +469,10 @@ def stream_copilot(environ, start_response):
 
 EVAL_MODEL = "gpt-5-mini"  # 评价专用模型，避免 reasoning tokens 问题
 
-EVAL_PROMPTS = {
-    "character": """评审角色（含视觉设定）与Brief匹配度。
-
-Brief: {brief}
-
-角色设定: {profile}
-
-视觉设定: {image_spec}
-{existing_info}
-
-评审5个维度（每项0-10分）:
-1. brief关联度: 人设是否服务brief世界观/主冲突/人物关系
-2. 角色功能: 功能是否清晰、与已有角色互补
-3. 爽感贡献: 能否提供打脸/反转/情绪宣泄
-4. 视觉设定质量: image_spec完整且与人设一致，image_prompt可出图
-5. 潜在问题: 有无矛盾、重复、空泛
-
-输出JSON:
-{{"brief_relevance":{{"score":N,"reason":"10字内"}},"role_completeness":{{"score":N,"reason":"10字内"}},"drama_value":{{"score":N,"reason":"10字内"}},"visual_quality":{{"score":N,"reason":"10字内"}},"issues":{{"score":N,"reason":"10字内"}},"overall_comment":"10字内"}}
-
-只输出JSON。""",
-
-    "brief": """评审短剧Brief的质量。
-
-Brief:
-{brief}
-
-目标受众: {target_audience}
-题材: {genre}
-
-评审4个维度（每项0-10分）:
-1. 完整性: logline/世界观/主冲突/人物关系/反转规则是否都填写且充实
-2. 冲突丰富度: 主冲突是否有足够张力和反转空间
-3. 世界观清晰度: 规则是否明确、不矛盾、可执行
-4. 受众匹配: 题材/风格是否匹配目标受众
-
-输出JSON:
-{{"completeness":{{"score":N,"reason":"10字内"}},"conflict_richness":{{"score":N,"reason":"10字内"}},"world_clarity":{{"score":N,"reason":"10字内"}},"audience_fit":{{"score":N,"reason":"10字内"}},"overall_comment":"10字内"}}
-
-只输出JSON。""",
-}
-
-
 def _build_eval_prompt(module_type: str, proposal: dict, context: dict) -> str:
     """构建评价 prompt"""
-    template = EVAL_PROMPTS.get(module_type, "")
+    prompts = load_prompts()
+    template = prompts.get(f"prompt_eval_{module_type}", "")
     if not template:
         return ""
 

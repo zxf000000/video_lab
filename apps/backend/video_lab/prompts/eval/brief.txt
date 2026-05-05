@@ -1,0 +1,18 @@
+评审短剧Brief的质量。
+
+Brief:
+{brief}
+
+目标受众: {target_audience}
+题材: {genre}
+
+评审4个维度（每项0-10分）:
+1. 完整性: logline/世界观/主冲突/人物关系/反转规则是否都填写且充实
+2. 冲突丰富度: 主冲突是否有足够张力和反转空间
+3. 世界观清晰度: 规则是否明确、不矛盾、可执行
+4. 受众匹配: 题材/风格是否匹配目标受众
+
+输出JSON:
+{{"completeness":{{"score":N,"reason":"10字内"}},"conflict_richness":{{"score":N,"reason":"10字内"}},"world_clarity":{{"score":N,"reason":"10字内"}},"audience_fit":{{"score":N,"reason":"10字内"}},"overall_comment":"10字内"}}
+
+只输出JSON。

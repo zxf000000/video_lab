@@ -310,11 +310,14 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE scene_presets ADD COLUMN episode_id INTEGER DEFAULT NULL")
 
     existing_shot_prompts = {row[1] for row in conn.execute("PRAGMA table_info(shot_prompts)").fetchall()}
-    for col, col_def in [
-        ("first_frame_prompt", "TEXT NOT NULL DEFAULT ''"),
-        ("first_frame_negative_prompt", "TEXT NOT NULL DEFAULT ''"),
-        ("video_prompt", "TEXT NOT NULL DEFAULT ''"),
-        ("video_negative_prompt", "TEXT NOT NULL DEFAULT ''"),
-    ]:
-        if col not in existing_shot_prompts:
-            conn.execute(f"ALTER TABLE shot_prompts ADD COLUMN {col} {col_def}")
+    if existing_shot_prompts:
+        for col, col_def in [
+            ("first_frame_prompt", "TEXT NOT NULL DEFAULT ''"),
+            ("first_frame_negative_prompt", "TEXT NOT NULL DEFAULT ''"),
+            ("video_prompt", "TEXT NOT NULL DEFAULT ''"),
+            ("video_negative_prompt", "TEXT NOT NULL DEFAULT ''"),
+            ("first_frame_url", "TEXT NOT NULL DEFAULT ''"),
+            ("video_url", "TEXT NOT NULL DEFAULT ''"),
+        ]:
+            if col not in existing_shot_prompts:
+                conn.execute(f"ALTER TABLE shot_prompts ADD COLUMN {col} {col_def}")

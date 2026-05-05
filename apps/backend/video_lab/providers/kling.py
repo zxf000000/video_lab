@@ -9,7 +9,7 @@ from collections.abc import Callable
 import jwt
 import requests
 
-from ..config import KlingConfig
+from ..config import KlingConfig, load_prompts
 from ..db import ASSETS_DIR
 from .utils import download_asset
 
@@ -272,11 +272,17 @@ class KlingProvider:
         return download_asset(images[0]["url"], f"kling_{task_id}_image.png", ASSETS_DIR)
 
     def generate_character_image(self, char_id: int, appearance_prompt: str, style: str) -> str:
-        prompt = f"全身角色参考图，{style}风格：{appearance_prompt}。全身从头到脚，站立姿势，纯色背景（白色或浅灰色），均匀摄影棚灯光，完整角色可见，无裁剪，详细服装和比例，电影级品质，8K分辨率。"
+        prompts = load_prompts()
+        template = prompts.get("prompt_character_image", "")
+        prompt = template.format(style=style, appearance_prompt=appearance_prompt) if template else appearance_prompt
+        print(f"[PROMPT_DEBUG] provider=kling model=kling-v2-1 action=character_image char_id={char_id} final_prompt={prompt!r}")
         return self.generate_image(task_id=char_id, prompt=prompt, model_name="kling-v2-1")
 
     def generate_scene_image(self, scene_id: int, description: str, style: str) -> str:
-        prompt = f"场景环境，{style}风格：{description}。透视感氛围，体积光，细腻纹理，电影级构图，8K分辨率。"
+        prompts = load_prompts()
+        template = prompts.get("prompt_scene_image", "")
+        prompt = template.format(style=style, description=description) if template else description
+        print(f"[PROMPT_DEBUG] provider=kling model=kling-v2-1 action=scene_image scene_id={scene_id} final_prompt={prompt!r}")
         return self.generate_image(task_id=scene_id, prompt=prompt, model_name="kling-v2-1")
 
     def generate_video(self, shot_id, shot_title, shot_prompt, start_frame_path="",
