@@ -15,6 +15,18 @@ from .utils import download_asset
 class ChatfireProvider:
     """OpenAI-compatible provider via chatfire proxy. Implements Text + Image + Video."""
 
+    _SKETCH_TO_REAL_FRAME_INSTRUCTION = (
+        "如果角色参考图是铅笔素描、黑白线稿、角色设定图或草图，只提取角色身份、五官、发型、服装、体型和轮廓信息；"
+        "最终画面必须恢复为真实真人写实影像，自然肤色、真实毛发、真实布料材质、电影级摄影质感；"
+        "不要保留素描、线稿、漫画、插画、草图或黑白设定图风格。"
+    )
+
+    _SKETCH_TO_REAL_VIDEO_INSTRUCTION = (
+        "如果角色参考图是铅笔素描、黑白线稿、角色设定图或草图，只提取角色身份、五官、发型、服装、体型和轮廓信息；"
+        "最终视频必须恢复为真实真人写实影像，自然肤色、真实毛发、真实布料材质、电影级摄影质感，并保持角色身份一致；"
+        "不要保留素描、线稿、漫画、插画、草图或黑白设定图风格。"
+    )
+
     def __init__(self, config: AppConfig, prompts: dict[str, str] | None = None):
         self._config = config
         self._base_url = config.api_base.rstrip("/")
@@ -27,6 +39,15 @@ class ChatfireProvider:
 
     def _p(self, key: str) -> str:
         return self._prompts.get(key, DEFAULT_PROMPTS.get(key, ""))
+
+    @staticmethod
+    def _append_once(text: str, instruction: str) -> str:
+        value = str(text or "").strip()
+        if not value:
+            return instruction
+        if "角色参考图使用说明" in value or "如果角色参考图是铅笔素描" in value:
+            return value
+        return f"{value}\n\n角色参考图使用说明：{instruction}"
 
     @staticmethod
     def _image_size_for_aspect_ratio(aspect_ratio: str) -> str:
@@ -551,6 +572,8 @@ class ChatfireProvider:
         else:
             enhanced_prompt = base_prompt
 
+        enhanced_prompt = self._append_once(enhanced_prompt, self._SKETCH_TO_REAL_FRAME_INSTRUCTION)
+
         payload = {
             "model": self._config.image_model,
             "prompt": enhanced_prompt,
@@ -614,6 +637,7 @@ class ChatfireProvider:
             narration_text=narration_text or "无旁白",
             sound_instruction=sound_instruction,
         )
+        video_prompt = self._append_once(video_prompt, self._SKETCH_TO_REAL_VIDEO_INSTRUCTION)
 
         model = model or self._config.video_model
         is_seedance = model.startswith("doubao-seedance")

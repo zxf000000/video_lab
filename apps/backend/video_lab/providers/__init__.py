@@ -14,8 +14,11 @@ def build_providers(config: AppConfig) -> dict[str, Any]:
     kling_cfg = load_kling_config()
     kling = None
     if kling_cfg.kling_access_key:
-        from .kling import KlingProvider
-        kling = KlingProvider(kling_cfg)
+        try:
+            from .kling import KlingProvider
+            kling = KlingProvider(kling_cfg)
+        except ModuleNotFoundError:
+            kling = None
     return {
         "text": chatfire,
         "image": chatfire,

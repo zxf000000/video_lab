@@ -7,6 +7,13 @@ from ..common import DomainError, normalize_int, normalize_json_text, normalize_
 from .repository import AssetsRepository
 
 
+CHARACTER_SKETCH_REFERENCE_INSTRUCTION = (
+    "生成角色素描参考图：铅笔素描风格、黑白线稿、清晰轮廓线条、纯色背景。"
+    "不要生成真人照片、彩色写真、电影剧照或写实成片。"
+    "目标是稳定角色五官、体型、发型、服装和整体轮廓，供后续首帧/视频生成时恢复为真实真人影像。"
+)
+
+
 class AssetsService:
     """Application service for role and scene asset management."""
 
@@ -194,7 +201,7 @@ class AssetsService:
     def _build_character_image_prompt(self, character: dict, visual_profile: dict, project: dict, style_keywords: list) -> str:
         explicit_prompt = normalize_text(character.get("image_prompt"))
         if explicit_prompt:
-            return explicit_prompt
+            return f"{explicit_prompt}。{CHARACTER_SKETCH_REFERENCE_INSTRUCTION}"
         segments = [
             f"现代中文短剧角色全身设定图，题材 {normalize_text(project.get('genre'), '都市短剧')}",
             normalize_text(character.get("identity_summary")),
@@ -225,6 +232,7 @@ class AssetsService:
             "铅笔素描风格",
             "黑白线稿",
             "清晰轮廓线条",
+            "不要生成真人照片、彩色写真或电影剧照",
             "高一致性角色设定",
         ])
         return "。".join(segment for segment in segments if segment)

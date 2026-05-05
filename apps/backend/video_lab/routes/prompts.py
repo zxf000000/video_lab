@@ -100,11 +100,34 @@ def _extract_shot_prompt_proposal(text: str) -> dict | None:
 
 _ORDINAL_LABELS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
+SKETCH_TO_REAL_FRAME_INSTRUCTION = (
+    "\n\n角色参考图使用说明：如果角色参考图是铅笔素描、黑白线稿、角色设定图或草图，"
+    "只提取角色身份、五官、发型、服装、体型和轮廓信息；最终首帧必须恢复为真实真人写实影像，"
+    "自然肤色、真实毛发、真实布料材质、电影级摄影质感；不要保留素描、线稿、漫画、插画、草图或黑白设定图风格。"
+)
+
+SKETCH_TO_REAL_VIDEO_INSTRUCTION = (
+    "\n\n角色参考图使用说明：如果角色参考图是铅笔素描、黑白线稿、角色设定图或草图，"
+    "只提取角色身份、五官、发型、服装、体型和轮廓信息；最终视频必须恢复为真实真人写实影像，"
+    "自然肤色、真实毛发、真实布料材质、电影级摄影质感，并在整个镜头中保持角色身份一致；"
+    "不要保留素描、线稿、漫画、插画、草图或黑白设定图风格。"
+)
+
 
 def _ordinal_label(index: int) -> str:
     if 1 <= index <= len(_ORDINAL_LABELS):
         return f"图{_ORDINAL_LABELS[index - 1]}"
     return f"图{index}"
+
+
+def _append_once(text: str, instruction: str) -> str:
+    value = str(text or "").strip()
+    if not value:
+        return instruction.strip()
+    marker = "角色参考图使用说明"
+    if marker in value:
+        return value
+    return f"{value}{instruction}"
 
 
 @register("POST", r"/api/shots/(?P<shot_id>\d+)/generate-prompt")
@@ -413,6 +436,7 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
     first_frame_prompt = str(prompt.get("first_frame_prompt") or prompt.get("prompt_text", "")).strip()
     if not first_frame_prompt:
         return respond_json(start_response, {"error": "Prompt has no first_frame_prompt"}, status="400 Bad Request")
+    first_frame_prompt = _append_once(first_frame_prompt, SKETCH_TO_REAL_FRAME_INSTRUCTION)
 
     cfg = load_config()
     task_payload = {
@@ -537,6 +561,7 @@ def submit_generate_video(environ, start_response, prompt_id: str):
     video_prompt = str(prompt.get("video_prompt") or prompt.get("first_frame_prompt") or prompt.get("prompt_text", "")).strip()
     if not video_prompt:
         return respond_json(start_response, {"error": "Prompt has no video_prompt"}, status="400 Bad Request")
+    video_prompt = _append_once(video_prompt, SKETCH_TO_REAL_VIDEO_INSTRUCTION)
 
     cfg = load_config()
     task_payload = {

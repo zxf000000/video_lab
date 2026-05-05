@@ -6,12 +6,16 @@ import base64
 import time
 from collections.abc import Callable
 
-import jwt
 import requests
 
 from ..config import KlingConfig, load_prompts
 from ..db import ASSETS_DIR
 from .utils import download_asset
+
+try:
+    import jwt
+except ModuleNotFoundError:  # optional dependency: only required when Kling is enabled/used
+    jwt = None
 
 
 class KlingProvider:
@@ -21,6 +25,8 @@ class KlingProvider:
         self._on_progress = on_progress or (lambda _s: None)
 
     def _make_jwt(self) -> str:
+        if jwt is None:
+            raise RuntimeError("PyJWT is required for Kling provider. Install dependency `PyJWT` or disable Kling config.")
         now = int(time.time())
         payload = {
             "iss": self._config.kling_access_key,
