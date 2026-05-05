@@ -7,7 +7,8 @@
 4. 保持纯色背景
 5. 同时优化 negative_prompt，排除写实、照片、3D渲染、厚涂等风格
 6. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块
-7. 只输出 image_spec 覆盖字段（image_prompt 和 negative_prompt），不要输出完整角色
+7. 为兼容前端回填，必须输出 `roles` 数组，数组内只需要保留当前角色身份字段和优化后的 `image_spec.image_prompt` / `image_spec.negative_prompt`
+8. 不要输出 variants，不要输出 Markdown，不要输出 camelCase 字段
 
 项目 ID: {project_id}
 实体 ID: {entity_id}
@@ -15,3 +16,40 @@
 
 上下文:
 {context_json}
+
+输出格式示例：
+===PROPOSAL===
+{{
+  "roles": [
+    {{
+      "character_profile": {{
+        "name": "沿用当前角色名",
+        "role_type": "沿用当前角色类型",
+        "species": "沿用当前物种",
+        "identity_summary": "沿用当前身份摘要",
+        "appearance_summary": "沿用当前外观摘要",
+        "personality_tags": [],
+        "speech_style": "沿用当前说话风格",
+        "negative_constraints": "沿用当前负面约束"
+      }},
+      "image_spec": {{
+        "gender_presentation": "",
+        "age_range": "",
+        "body_type": "",
+        "face_features": "",
+        "hair_style": "",
+        "hair_color": "",
+        "eye_style": "",
+        "signature_expression": "",
+        "signature_pose": "",
+        "clothing_style": "",
+        "color_palette": [],
+        "visual_keywords": [],
+        "negative_visual_constraints": [],
+        "image_prompt": "pencil sketch, line art, solid background. ...",
+        "negative_prompt": "realistic, photographic, 3D render, oil painting, digital painting, textured shading, ..."
+      }}
+    }}
+  ]
+}}
+===END_PROPOSAL===

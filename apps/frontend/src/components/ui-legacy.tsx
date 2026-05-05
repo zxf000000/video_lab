@@ -1,7 +1,11 @@
 import React from "react";
+import Lightbox from "yet-another-react-lightbox";
+import Download from "yet-another-react-lightbox/plugins/download";
+import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { cn } from "@/src/lib/utils";
 
 type ActionButtonVariant = "default" | "primary" | "secondary" | "outline" | "ghost" | "inverted" | "destructive" | "link";
@@ -87,20 +91,13 @@ export function ImageViewer({ src, alt, onClose }: ImageViewerProps) {
   if (!src) return null;
 
   return (
-    <Dialog open={!!src} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent
-        className="max-w-[90vw] border-0 bg-transparent p-0 shadow-none ring-0"
-      >
-        <DialogHeader className="sr-only">
-          <DialogTitle>图片预览</DialogTitle>
-          <DialogDescription>查看大图预览。</DialogDescription>
-        </DialogHeader>
-        <img
-          src={src}
-          alt={alt || ""}
-          className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-        />
-      </DialogContent>
-    </Dialog>
+    <Lightbox
+      open={!!src}
+      close={onClose}
+      slides={[{ src, alt: alt || "" }]}
+      plugins={[Fullscreen, Download, Thumbnails, Zoom]}
+      carousel={{ finite: true }}
+      render={{ buttonPrev: () => null, buttonNext: () => null }}
+    />
   );
 }

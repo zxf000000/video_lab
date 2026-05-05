@@ -4,6 +4,10 @@ import "@radix-ui/themes/styles.css";
 import "./globals.css";
 // @ts-ignore – CSS module side-effect imports
 import "react-toastify/dist/ReactToastify.css";
+// @ts-ignore – global styles for lightbox
+import "yet-another-react-lightbox/styles.css";
+// @ts-ignore – global styles for lightbox thumbnails
+import "yet-another-react-lightbox/plugins/thumbnails.css";
 import { ToastContainer } from "react-toastify";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import { Theme } from "@radix-ui/themes";

@@ -124,6 +124,8 @@ def _normalize_character_image_spec(raw: dict) -> CharacterImageSpecPayload:
 def _normalize_character_proposal(raw: dict) -> CharacterProposalPayload:
     profile = raw.get("character_profile") if isinstance(raw.get("character_profile"), dict) else raw
     image_spec = raw.get("image_spec") if isinstance(raw.get("image_spec"), dict) else {}
+    if not image_spec and ("image_prompt" in raw or "negative_prompt" in raw):
+        image_spec = raw
     return {
         "character_profile": _normalize_character_profile(profile),
         "image_spec": _normalize_character_image_spec(image_spec),

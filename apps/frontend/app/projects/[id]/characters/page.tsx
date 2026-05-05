@@ -10,6 +10,7 @@ import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, KeyValueGrid, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
+import { ImageViewer } from "@/src/components/ui-legacy";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
@@ -259,13 +260,13 @@ function getCharacterVariantSummary(character: CharacterAsset) {
   const activeVariant = activeVariantId === DEFAULT_VARIANT_ID
     ? null
     : variants.find((item) => {
-        const variantId = typeof item.id === "string" ? item.id : (typeof item.variantId === "string" ? item.variantId : "");
-        return variantId === activeVariantId;
-      }) ?? null;
+      const variantId = typeof item.id === "string" ? item.id : (typeof item.variantId === "string" ? item.variantId : "");
+      return variantId === activeVariantId;
+    }) ?? null;
   const activeVariantLabel = activeVariant
     ? (typeof activeVariant.variantName === "string" && activeVariant.variantName)
-      || (typeof activeVariant.variantType === "string" && activeVariant.variantType)
-      || "未命名变体"
+    || (typeof activeVariant.variantType === "string" && activeVariant.variantType)
+    || "未命名变体"
     : "默认形态";
   const activeImagePath = activeVariant
     ? (typeof activeVariant.imagePath === "string" ? activeVariant.imagePath : (typeof activeVariant.image_path === "string" ? activeVariant.image_path : ""))
@@ -344,25 +345,25 @@ function applyVisualSpecToForm(base: CharacterFormState, role: CharacterProposal
     variants: base.variants.map((variant) => (
       variant.id === base.activeVariantId
         ? {
-            ...variant,
-            override: {
-              genderPresentation: imageSpec.genderPresentation,
-              ageRange: imageSpec.ageRange,
-              bodyType: imageSpec.bodyType,
-              faceFeatures: imageSpec.faceFeatures,
-              hairStyle: imageSpec.hairStyle,
-              hairColor: imageSpec.hairColor,
-              eyeStyle: imageSpec.eyeStyle,
-              signatureExpression: imageSpec.signatureExpression,
-              signaturePose: imageSpec.signaturePose,
-              clothingStyle: imageSpec.clothingStyle,
-              colorPalette: imageSpec.colorPalette.join(", "),
-              visualKeywords: imageSpec.visualKeywords.join(", "),
-              negativeVisualConstraints: imageSpec.negativeVisualConstraints.join(", "),
-              imagePrompt: imageSpec.imagePrompt,
-              negativePrompt: imageSpec.negativePrompt,
-            },
-          }
+          ...variant,
+          override: {
+            genderPresentation: imageSpec.genderPresentation,
+            ageRange: imageSpec.ageRange,
+            bodyType: imageSpec.bodyType,
+            faceFeatures: imageSpec.faceFeatures,
+            hairStyle: imageSpec.hairStyle,
+            hairColor: imageSpec.hairColor,
+            eyeStyle: imageSpec.eyeStyle,
+            signatureExpression: imageSpec.signatureExpression,
+            signaturePose: imageSpec.signaturePose,
+            clothingStyle: imageSpec.clothingStyle,
+            colorPalette: imageSpec.colorPalette.join(", "),
+            visualKeywords: imageSpec.visualKeywords.join(", "),
+            negativeVisualConstraints: imageSpec.negativeVisualConstraints.join(", "),
+            imagePrompt: imageSpec.imagePrompt,
+            negativePrompt: imageSpec.negativePrompt,
+          },
+        }
         : variant
     )),
   };
@@ -414,17 +415,17 @@ function toForm(character?: CharacterAsset): CharacterFormState {
           typeof item.visualChangesSummary === "string" ? item.visualChangesSummary : (typeof item.visual_changes_summary === "string" ? item.visual_changes_summary : ""),
         inheritRules: typeof item.inheritRules === "object" && item.inheritRules !== null
           ? {
-              keepFaceIdentity: Boolean((item.inheritRules as Record<string, unknown>).keepFaceIdentity ?? (item.inheritRules as Record<string, unknown>).keep_face_identity),
-              keepAgeRange: Boolean((item.inheritRules as Record<string, unknown>).keepAgeRange ?? (item.inheritRules as Record<string, unknown>).keep_age_range),
-              keepBodyType: Boolean((item.inheritRules as Record<string, unknown>).keepBodyType ?? (item.inheritRules as Record<string, unknown>).keep_body_type),
-              keepCoreTemperament: Boolean((item.inheritRules as Record<string, unknown>).keepCoreTemperament ?? (item.inheritRules as Record<string, unknown>).keep_core_temperament),
-            }
+            keepFaceIdentity: Boolean((item.inheritRules as Record<string, unknown>).keepFaceIdentity ?? (item.inheritRules as Record<string, unknown>).keep_face_identity),
+            keepAgeRange: Boolean((item.inheritRules as Record<string, unknown>).keepAgeRange ?? (item.inheritRules as Record<string, unknown>).keep_age_range),
+            keepBodyType: Boolean((item.inheritRules as Record<string, unknown>).keepBodyType ?? (item.inheritRules as Record<string, unknown>).keep_body_type),
+            keepCoreTemperament: Boolean((item.inheritRules as Record<string, unknown>).keepCoreTemperament ?? (item.inheritRules as Record<string, unknown>).keep_core_temperament),
+          }
           : {
-              keepFaceIdentity: true,
-              keepAgeRange: true,
-              keepBodyType: true,
-              keepCoreTemperament: true,
-            },
+            keepFaceIdentity: true,
+            keepAgeRange: true,
+            keepBodyType: true,
+            keepCoreTemperament: true,
+          },
         override: parseVariantVisual(
           typeof item.imageSpecOverride === "object" && item.imageSpecOverride !== null
             ? item.imageSpecOverride as Record<string, unknown>
@@ -516,36 +517,36 @@ function applyVariantProposalToForm(base: CharacterFormState, variantProposal: C
     variants: base.variants.map((variant) => (
       variant.id === base.activeVariantId
         ? {
-            ...variant,
-            variantName: variantProposal.variantName || variant.variantName,
-            variantType: variantProposal.variantType || variant.variantType,
-            triggerReason: variantProposal.triggerReason || variant.triggerReason,
-            visualChangesSummary: variantProposal.visualChangesSummary || variant.visualChangesSummary,
-            inheritRules: {
-              keepFaceIdentity: variantProposal.inheritRules.keepFaceIdentity,
-              keepAgeRange: variantProposal.inheritRules.keepAgeRange,
-              keepBodyType: variantProposal.inheritRules.keepBodyType,
-              keepCoreTemperament: variantProposal.inheritRules.keepCoreTemperament,
-            },
-            override: {
-              ...variant.override,
-              ...(variantProposal.imageSpecOverride.genderPresentation !== undefined ? { genderPresentation: variantProposal.imageSpecOverride.genderPresentation } : {}),
-              ...(variantProposal.imageSpecOverride.ageRange !== undefined ? { ageRange: variantProposal.imageSpecOverride.ageRange } : {}),
-              ...(variantProposal.imageSpecOverride.bodyType !== undefined ? { bodyType: variantProposal.imageSpecOverride.bodyType } : {}),
-              ...(variantProposal.imageSpecOverride.faceFeatures !== undefined ? { faceFeatures: variantProposal.imageSpecOverride.faceFeatures } : {}),
-              ...(variantProposal.imageSpecOverride.hairStyle !== undefined ? { hairStyle: variantProposal.imageSpecOverride.hairStyle } : {}),
-              ...(variantProposal.imageSpecOverride.hairColor !== undefined ? { hairColor: variantProposal.imageSpecOverride.hairColor } : {}),
-              ...(variantProposal.imageSpecOverride.eyeStyle !== undefined ? { eyeStyle: variantProposal.imageSpecOverride.eyeStyle } : {}),
-              ...(variantProposal.imageSpecOverride.signatureExpression !== undefined ? { signatureExpression: variantProposal.imageSpecOverride.signatureExpression } : {}),
-              ...(variantProposal.imageSpecOverride.signaturePose !== undefined ? { signaturePose: variantProposal.imageSpecOverride.signaturePose } : {}),
-              ...(variantProposal.imageSpecOverride.clothingStyle !== undefined ? { clothingStyle: variantProposal.imageSpecOverride.clothingStyle } : {}),
-              ...(variantProposal.imageSpecOverride.colorPalette !== undefined ? { colorPalette: variantProposal.imageSpecOverride.colorPalette.join(", ") } : {}),
-              ...(variantProposal.imageSpecOverride.visualKeywords !== undefined ? { visualKeywords: variantProposal.imageSpecOverride.visualKeywords.join(", ") } : {}),
-              ...(variantProposal.imageSpecOverride.negativeVisualConstraints !== undefined ? { negativeVisualConstraints: variantProposal.imageSpecOverride.negativeVisualConstraints.join(", ") } : {}),
-              ...(variantProposal.imageSpecOverride.imagePrompt !== undefined ? { imagePrompt: variantProposal.imageSpecOverride.imagePrompt } : {}),
-              ...(variantProposal.imageSpecOverride.negativePrompt !== undefined ? { negativePrompt: variantProposal.imageSpecOverride.negativePrompt } : {}),
-            },
-          }
+          ...variant,
+          variantName: variantProposal.variantName || variant.variantName,
+          variantType: variantProposal.variantType || variant.variantType,
+          triggerReason: variantProposal.triggerReason || variant.triggerReason,
+          visualChangesSummary: variantProposal.visualChangesSummary || variant.visualChangesSummary,
+          inheritRules: {
+            keepFaceIdentity: variantProposal.inheritRules.keepFaceIdentity,
+            keepAgeRange: variantProposal.inheritRules.keepAgeRange,
+            keepBodyType: variantProposal.inheritRules.keepBodyType,
+            keepCoreTemperament: variantProposal.inheritRules.keepCoreTemperament,
+          },
+          override: {
+            ...variant.override,
+            ...(variantProposal.imageSpecOverride.genderPresentation !== undefined ? { genderPresentation: variantProposal.imageSpecOverride.genderPresentation } : {}),
+            ...(variantProposal.imageSpecOverride.ageRange !== undefined ? { ageRange: variantProposal.imageSpecOverride.ageRange } : {}),
+            ...(variantProposal.imageSpecOverride.bodyType !== undefined ? { bodyType: variantProposal.imageSpecOverride.bodyType } : {}),
+            ...(variantProposal.imageSpecOverride.faceFeatures !== undefined ? { faceFeatures: variantProposal.imageSpecOverride.faceFeatures } : {}),
+            ...(variantProposal.imageSpecOverride.hairStyle !== undefined ? { hairStyle: variantProposal.imageSpecOverride.hairStyle } : {}),
+            ...(variantProposal.imageSpecOverride.hairColor !== undefined ? { hairColor: variantProposal.imageSpecOverride.hairColor } : {}),
+            ...(variantProposal.imageSpecOverride.eyeStyle !== undefined ? { eyeStyle: variantProposal.imageSpecOverride.eyeStyle } : {}),
+            ...(variantProposal.imageSpecOverride.signatureExpression !== undefined ? { signatureExpression: variantProposal.imageSpecOverride.signatureExpression } : {}),
+            ...(variantProposal.imageSpecOverride.signaturePose !== undefined ? { signaturePose: variantProposal.imageSpecOverride.signaturePose } : {}),
+            ...(variantProposal.imageSpecOverride.clothingStyle !== undefined ? { clothingStyle: variantProposal.imageSpecOverride.clothingStyle } : {}),
+            ...(variantProposal.imageSpecOverride.colorPalette !== undefined ? { colorPalette: variantProposal.imageSpecOverride.colorPalette.join(", ") } : {}),
+            ...(variantProposal.imageSpecOverride.visualKeywords !== undefined ? { visualKeywords: variantProposal.imageSpecOverride.visualKeywords.join(", ") } : {}),
+            ...(variantProposal.imageSpecOverride.negativeVisualConstraints !== undefined ? { negativeVisualConstraints: variantProposal.imageSpecOverride.negativeVisualConstraints.join(", ") } : {}),
+            ...(variantProposal.imageSpecOverride.imagePrompt !== undefined ? { imagePrompt: variantProposal.imageSpecOverride.imagePrompt } : {}),
+            ...(variantProposal.imageSpecOverride.negativePrompt !== undefined ? { negativePrompt: variantProposal.imageSpecOverride.negativePrompt } : {}),
+          },
+        }
         : variant
     )),
   };
@@ -660,23 +661,23 @@ export default function CharactersPage() {
   const characterAdapter = useMemo<CopilotModuleAdapter | null>(() => {
     if (!currentProject) return null;
     return ({
-    moduleType: "character",
-    title: "角色",
-    description: "先生成角色卡，再进入单角色视觉设定和角色图阶段。",
-    entityId: editing?.id ?? null,
-    composer: {
-      inputLabel: editing ? (activeVariant ? "变体设计目标" : "视觉设定目标") : "角色设计目标",
-      inputPlaceholder: editing
-        ? (activeVariant
-          ? "例如：把这个变体做成婚礼形态，只改礼服、妆发、表情和仪式场压迫感，不要改变这个人本身。"
-          : "例如：为这个角色补一版稳定的视觉设定，突出年龄感、脸部特征和服装风格。")
-        : "例如：根据当前 Brief 生成这部短剧最关键的 5 个角色，覆盖主角、反派、盟友和关键配角。",
-      emptyConversationTitle: editing ? (activeVariant ? "还没有变体对话" : "还没有视觉设定对话") : "还没有角色设计对话",
-      emptyConversationDescription: editing
-        ? (activeVariant ? "先选中一个变体，再让 Copilot 只补这个变体的 override。" : "先选中一个角色，再让 Copilot 补视觉设定和出图 prompt。")
-        : "输入一句角色设计目标，Copilot 会返回一组可加入角色库的候选角色。",
-      intentLabels: editing
-        ? {
+      moduleType: "character",
+      title: "角色",
+      description: "先生成角色卡，再进入单角色视觉设定和角色图阶段。",
+      entityId: editing?.id ?? null,
+      composer: {
+        inputLabel: editing ? (activeVariant ? "变体设计目标" : "视觉设定目标") : "角色设计目标",
+        inputPlaceholder: editing
+          ? (activeVariant
+            ? "例如：把这个变体做成婚礼形态，只改礼服、妆发、表情和仪式场压迫感，不要改变这个人本身。"
+            : "例如：为这个角色补一版稳定的视觉设定，突出年龄感、脸部特征和服装风格。")
+          : "例如：根据当前 Brief 生成这部短剧最关键的 5 个角色，覆盖主角、反派、盟友和关键配角。",
+        emptyConversationTitle: editing ? (activeVariant ? "还没有变体对话" : "还没有视觉设定对话") : "还没有角色设计对话",
+        emptyConversationDescription: editing
+          ? (activeVariant ? "先选中一个变体，再让 Copilot 只补这个变体的 override。" : "先选中一个角色，再让 Copilot 补视觉设定和出图 prompt。")
+          : "输入一句角色设计目标，Copilot 会返回一组可加入角色库的候选角色。",
+        intentLabels: editing
+          ? {
             generate: activeVariant ? "生成变体方案" : "生成视觉设定",
             rewrite: activeVariant ? "改写变体方案" : "改写视觉方案",
             expand: activeVariant ? "丰富变体细节" : "丰富视觉细节",
@@ -684,7 +685,7 @@ export default function CharactersPage() {
             fill_missing: activeVariant ? "补全变体字段" : "补全视觉字段",
             regenerate: "重新生成",
           }
-        : {
+          : {
             generate: "生成角色组",
             rewrite: "重构角色组",
             expand: "丰富角色组",
@@ -692,332 +693,332 @@ export default function CharactersPage() {
             fill_missing: "补全角色组",
             regenerate: "重新生成",
           },
-    },
-    proposalStyle: "custom",
-    buildContext: () => ({
-      current_mode: editing ? "single_refine" : "collection",
-      generation_stage: editing ? "visual_refine" : "profile_collection",
-      project_summary: {
-        name: currentProject.name,
-        genre: currentProject.genre,
-        target_platform: currentProject.targetPlatform,
-        episode_count_planned: currentProject.episodeCountPlanned,
       },
-      brief_summary: {
-        logline: currentProject.brief.logline,
-        target_audience: currentProject.brief.targetAudience,
-        genre_tags: currentProject.brief.genreTags,
-        style_keywords: currentProject.brief.styleKeywords,
-        world_rules: currentProject.brief.worldRules,
-        main_conflict: currentProject.brief.mainConflict,
-        relationship_summary: currentProject.brief.relationshipSummary,
-        reversal_rules: currentProject.brief.reversalRules,
-        forbidden_rules: currentProject.brief.forbiddenRules,
-      },
-      current_character: editing ? {
-        character_profile: {
-          name: editing.name,
-          role_type: editing.roleType,
-          species: editing.species,
-          identity_summary: editing.identitySummary,
-          appearance_summary: editing.appearanceSummary,
-          personality_tags: parseCsv(editing.personalityTags),
-          speech_style: editing.speechStyle,
-          negative_constraints: editing.negativeConstraints,
+      proposalStyle: "custom",
+      buildContext: () => ({
+        current_mode: editing ? "single_refine" : "collection",
+        generation_stage: editing ? "visual_refine" : "profile_collection",
+        project_summary: {
+          name: currentProject.name,
+          genre: currentProject.genre,
+          target_platform: currentProject.targetPlatform,
+          episode_count_planned: currentProject.episodeCountPlanned,
         },
-        image_spec: mergeVariantImageSpec(editing, editing.activeVariantId),
-        current_variant: editing.activeVariantId === DEFAULT_VARIANT_ID ? null : {
-          variant_name: activeVariant?.variantName ?? "",
-          variant_type: activeVariant?.variantType ?? "",
-          trigger_reason: activeVariant?.triggerReason ?? "",
-          visual_changes_summary: activeVariant?.visualChangesSummary ?? "",
+        brief_summary: {
+          logline: currentProject.brief.logline,
+          target_audience: currentProject.brief.targetAudience,
+          genre_tags: currentProject.brief.genreTags,
+          style_keywords: currentProject.brief.styleKeywords,
+          world_rules: currentProject.brief.worldRules,
+          main_conflict: currentProject.brief.mainConflict,
+          relationship_summary: currentProject.brief.relationshipSummary,
+          reversal_rules: currentProject.brief.reversalRules,
+          forbidden_rules: currentProject.brief.forbiddenRules,
         },
-        status: editing.status,
-      } : null,
-      existing_characters: currentProject.characters.map((character) => ({
-        character_profile: {
-          name: character.name,
-          role_type: character.roleType,
-          species: character.species,
-          identity_summary: character.identitySummary,
-          appearance_summary: character.appearanceSummary,
-          personality_tags: character.personalityTags,
-          speech_style: character.speechStyle,
+        current_character: editing ? {
+          character_profile: {
+            name: editing.name,
+            role_type: editing.roleType,
+            species: editing.species,
+            identity_summary: editing.identitySummary,
+            appearance_summary: editing.appearanceSummary,
+            personality_tags: parseCsv(editing.personalityTags),
+            speech_style: editing.speechStyle,
+            negative_constraints: editing.negativeConstraints,
+          },
+          image_spec: mergeVariantImageSpec(editing, editing.activeVariantId),
+          current_variant: editing.activeVariantId === DEFAULT_VARIANT_ID ? null : {
+            variant_name: activeVariant?.variantName ?? "",
+            variant_type: activeVariant?.variantType ?? "",
+            trigger_reason: activeVariant?.triggerReason ?? "",
+            visual_changes_summary: activeVariant?.visualChangesSummary ?? "",
+          },
+          status: editing.status,
+        } : null,
+        existing_characters: currentProject.characters.map((character) => ({
+          character_profile: {
+            name: character.name,
+            role_type: character.roleType,
+            species: character.species,
+            identity_summary: character.identitySummary,
+            appearance_summary: character.appearanceSummary,
+            personality_tags: character.personalityTags,
+            speech_style: character.speechStyle,
+          },
+          image_spec: {
+            ...(character.visualProfile ?? {}),
+            image_prompt: character.imagePrompt,
+            negative_prompt: character.negativePrompt,
+          },
+        })),
+        locked_rules: {
+          project_id: currentProject.id,
+          must_follow_brief: true,
         },
-        image_spec: {
-          ...(character.visualProfile ?? {}),
-          image_prompt: character.imagePrompt,
-          negative_prompt: character.negativePrompt,
-        },
-      })),
-      locked_rules: {
-        project_id: currentProject.id,
-        must_follow_brief: true,
-      },
-    }),
-    renderContextSummary: () => (
-      <KeyValueGrid
-        items={[
-          { label: "项目名", value: currentProject.name },
-          { label: "题材", value: currentProject.genre || "未填写" },
-          { label: "当前钩子", value: currentProject.brief.logline || "未填写" },
-          { label: "已有角色数", value: String(currentProject.characters.length) },
-          { label: "当前阶段", value: editing ? "阶段二：视觉设定" : "阶段一：角色卡组" },
-          { label: "当前编辑角色", value: editing?.name || "尚未进入单角色阶段" },
-          { label: "当前形态", value: editing ? (activeVariant ? variantLabel(activeVariant) : "默认形态") : "未进入形态编辑" },
-          { label: "主冲突", value: currentProject.brief.mainConflict || "未填写" },
-        ]}
-      />
-    ),
-    getSupportedIntents: () => ["generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"],
-    getProposalFields: () => CHARACTER_FIELD_LABELS,
-    renderProposal: ({ proposal, selectedFields, toggleField }) => {
-      if (isVariantProposal(proposal)) {
-        const variants = proposal.variants ?? [];
+      }),
+      renderContextSummary: () => (
+        <KeyValueGrid
+          items={[
+            { label: "项目名", value: currentProject.name },
+            { label: "题材", value: currentProject.genre || "未填写" },
+            { label: "当前钩子", value: currentProject.brief.logline || "未填写" },
+            { label: "已有角色数", value: String(currentProject.characters.length) },
+            { label: "当前阶段", value: editing ? "阶段二：视觉设定" : "阶段一：角色卡组" },
+            { label: "当前编辑角色", value: editing?.name || "尚未进入单角色阶段" },
+            { label: "当前形态", value: editing ? (activeVariant ? variantLabel(activeVariant) : "默认形态") : "未进入形态编辑" },
+            { label: "主冲突", value: currentProject.brief.mainConflict || "未填写" },
+          ]}
+        />
+      ),
+      getSupportedIntents: () => ["generate", "rewrite", "expand", "compress", "fill_missing", "regenerate"],
+      getProposalFields: () => CHARACTER_FIELD_LABELS,
+      renderProposal: ({ proposal, selectedFields, toggleField }) => {
+        if (isVariantProposal(proposal)) {
+          const variants = proposal.variants ?? [];
+          return (
+            <div className="space-y-4">
+              <div className="rounded-[20px] border border-dashed border-line bg-panel2 px-4 py-3 text-sm text-gray-400">
+                当前是变体模式。下面的建议只会作用于当前选中的形态 override，不改动基础角色身份。
+              </div>
+              <div className="grid gap-3">
+                {variants.map((variant, index) => (
+                  <div key={`${variant.variantName}-${index}`} className="rounded-lg border border-line bg-panel px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-100">{variant.variantName || `变体 ${index + 1}`}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{variant.variantType || "未定义变体类型"}</p>
+                      </div>
+                      <span className="rounded-full bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-mint">变体提案</span>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-2xl bg-panel2 px-4 py-3">
+                        <p className="text-xs font-medium text-gray-500">触发场景</p>
+                        <p className="mt-2 text-sm text-gray-300">{variant.triggerReason || "未填写"}</p>
+                      </div>
+                      <div className="rounded-2xl bg-panel2 px-4 py-3">
+                        <p className="text-xs font-medium text-gray-500">视觉变化摘要</p>
+                        <p className="mt-2 text-sm text-gray-300">{variant.visualChangesSummary || "未填写"}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
+                        保持脸型: {variant.inheritRules.keepFaceIdentity ? "是" : "否"}
+                      </span>
+                      <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
+                        保持年龄感: {variant.inheritRules.keepAgeRange ? "是" : "否"}
+                      </span>
+                      <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
+                        保持体态: {variant.inheritRules.keepBodyType ? "是" : "否"}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-2xl bg-panel2 px-4 py-3">
+                        <p className="text-xs font-medium text-gray-500">发型 / 表情 / 服装</p>
+                        <p className="mt-2 text-sm text-gray-300">
+                          {[
+                            variant.imageSpecOverride.hairStyle,
+                            variant.imageSpecOverride.signatureExpression,
+                            variant.imageSpecOverride.clothingStyle,
+                          ].filter(Boolean).join(" / ") || "未填写"}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-panel2 px-4 py-3">
+                        <p className="text-xs font-medium text-gray-500">视觉关键词</p>
+                        <p className="mt-2 text-sm text-gray-300">
+                          {variant.imageSpecOverride.visualKeywords?.join(", ") || "未填写"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setEditing((prev) => prev ? applyVariantProposalToForm(prev, variant) : prev)}
+                      >
+                        回填当前变体
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        const characterProposal = proposal as CharacterCollectionProposal;
+        const roles = characterProposal.roles ?? [];
         return (
           <div className="space-y-4">
             <div className="rounded-[20px] border border-dashed border-line bg-panel2 px-4 py-3 text-sm text-gray-400">
-              当前是变体模式。下面的建议只会作用于当前选中的形态 override，不改动基础角色身份。
+              {editing
+                ? (activeVariant
+                  ? "当前是阶段二：变体模式。下面的建议只负责当前变体的 override，不会重写整套角色基础视觉。"
+                  : "当前是阶段二：视觉设定模式。下面的建议只负责补齐单个角色的视觉设定和出图 prompt。")
+                : `当前生成了 ${roles.length} 个候选角色。先确定角色卡，再逐个进入视觉设定阶段。`}
             </div>
             <div className="grid gap-3">
-              {variants.map((variant, index) => (
-                <div key={`${variant.variantName}-${index}`} className="rounded-lg border border-line bg-panel px-5 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-100">{variant.variantName || `变体 ${index + 1}`}</h3>
-                      <p className="mt-1 text-sm text-gray-500">{variant.variantType || "未定义变体类型"}</p>
-                    </div>
-                    <span className="rounded-full bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-mint">变体提案</span>
-                  </div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl bg-panel2 px-4 py-3">
-                      <p className="text-xs font-medium text-gray-500">触发场景</p>
-                      <p className="mt-2 text-sm text-gray-300">{variant.triggerReason || "未填写"}</p>
-                    </div>
-                    <div className="rounded-2xl bg-panel2 px-4 py-3">
-                      <p className="text-xs font-medium text-gray-500">视觉变化摘要</p>
-                      <p className="mt-2 text-sm text-gray-300">{variant.visualChangesSummary || "未填写"}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
-                      保持脸型: {variant.inheritRules.keepFaceIdentity ? "是" : "否"}
-                    </span>
-                    <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
-                      保持年龄感: {variant.inheritRules.keepAgeRange ? "是" : "否"}
-                    </span>
-                    <span className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">
-                      保持体态: {variant.inheritRules.keepBodyType ? "是" : "否"}
-                    </span>
-                  </div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl bg-panel2 px-4 py-3">
-                      <p className="text-xs font-medium text-gray-500">发型 / 表情 / 服装</p>
-                      <p className="mt-2 text-sm text-gray-300">
-                        {[
-                          variant.imageSpecOverride.hairStyle,
-                          variant.imageSpecOverride.signatureExpression,
-                          variant.imageSpecOverride.clothingStyle,
-                        ].filter(Boolean).join(" / ") || "未填写"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-panel2 px-4 py-3">
-                      <p className="text-xs font-medium text-gray-500">视觉关键词</p>
-                      <p className="mt-2 text-sm text-gray-300">
-                        {variant.imageSpecOverride.visualKeywords?.join(", ") || "未填写"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setEditing((prev) => prev ? applyVariantProposalToForm(prev, variant) : prev)}
-                    >
-                      回填当前变体
-                    </Button>
-                  </div>
+              {roles.map((role, index) => (
+                <div key={`${role.characterProfile.name}-${index}`} className="rounded-lg border border-line bg-panel px-5 py-4">
+                  {(() => {
+                    const profile = role.characterProfile;
+                    const imageSpec = role.imageSpec;
+                    return (
+                      <>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-semibold text-gray-100">{profile.name || `候选角色 ${index + 1}`}</h3>
+                            <p className="mt-1 text-sm text-gray-500">{profile.roleType || "未定义角色定位"}</p>
+                          </div>
+                          <span className="rounded-full bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-mint">
+                            {editing ? (activeVariant ? "变体方案" : "单角色方案") : `候选 ${index + 1}`}
+                          </span>
+                        </div>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <div className="rounded-2xl bg-panel2 px-4 py-3">
+                            <p className="text-xs font-medium text-gray-500">角色定位</p>
+                            <p className="mt-2 text-sm text-gray-300">{profile.identitySummary || "未提供角色定位"}</p>
+                          </div>
+                          <div className="rounded-2xl bg-panel2 px-4 py-3">
+                            <p className="text-xs font-medium text-gray-500">外观摘要</p>
+                            <p className="mt-2 text-sm text-gray-300">{profile.appearanceSummary || "未提供外观描述"}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {profile.personalityTags.map((tag) => (
+                            <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
+                          ))}
+                        </div>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <div className="rounded-2xl bg-panel2 px-4 py-3">
+                            <p className="text-xs font-medium text-gray-500">说话风格</p>
+                            <p className="mt-2 text-sm text-gray-300">{profile.speechStyle || "未填写"}</p>
+                          </div>
+                          <div className="rounded-2xl bg-panel2 px-4 py-3">
+                            <p className="text-xs font-medium text-gray-500">负面约束</p>
+                            <p className="mt-2 text-sm text-gray-300">{profile.negativeConstraints || "未填写"}</p>
+                          </div>
+                        </div>
+                        {editing && !activeVariant ? (
+                          <div className="mt-4 rounded-2xl border border-dashed border-line bg-panel/70 px-4 py-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">视觉设定</p>
+                              <span className="rounded-full bg-panel2 px-3 py-1 text-[11px] text-gray-400">
+                                {imageSpec.genderPresentation || "未设定"} / {imageSpec.ageRange || "年龄未设定"}
+                              </span>
+                            </div>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              <div>
+                                <p className="text-xs font-medium text-gray-500">脸部与发型</p>
+                                <p className="mt-2 text-sm text-gray-300">
+                                  {[imageSpec.faceFeatures, imageSpec.hairStyle, imageSpec.hairColor].filter(Boolean).join(" / ") || "未填写"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-500">姿态与服装</p>
+                                <p className="mt-2 text-sm text-gray-300">
+                                  {[imageSpec.signatureExpression, imageSpec.signaturePose, imageSpec.clothingStyle].filter(Boolean).join(" / ") || "未填写"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {imageSpec.visualKeywords.map((tag) => (
+                                <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {editing ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setEditing((prev) => {
+                                if (!prev) return proposalToForm(role);
+                                if (activeVariant) return prev;
+                                return applyVisualSpecToForm(prev, role);
+                              })}
+                            >
+                              {activeVariant ? "当前为变体模式" : "回填视觉设定"}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setEditing(proposalToForm(role, emptyForm))}
+                            >
+                              载入编辑器并进入视觉设定
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              const token = `${profile.name}-${index}`;
+                              try {
+                                setCreatingFromProposal(token);
+                                await createCharacter(currentProject.id, {
+                                  name: profile.name,
+                                  roleType: profile.roleType,
+                                  identitySummary: profile.identitySummary,
+                                  appearanceSummary: profile.appearanceSummary,
+                                  personalityTags: profile.personalityTags,
+                                  speechStyle: profile.speechStyle,
+                                  negativeConstraints: profile.negativeConstraints,
+                                  status: "draft",
+                                });
+                                await refresh();
+                                toast.success(`角色「${profile.name || `候选 ${index + 1}`}」已加入角色库`);
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : String(err));
+                              } finally {
+                                setCreatingFromProposal("");
+                              }
+                            }}
+                            disabled={creatingFromProposal === `${profile.name}-${index}`}
+                          >
+                            {creatingFromProposal === `${profile.name}-${index}` ? "加入中..." : "加入角色库"}
+                          </Button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
           </div>
         );
-      }
-      const characterProposal = proposal as CharacterCollectionProposal;
-      const roles = characterProposal.roles ?? [];
-      return (
-        <div className="space-y-4">
-          <div className="rounded-[20px] border border-dashed border-line bg-panel2 px-4 py-3 text-sm text-gray-400">
-            {editing
-        ? (activeVariant
-          ? "当前是阶段二：变体模式。下面的建议只负责当前变体的 override，不会重写整套角色基础视觉。"
-          : "当前是阶段二：视觉设定模式。下面的建议只负责补齐单个角色的视觉设定和出图 prompt。")
-        : `当前生成了 ${roles.length} 个候选角色。先确定角色卡，再逐个进入视觉设定阶段。`}
-          </div>
-          <div className="grid gap-3">
-            {roles.map((role, index) => (
-              <div key={`${role.characterProfile.name}-${index}`} className="rounded-lg border border-line bg-panel px-5 py-4">
-                {(() => {
-                  const profile = role.characterProfile;
-                  const imageSpec = role.imageSpec;
-                  return (
-                    <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-100">{profile.name || `候选角色 ${index + 1}`}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{profile.roleType || "未定义角色定位"}</p>
-                  </div>
-                  <span className="rounded-full bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-mint">
-                    {editing ? (activeVariant ? "变体方案" : "单角色方案") : `候选 ${index + 1}`}
-                  </span>
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">角色定位</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.identitySummary || "未提供角色定位"}</p>
-                  </div>
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">外观摘要</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.appearanceSummary || "未提供外观描述"}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {profile.personalityTags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
-                  ))}
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">说话风格</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.speechStyle || "未填写"}</p>
-                  </div>
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">负面约束</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.negativeConstraints || "未填写"}</p>
-                  </div>
-                </div>
-                {editing && !activeVariant ? (
-                  <div className="mt-4 rounded-2xl border border-dashed border-line bg-panel/70 px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">视觉设定</p>
-                      <span className="rounded-full bg-panel2 px-3 py-1 text-[11px] text-gray-400">
-                        {imageSpec.genderPresentation || "未设定"} / {imageSpec.ageRange || "年龄未设定"}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <div>
-                        <p className="text-xs font-medium text-gray-500">脸部与发型</p>
-                        <p className="mt-2 text-sm text-gray-300">
-                          {[imageSpec.faceFeatures, imageSpec.hairStyle, imageSpec.hairColor].filter(Boolean).join(" / ") || "未填写"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500">姿态与服装</p>
-                        <p className="mt-2 text-sm text-gray-300">
-                          {[imageSpec.signatureExpression, imageSpec.signaturePose, imageSpec.clothingStyle].filter(Boolean).join(" / ") || "未填写"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {imageSpec.visualKeywords.map((tag) => (
-                        <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {editing ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setEditing((prev) => {
-                        if (!prev) return proposalToForm(role);
-                        if (activeVariant) return prev;
-                        return applyVisualSpecToForm(prev, role);
-                      })}
-                    >
-                      {activeVariant ? "当前为变体模式" : "回填视觉设定"}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setEditing(proposalToForm(role, emptyForm))}
-                    >
-                      载入编辑器并进入视觉设定
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      const token = `${profile.name}-${index}`;
-                      try {
-                        setCreatingFromProposal(token);
-                        await createCharacter(currentProject.id, {
-                          name: profile.name,
-                          roleType: profile.roleType,
-                          identitySummary: profile.identitySummary,
-                          appearanceSummary: profile.appearanceSummary,
-                          personalityTags: profile.personalityTags,
-                          speechStyle: profile.speechStyle,
-                          negativeConstraints: profile.negativeConstraints,
-                          status: "draft",
-                        });
-                        await refresh();
-                        toast.success(`角色「${profile.name || `候选 ${index + 1}`}」已加入角色库`);
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : String(err));
-                      } finally {
-                        setCreatingFromProposal("");
-                      }
-                    }}
-                    disabled={creatingFromProposal === `${profile.name}-${index}`}
-                  >
-                    {creatingFromProposal === `${profile.name}-${index}` ? "加入中..." : "加入角色库"}
-                  </Button>
-                </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    },
-    applyProposal: (proposal: CopilotProposal, options: { mode: "all" | "fields"; fields: string[] }) => {
-      if (isVariantProposal(proposal)) {
-        const allVariants = proposal.variants ?? [];
-        if (!allVariants.length) return;
-        if (allVariants.length === 1) {
-          setEditing((prev) => prev ? applyVariantProposalToForm(prev, allVariants[0]) : prev);
-          toast.success("Copilot 建议已回填到当前变体");
-        } else {
-          setEditing((prev) => prev ? applyMultiVariantProposalToForm(prev, allVariants) : prev);
-          toast.success(`Copilot 生成了 ${allVariants.length} 个新变体，已全部加入变体列表`);
+      },
+      applyProposal: (proposal: CopilotProposal, options: { mode: "all" | "fields"; fields: string[] }) => {
+        if (isVariantProposal(proposal)) {
+          const allVariants = proposal.variants ?? [];
+          if (!allVariants.length) return;
+          if (allVariants.length === 1) {
+            setEditing((prev) => prev ? applyVariantProposalToForm(prev, allVariants[0]) : prev);
+            toast.success("Copilot 建议已回填到当前变体");
+          } else {
+            setEditing((prev) => prev ? applyMultiVariantProposalToForm(prev, allVariants) : prev);
+            toast.success(`Copilot 生成了 ${allVariants.length} 个新变体，已全部加入变体列表`);
+          }
+          return;
         }
-        return;
-      }
-      const characterProposal = (proposal as CharacterCollectionProposal).roles?.[0];
-      if (!characterProposal) return;
-      const allowed = options.mode === "all" ? CHARACTER_FIELD_LABELS.map((field) => field.key) : options.fields;
-      setEditing((prev) => {
-        const base = prev ?? { ...proposalToForm(characterProposal) };
-        const next = { ...base };
-        const profile = characterProposal.characterProfile;
-        for (const key of allowed) {
-          if (key === "name") next.name = profile.name;
-          else if (key === "roleType") next.roleType = profile.roleType;
-          else if (key === "species") next.species = profile.species;
-          else if (key === "appearanceSummary") next.appearanceSummary = profile.appearanceSummary;
-          else if (key === "personalityTags") next.personalityTags = profile.personalityTags.join(", ");
-          else if (key === "speechStyle") next.speechStyle = profile.speechStyle;
-          else if (key === "negativeConstraints") next.negativeConstraints = profile.negativeConstraints;
-        }
-        return next;
-      });
-      toast.success(options.mode === "all" ? "Copilot 建议已回填到角色表单" : "已按字段回填到角色表单");
-    },
+        const characterProposal = (proposal as CharacterCollectionProposal).roles?.[0];
+        if (!characterProposal) return;
+        const allowed = options.mode === "all" ? CHARACTER_FIELD_LABELS.map((field) => field.key) : options.fields;
+        setEditing((prev) => {
+          const base = prev ?? { ...proposalToForm(characterProposal) };
+          const next = { ...base };
+          const profile = characterProposal.characterProfile;
+          for (const key of allowed) {
+            if (key === "name") next.name = profile.name;
+            else if (key === "roleType") next.roleType = profile.roleType;
+            else if (key === "species") next.species = profile.species;
+            else if (key === "appearanceSummary") next.appearanceSummary = profile.appearanceSummary;
+            else if (key === "personalityTags") next.personalityTags = profile.personalityTags.join(", ");
+            else if (key === "speechStyle") next.speechStyle = profile.speechStyle;
+            else if (key === "negativeConstraints") next.negativeConstraints = profile.negativeConstraints;
+          }
+          return next;
+        });
+        toast.success(options.mode === "all" ? "Copilot 建议已回填到角色表单" : "已按字段回填到角色表单");
+      },
     });
   }, [currentProject, editing, activeVariant]);
 
@@ -1228,6 +1229,7 @@ export default function CharactersPage() {
   async function handleOptimizePrompt(character: CharacterAsset) {
     setOptimizingPrompt(character.id);
     try {
+      const existingVisualProfile = character.visualProfile ?? {};
       let proposal: CopilotProposal | null = null;
       await streamCopilot(
         {
@@ -1255,6 +1257,7 @@ export default function CharactersPage() {
                 negative_constraints: character.negativeConstraints,
               },
               image_spec: {
+                ...existingVisualProfile,
                 image_prompt: character.imagePrompt || "",
                 negative_prompt: character.negativePrompt || "",
               },
@@ -1273,10 +1276,25 @@ export default function CharactersPage() {
       if (!proposal) throw new Error("没有生成可用的优化结果");
       const role = (proposal as CharacterCollectionProposal).roles?.[0] ?? null;
       const imageSpec = role?.imageSpec;
-      if (!imageSpec?.imagePrompt) throw new Error("优化结果中缺少 image_prompt");
+      const optimizedImagePrompt = imageSpec?.imagePrompt?.trim();
+      if (!optimizedImagePrompt) throw new Error("优化结果中缺少 image_prompt");
       await updateCharacter(character.id, readyProject.id, {
-        imagePrompt: imageSpec.imagePrompt,
+        name: character.name,
+        roleType: character.roleType,
+        identitySummary: character.identitySummary,
+        appearanceSummary: character.appearanceSummary,
+        personalityTags: character.personalityTags,
+        speechStyle: character.speechStyle,
+        visualProfile: character.visualProfile,
+        imagePrompt: optimizedImagePrompt,
         negativePrompt: imageSpec.negativePrompt || character.negativePrompt,
+        imagePath: character.imagePath,
+        voiceProfile: character.voiceProfile,
+        outfitPresets: character.outfitPresets,
+        negativeConstraints: character.negativeConstraints,
+        referenceAssetIds: character.referenceAssetIds,
+        status: character.status,
+        versionNo: character.versionNo,
       });
       await refresh();
       toast.success("Prompt 已优化并保存");
@@ -1371,7 +1389,7 @@ export default function CharactersPage() {
           onDelta: (event) => { assistantContent += event.content; },
           onProposal: (event) => { proposal = event.proposal; },
           onError: (err) => { throw err; },
-          onDone: () => {},
+          onDone: () => { },
         },
       );
 
@@ -1403,567 +1421,550 @@ export default function CharactersPage() {
 
   return (
     <>
-    <Dialog open={Boolean(previewImage)} onOpenChange={(open) => !open && setPreviewImage(null)}>
-      <DialogContent
-        className="max-w-[min(96vw,72rem)] border-0 bg-transparent p-0 shadow-none ring-0"
-      >
-        {previewImage ? (
-          <div className="flex items-center justify-center p-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewImage}
-              alt="角色图片预览"
-              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+      <ImageViewer src={previewImage} alt="角色图片预览" onClose={() => setPreviewImage(null)} />
+      <Dialog open={regenerateOpen} onOpenChange={(open) => { setRegenerateOpen(open); if (!open) { setRegenerateInput(""); setRegenerateCharacter(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>重新生成角色</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400">
+              当前角色: <span className="font-medium text-gray-200">{regenerateCharacter?.name || "未命名"}</span>
+              {regenerateCharacter?.species && <span className="ml-2 text-gray-500">({regenerateCharacter.species})</span>}
+            </p>
+            <p className="text-xs text-gray-500">
+              描述你的修改要求，例如："改为外星人物种"、"性别改为女性"、"年龄改为60岁老人"、"性格更阴险"
+            </p>
+            <Textarea
+              className="min-h-[80px] text-sm"
+              placeholder="请描述重新生成的要求..."
+              value={regenerateInput}
+              onChange={(e) => setRegenerateInput(e.target.value)}
             />
           </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-    <Dialog open={regenerateOpen} onOpenChange={(open) => { setRegenerateOpen(open); if (!open) { setRegenerateInput(""); setRegenerateCharacter(null); } }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>重新生成角色</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <p className="text-sm text-gray-400">
-            当前角色: <span className="font-medium text-gray-200">{regenerateCharacter?.name || "未命名"}</span>
-            {regenerateCharacter?.species && <span className="ml-2 text-gray-500">({regenerateCharacter.species})</span>}
-          </p>
-          <p className="text-xs text-gray-500">
-            描述你的修改要求，例如："改为外星人物种"、"性别改为女性"、"年龄改为60岁老人"、"性格更阴险"
-          </p>
-          <Textarea
-            className="min-h-[80px] text-sm"
-            placeholder="请描述重新生成的要求..."
-            value={regenerateInput}
-            onChange={(e) => setRegenerateInput(e.target.value)}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => { setRegenerateOpen(false); setRegenerateInput(""); setRegenerateCharacter(null); }}>
-            取消
-          </Button>
-          <Button onClick={() => void handleRegenerate()} disabled={regenerating || !regenerateInput.trim()}>
-            {regenerating ? "生成中..." : "重新生成"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    <SectionCard
-      title="角色资产"
-      description="角色卡是视觉生成和剧本一致性的关键事实源，先稳定角色，再扩剧情。"
-      action={
-        <div className="flex gap-2">
-          <ProjectCopilotButton label={editing ? "补视觉设定" : "生成角色组"} />
-          {!progressive.active ? (
-            <Button variant="secondary" onClick={progressive.start}>渐进式生成</Button>
-          ) : (
-            <Button variant="destructive" onClick={progressive.stop}>停止生成</Button>
-          )}
-          <Button variant="secondary" onClick={() => setEditing(emptyForm)}>新增角色</Button>
-          <Button onClick={() => setEditing(emptyForm)}>新增并用 Copilot 精修</Button>
-        </div>
-      }
-    >
-      {currentProject.characters.length ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {currentProject.characters.map((character) => {
-            const variantSummary = getCharacterVariantSummary(character);
-            const imageUrl = character.imagePath ? `${API_BASE}/assets/${character.imagePath}` : null;
-            return (
-              <div key={character.id} className="rounded-lg border border-line bg-panel2 overflow-hidden">
-                {/* Image thumbnail */}
-                <div className="relative w-full aspect-[3/4] bg-panel">
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={character.name}
-                      className="w-full h-full object-cover cursor-zoom-in transition hover:opacity-85"
-                      onClick={() => setPreviewImage(imageUrl)}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center border-b border-line">
-                      <p className="text-sm text-gray-500">待生成</p>
-                    </div>
-                  )}
-                </div>
-                {/* Text content */}
-                <div className="px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-100">{character.name}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{character.roleType || "未填写角色类型"}</p>
-                  </div>
-                  <StatusPill value={character.status} tone="purple" />
-                </div>
-                <p className="mt-4 text-sm leading-6 text-gray-400">{character.appearanceSummary || "未填写外观描述"}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {character.personalityTags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400 shadow-sm">{tag}</span>
-                  ))}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <StatusPill value={variantSummary.activeVariantLabel} tone="blue" />
-                  <StatusPill value={`${variantSummary.variantCount} 个变体`} tone="slate" />
-                  <StatusPill value={`${variantSummary.imageReadyCount} 个形态有图`} tone={variantSummary.imageReadyCount ? "green" : "amber"} />
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-panel2 px-4 py-3 shadow-sm">
-                    <p className="text-xs font-medium text-gray-500">角色定位</p>
-                    <p className="mt-2 text-sm text-gray-300">{character.identitySummary || "未填写"}</p>
-                  </div>
-                  <div className="rounded-2xl bg-panel2 px-4 py-3 shadow-sm">
-                    <p className="text-xs font-medium text-gray-500">当前激活形态</p>
-                    <p className="mt-2 text-sm text-gray-300">{variantSummary.activeVariantLabel}</p>
-                    <p className="mt-1 text-xs text-gray-500">{variantSummary.activeImagePath ? "当前形态已有主图" : "当前形态尚未出图"}</p>
-                  </div>
-                </div>
-                <div className="mt-5 flex items-center gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => setEditing(toForm(character))}>
-                    编辑
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => { setRegenerateCharacter(toForm(character)); setRegenerateOpen(true); }}
-                  >
-                    重新生成
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void handleGenerateCharacterImage(character)}
-                    disabled={generatingImage === character.id}
-                  >
-                    {generatingImage === character.id ? "生成中..." : (variantSummary.activeImagePath ? "重生成当前形态主图" : "生成当前形态主图")}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void handleOptimizePrompt(character)}
-                    disabled={optimizingPrompt === character.id}
-                  >
-                    {optimizingPrompt === character.id ? "优化中..." : "优化 Prompt"}
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(character)}>
-                    删除
-                  </Button>
-                </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState title="还没有角色资产" description="先创建主角、反派和关键配角，后续分集和场景才能稳定生成。" action={<Button onClick={() => setEditing(emptyForm)}>新增角色</Button>} />
-      )}
-
-      {progressive.active && (
-        <div className="mt-4 rounded-lg border border-dashed border-mint/40 bg-mint/5 px-5 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-100">渐进式角色生成</h3>
-              <p className="mt-1 text-xs text-gray-500">
-                已有 {readyProject.characters.length} 个角色。每次生成 1 个新角色，确认后加入角色库。
-              </p>
-            </div>
-            {progressive.loading && (
-              <span className="rounded-full bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">
-                生成中...
-              </span>
-            )}
-          </div>
-
-          {progressive.streamText && !progressive.proposal && (
-            <div className="mt-3 rounded-lg border border-line bg-panel2/50 px-3 py-2.5">
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">Copilot</p>
-              <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{progressive.streamText}</div>
-            </div>
-          )}
-
-          {progressive.proposal && (progressive.proposal as CharacterCollectionProposal).roles && (progressive.proposal as CharacterCollectionProposal).roles.length > 0 && (() => {
-            const role = (progressive.proposal as CharacterCollectionProposal).roles[0];
-            const profile = role.characterProfile;
-            return (
-              <div className="mt-3 rounded-lg border border-line bg-panel px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-100">{profile.name || "候选角色"}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{profile.roleType || "未定义角色定位"}</p>
-                  </div>
-                  <span className="rounded-full bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">渐进式候选</span>
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">角色定位</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.identitySummary || "未提供"}</p>
-                  </div>
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">外观摘要</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.appearanceSummary || "未提供"}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {profile.personalityTags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
-                  ))}
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">说话风格</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.speechStyle || "未填写"}</p>
-                  </div>
-                  <div className="rounded-2xl bg-panel2 px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">负面约束</p>
-                    <p className="mt-2 text-sm text-gray-300">{profile.negativeConstraints || "未填写"}</p>
-                  </div>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => void progressive.confirmAndNext()}>
-                    确认并生成下一个
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={progressive.skip}>
-                    跳过，生成下一个
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => void progressive.confirmAndStop()}>
-                    完成
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setEditing(proposalToForm(role, emptyForm));
-                  }}>
-                    载入编辑器
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="w-full max-w-6xl bg-panel p-0 sm:max-w-6xl">
-          <DialogHeader className="shrink-0 border-b border-line px-5 py-4">
-            <DialogTitle>{editing?.id ? "编辑角色" : "新增角色"}</DialogTitle>
-          </DialogHeader>
-          {editing ? (
-            <>
-              <Tabs defaultValue="basic" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="shrink-0 border-b border-line px-5">
-                  <TabsList variant="line">
-                    <TabsTrigger value="basic">基础角色卡</TabsTrigger>
-                    <TabsTrigger value="visual">视觉设定</TabsTrigger>
-                    <TabsTrigger value="image">图片资产</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                <TabsContent value="basic" className="p-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">角色名</Label>
-                      <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">角色类型</Label>
-                      <Input value={editing.roleType} onChange={(e) => setEditing((prev) => prev ? { ...prev, roleType: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">物种</Label>
-                      <Input value={editing.species} onChange={(e) => setEditing((prev) => prev ? { ...prev, species: e.target.value } : prev)} placeholder="人类、外星人、机器人..." />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">角色定位</Label>
-                      <Textarea value={editing.identitySummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, identitySummary: e.target.value } : prev)} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">外观描述</Label>
-                      <Textarea value={editing.appearanceSummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, appearanceSummary: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">性格标签</Label>
-                      <Input value={editing.personalityTags} onChange={(e) => setEditing((prev) => prev ? { ...prev, personalityTags: e.target.value } : prev)} placeholder="冷静, 阴狠, 傲慢" />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">说话风格</Label>
-                      <Input value={editing.speechStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, speechStyle: e.target.value } : prev)} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">负面约束</Label>
-                      <Textarea value={editing.negativeConstraints} onChange={(e) => setEditing((prev) => prev ? { ...prev, negativeConstraints: e.target.value } : prev)} />
-                    </div>
-                  </div>
-                  <p className="mt-4 text-[11px] text-gray-500">服务剧情大纲、台词和角色一致性。</p>
-                </TabsContent>
-                <TabsContent value="visual" className="p-5">
-                <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-100">视觉设定</h3>
-                      <p className="mt-1 text-xs text-gray-500">先维护默认形态，再在下面扩展多个受控变体。</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setEditing((prev) => {
-                          if (!prev) return prev;
-                          const nextVariant = createVariantDraft();
-                          return {
-                            ...prev,
-                            activeVariantId: nextVariant.id,
-                            variants: [...prev.variants, nextVariant],
-                          };
-                        })}
-                      >
-                        新增变体
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void handleGenerateImageSpec()}
-                        disabled={generatingImageSpec}
-                      >
-                        {generatingImageSpec ? "生成 image_spec..." : activeVariant ? "补当前变体 image_spec" : "补默认形态 image_spec"}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
-                    <div className="space-y-3 rounded-2xl border border-line bg-panel/70 p-3">
-                      <button
-                        type="button"
-                        onClick={() => setEditing((prev) => prev ? { ...prev, activeVariantId: DEFAULT_VARIANT_ID } : prev)}
-                        className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                          editing.activeVariantId === DEFAULT_VARIANT_ID ? "border-mint bg-mint/10" : "border-line bg-panel2 hover:border-mint/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-100">默认形态</p>
-                            <p className="mt-1 text-xs text-gray-500">角色基础长相与气质</p>
-                          </div>
-                          <StatusPill value="base" tone="blue" />
-                        </div>
-                      </button>
-                      {editing.variants.map((variant) => (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          onClick={() => setEditing((prev) => prev ? { ...prev, activeVariantId: variant.id } : prev)}
-                          className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                            editing.activeVariantId === variant.id ? "border-mint bg-mint/10" : "border-line bg-panel2 hover:border-mint/40"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-gray-100">{variantLabel(variant)}</p>
-                              <p className="mt-1 truncate text-xs text-gray-500">{variant.variantType || "未定义变体类型"}</p>
-                            </div>
-                            <StatusPill value={variant.imagePath ? "有图" : "未出图"} tone={variant.imagePath ? "green" : "amber"} />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="space-y-4 rounded-2xl border border-line bg-panel/70 p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-100">
-                            {activeVariant ? `${variantLabel(activeVariant)} 详情` : "默认形态详情"}
-                          </h4>
-                          <p className="mt-1 text-xs text-gray-500">
-                            {activeVariant ? "当前变体会继承默认形态，再覆盖必要视觉字段。" : "默认形态定义这个角色最稳定的基础长相与气质。"}
-                          </p>
-                        </div>
-                        {activeVariant ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setEditing((prev) => prev ? ({
-                              ...prev,
-                              activeVariantId: DEFAULT_VARIANT_ID,
-                              variants: prev.variants.filter((item) => item.id !== prev.activeVariantId),
-                            }) : prev)}
-                          >
-                            删除变体
-                          </Button>
-                        ) : null}
-                      </div>
-
-                      {activeVariant ? (
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div>
-                            <Label className="mb-2 block text-xs text-gray-500">变体名</Label>
-                            <Input value={activeVariant.variantName} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { variantName: e.target.value }) : prev)} />
-                          </div>
-                          <div>
-                            <Label className="mb-2 block text-xs text-gray-500">变体类型</Label>
-                            <Input value={activeVariant.variantType} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { variantType: e.target.value }) : prev)} placeholder="wedding / disguise / injured" />
-                          </div>
-                          <div className="md:col-span-2">
-                            <Label className="mb-2 block text-xs text-gray-500">触发场景</Label>
-                            <Input value={activeVariant.triggerReason} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { triggerReason: e.target.value }) : prev)} placeholder="第12集婚礼对峙 / 第8集受伤后" />
-                          </div>
-                          <div className="md:col-span-2">
-                            <Label className="mb-2 block text-xs text-gray-500">视觉变化摘要</Label>
-                            <Textarea value={activeVariant.visualChangesSummary} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { visualChangesSummary: e.target.value }) : prev)} />
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">性别呈现</Label>
-                          <Input value={getActiveVariantValue(editing, "genderPresentation")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "genderPresentation", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">年龄区间</Label>
-                          <Input value={getActiveVariantValue(editing, "ageRange")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "ageRange", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">体型</Label>
-                          <Input value={getActiveVariantValue(editing, "bodyType")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "bodyType", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">眼神/眼型</Label>
-                          <Input value={getActiveVariantValue(editing, "eyeStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "eyeStyle", e.target.value) : prev)} />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label className="mb-2 block text-xs text-gray-500">脸部特征</Label>
-                          <Textarea value={getActiveVariantValue(editing, "faceFeatures")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "faceFeatures", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">发型</Label>
-                          <Input value={getActiveVariantValue(editing, "hairStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "hairStyle", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">发色</Label>
-                          <Input value={getActiveVariantValue(editing, "hairColor")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "hairColor", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">标志表情</Label>
-                          <Input value={getActiveVariantValue(editing, "signatureExpression")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "signatureExpression", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">标志姿态</Label>
-                          <Input value={getActiveVariantValue(editing, "signaturePose")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "signaturePose", e.target.value) : prev)} />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label className="mb-2 block text-xs text-gray-500">服装风格</Label>
-                          <Textarea value={getActiveVariantValue(editing, "clothingStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "clothingStyle", e.target.value) : prev)} />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">色板</Label>
-                          <Input value={getActiveVariantValue(editing, "colorPalette")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "colorPalette", e.target.value) : prev)} placeholder="black, charcoal, deep gold" />
-                        </div>
-                        <div>
-                          <Label className="mb-2 block text-xs text-gray-500">视觉关键词</Label>
-                          <Input value={getActiveVariantValue(editing, "visualKeywords")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "visualKeywords", e.target.value) : prev)} placeholder="wealthy mystery man, restrained menace" />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label className="mb-2 block text-xs text-gray-500">视觉负面约束</Label>
-                          <Textarea value={getActiveVariantValue(editing, "negativeVisualConstraints")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativeVisualConstraints", e.target.value) : prev)} placeholder="no cartoon styling, no teenage appearance" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                </TabsContent>
-                <TabsContent value="image" className="p-5">
-                <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-gray-100">角色图片资产</h3>
-                  <p className="mt-1 text-xs text-gray-500">当前对选中形态维护 prompt 与主图；默认形态和各变体都可分别出图。</p>
-                  <div className="mt-3 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="mb-2 block text-xs text-gray-500">标准出图 Prompt</Label>
-                        <Textarea
-                          value={getActiveVariantValue(editing, "imagePrompt")}
-                          onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "imagePrompt", e.target.value) : prev)}
-                          className="min-h-[128px]"
-                        />
-                      </div>
-                      <div>
-                        <Label className="mb-2 block text-xs text-gray-500">负面 Prompt</Label>
-                        <Textarea
-                          value={getActiveVariantValue(editing, "negativePrompt")}
-                          onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativePrompt", e.target.value) : prev)}
-                          className="min-h-[96px]"
-                        />
-                      </div>
-                      <div>
-                        <Label className="mb-2 block text-xs text-gray-500">当前形态主图路径</Label>
-                        <Input
-                          value={activeVariant?.imagePath ?? editing.imagePath}
-                          onChange={(e) => setEditing((prev) => {
-                            if (!prev) return prev;
-                            if (prev.activeVariantId === DEFAULT_VARIANT_ID) {
-                              return { ...prev, imagePath: e.target.value };
-                            }
-                            return {
-                              ...prev,
-                              variants: prev.variants.map((variant) => (
-                                variant.id === prev.activeVariantId ? { ...variant, imagePath: e.target.value } : variant
-                              )),
-                            };
-                          })}
-                          placeholder="后续由出图服务回填"
-                        />
-                      </div>
-                    </div>
-                    <div className="rounded-[20px] border border-dashed border-line bg-panel/70 p-3">
-                      {(activeVariant?.imagePath || editing.imagePath) ? (
-                        <div className="space-y-3">
-                          <div className="overflow-hidden rounded-[16px] border border-line bg-panel2">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={resolveAssetUrl(activeVariant?.imagePath || editing.imagePath)}
-                              alt={editing.name || "角色图片"}
-                              className="h-[260px] w-full cursor-pointer object-cover"
-                              onClick={() => setPreviewImage(resolveAssetUrl(activeVariant?.imagePath || editing.imagePath))}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500">当前形态已有主图。后续这里可继续接“设为主图 / 基于主图微调 / 批量重生”。</p>
-                        </div>
-                      ) : (
-                        <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[16px] bg-panel2 px-4 text-center">
-                          <p className="text-sm font-medium text-gray-300">还没有角色图片</p>
-                          <p className="mt-2 text-xs leading-6 text-gray-500">
-                            先用 Copilot 生成完整角色卡和视觉设定。
-                            <br />
-                            下一步这里会接“批量生成 4 张 / 设为主图 / 基于主图微调”。
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                </TabsContent>
-                </div>
-              </Tabs>
-              <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
-                <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
-                  取消
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => void handleGenerateCharacterImage()}
-                  disabled={saving || generatingImage !== null}
-                >
-                  {generatingImage === "draft"
-                    ? "保存并生成中..."
-                    : generatingImage === editing?.id
-                      ? "生成中..."
-                      : ((activeVariant?.imagePath || editing?.imagePath) ? "保存并重生成主图" : "保存并生成角色图")}
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "保存中..." : "保存角色"}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRegenerateOpen(false); setRegenerateInput(""); setRegenerateCharacter(null); }}>
+              取消
+            </Button>
+            <Button onClick={() => void handleRegenerate()} disabled={regenerating || !regenerateInput.trim()}>
+              {regenerating ? "生成中..." : "重新生成"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SectionCard>
+      <SectionCard
+        title="角色资产"
+        description="角色卡是视觉生成和剧本一致性的关键事实源，先稳定角色，再扩剧情。"
+        action={
+          <div className="flex gap-2">
+            <ProjectCopilotButton label={editing ? "补视觉设定" : "生成角色组"} />
+            {!progressive.active ? (
+              <Button variant="secondary" onClick={progressive.start}>渐进式生成</Button>
+            ) : (
+              <Button variant="destructive" onClick={progressive.stop}>停止生成</Button>
+            )}
+            <Button variant="secondary" onClick={() => setEditing(emptyForm)}>新增角色</Button>
+            <Button onClick={() => setEditing(emptyForm)}>新增并用 Copilot 精修</Button>
+          </div>
+        }
+      >
+        {currentProject.characters.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {currentProject.characters.map((character) => {
+              const variantSummary = getCharacterVariantSummary(character);
+              const imageUrl = character.imagePath ? `${API_BASE}/assets/${character.imagePath}` : null;
+              return (
+                <div key={character.id} className="rounded-lg border border-line bg-panel2 overflow-hidden">
+                  {/* Image thumbnail */}
+                  <div className="relative h-48 w-full bg-panel md:h-44">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={character.name}
+                        className="w-full h-full object-cover cursor-zoom-in transition hover:opacity-85"
+                        onClick={() => setPreviewImage(imageUrl)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center border-b border-line">
+                        <p className="text-sm text-gray-500">待生成</p>
+                      </div>
+                    )}
+                  </div>
+                  {/* Text content */}
+                  <div className="px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-100">{character.name}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{character.roleType || "未填写角色类型"}</p>
+                      </div>
+                      <StatusPill value={character.status} tone="purple" />
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-gray-400">{character.appearanceSummary || "未填写外观描述"}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {character.personalityTags.map((tag) => (
+                        <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400 shadow-sm">{tag}</span>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <StatusPill value={variantSummary.activeVariantLabel} tone="blue" />
+                      <StatusPill value={`${variantSummary.variantCount} 个变体`} tone="slate" />
+                      <StatusPill value={`${variantSummary.imageReadyCount} 个形态有图`} tone={variantSummary.imageReadyCount ? "green" : "amber"} />
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-2xl bg-panel2 px-4 py-3 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500">角色定位</p>
+                        <p className="mt-2 text-sm text-gray-300">{character.identitySummary || "未填写"}</p>
+                      </div>
+                      <div className="rounded-2xl bg-panel2 px-4 py-3 shadow-sm">
+                        <p className="text-xs font-medium text-gray-500">当前激活形态</p>
+                        <p className="mt-2 text-sm text-gray-300">{variantSummary.activeVariantLabel}</p>
+                        <p className="mt-1 text-xs text-gray-500">{variantSummary.activeImagePath ? "当前形态已有主图" : "当前形态尚未出图"}</p>
+                      </div>
+                    </div>
+                    <div className="mt-5 flex items-center gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => setEditing(toForm(character))}>
+                        编辑
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => { setRegenerateCharacter(toForm(character)); setRegenerateOpen(true); }}
+                      >
+                        重新生成
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void handleGenerateCharacterImage(character)}
+                        disabled={generatingImage === character.id}
+                      >
+                        {generatingImage === character.id ? "生成中..." : (variantSummary.activeImagePath ? "重生成当前形态主图" : "生成当前形态主图")}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void handleOptimizePrompt(character)}
+                        disabled={optimizingPrompt === character.id}
+                      >
+                        {optimizingPrompt === character.id ? "优化中..." : "优化 Prompt"}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(character)}>
+                        删除
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="还没有角色资产" description="先创建主角、反派和关键配角，后续分集和场景才能稳定生成。" action={<Button onClick={() => setEditing(emptyForm)}>新增角色</Button>} />
+        )}
+
+        {progressive.active && (
+          <div className="mt-4 rounded-lg border border-dashed border-mint/40 bg-mint/5 px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-100">渐进式角色生成</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  已有 {readyProject.characters.length} 个角色。每次生成 1 个新角色，确认后加入角色库。
+                </p>
+              </div>
+              {progressive.loading && (
+                <span className="rounded-full bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">
+                  生成中...
+                </span>
+              )}
+            </div>
+
+            {progressive.streamText && !progressive.proposal && (
+              <div className="mt-3 rounded-lg border border-line bg-panel2/50 px-3 py-2.5">
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">Copilot</p>
+                <div className="whitespace-pre-wrap text-[13px] leading-5 text-gray-300">{progressive.streamText}</div>
+              </div>
+            )}
+
+            {progressive.proposal && (progressive.proposal as CharacterCollectionProposal).roles && (progressive.proposal as CharacterCollectionProposal).roles.length > 0 && (() => {
+              const role = (progressive.proposal as CharacterCollectionProposal).roles[0];
+              const profile = role.characterProfile;
+              return (
+                <div className="mt-3 rounded-lg border border-line bg-panel px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-100">{profile.name || "候选角色"}</h3>
+                      <p className="mt-1 text-sm text-gray-500">{profile.roleType || "未定义角色定位"}</p>
+                    </div>
+                    <span className="rounded-full bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">渐进式候选</span>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl bg-panel2 px-4 py-3">
+                      <p className="text-xs font-medium text-gray-500">角色定位</p>
+                      <p className="mt-2 text-sm text-gray-300">{profile.identitySummary || "未提供"}</p>
+                    </div>
+                    <div className="rounded-2xl bg-panel2 px-4 py-3">
+                      <p className="text-xs font-medium text-gray-500">外观摘要</p>
+                      <p className="mt-2 text-sm text-gray-300">{profile.appearanceSummary || "未提供"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {profile.personalityTags.map((tag) => (
+                      <span key={tag} className="rounded-full bg-panel2 px-3 py-1 text-xs text-gray-400">{tag}</span>
+                    ))}
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl bg-panel2 px-4 py-3">
+                      <p className="text-xs font-medium text-gray-500">说话风格</p>
+                      <p className="mt-2 text-sm text-gray-300">{profile.speechStyle || "未填写"}</p>
+                    </div>
+                    <div className="rounded-2xl bg-panel2 px-4 py-3">
+                      <p className="text-xs font-medium text-gray-500">负面约束</p>
+                      <p className="mt-2 text-sm text-gray-300">{profile.negativeConstraints || "未填写"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => void progressive.confirmAndNext()}>
+                      确认并生成下一个
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={progressive.skip}>
+                      跳过，生成下一个
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => void progressive.confirmAndStop()}>
+                      完成
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setEditing(proposalToForm(role, emptyForm));
+                    }}>
+                      载入编辑器
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
+          <DialogContent className="w-full max-w-6xl bg-panel p-0 sm:max-w-6xl">
+            <DialogHeader className="shrink-0 border-b border-line px-5 py-4">
+              <DialogTitle>{editing?.id ? "编辑角色" : "新增角色"}</DialogTitle>
+            </DialogHeader>
+            {editing ? (
+              <>
+                <Tabs defaultValue="basic" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="shrink-0 border-b border-line px-5">
+                    <TabsList variant="line">
+                      <TabsTrigger value="basic">基础角色卡</TabsTrigger>
+                      <TabsTrigger value="visual">视觉设定</TabsTrigger>
+                      <TabsTrigger value="image">图片资产</TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <TabsContent value="basic" className="p-5">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">角色名</Label>
+                          <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">角色类型</Label>
+                          <Input value={editing.roleType} onChange={(e) => setEditing((prev) => prev ? { ...prev, roleType: e.target.value } : prev)} />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">物种</Label>
+                          <Input value={editing.species} onChange={(e) => setEditing((prev) => prev ? { ...prev, species: e.target.value } : prev)} placeholder="人类、外星人、机器人..." />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="mb-2 block text-xs text-gray-500">角色定位</Label>
+                          <Textarea value={editing.identitySummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, identitySummary: e.target.value } : prev)} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="mb-2 block text-xs text-gray-500">外观描述</Label>
+                          <Textarea value={editing.appearanceSummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, appearanceSummary: e.target.value } : prev)} />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">性格标签</Label>
+                          <Input value={editing.personalityTags} onChange={(e) => setEditing((prev) => prev ? { ...prev, personalityTags: e.target.value } : prev)} placeholder="冷静, 阴狠, 傲慢" />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">说话风格</Label>
+                          <Input value={editing.speechStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, speechStyle: e.target.value } : prev)} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="mb-2 block text-xs text-gray-500">负面约束</Label>
+                          <Textarea value={editing.negativeConstraints} onChange={(e) => setEditing((prev) => prev ? { ...prev, negativeConstraints: e.target.value } : prev)} />
+                        </div>
+                      </div>
+                      <p className="mt-4 text-[11px] text-gray-500">服务剧情大纲、台词和角色一致性。</p>
+                    </TabsContent>
+                    <TabsContent value="visual" className="p-5">
+                      <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-100">视觉设定</h3>
+                            <p className="mt-1 text-xs text-gray-500">先维护默认形态，再在下面扩展多个受控变体。</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setEditing((prev) => {
+                                if (!prev) return prev;
+                                const nextVariant = createVariantDraft();
+                                return {
+                                  ...prev,
+                                  activeVariantId: nextVariant.id,
+                                  variants: [...prev.variants, nextVariant],
+                                };
+                              })}
+                            >
+                              新增变体
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => void handleGenerateImageSpec()}
+                              disabled={generatingImageSpec}
+                            >
+                              {generatingImageSpec ? "生成 image_spec..." : activeVariant ? "补当前变体 image_spec" : "补默认形态 image_spec"}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
+                          <div className="space-y-3 rounded-2xl border border-line bg-panel/70 p-3">
+                            <button
+                              type="button"
+                              onClick={() => setEditing((prev) => prev ? { ...prev, activeVariantId: DEFAULT_VARIANT_ID } : prev)}
+                              className={`w-full rounded-2xl border px-3 py-3 text-left transition ${editing.activeVariantId === DEFAULT_VARIANT_ID ? "border-mint bg-mint/10" : "border-line bg-panel2 hover:border-mint/40"
+                                }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-100">默认形态</p>
+                                  <p className="mt-1 text-xs text-gray-500">角色基础长相与气质</p>
+                                </div>
+                                <StatusPill value="base" tone="blue" />
+                              </div>
+                            </button>
+                            {editing.variants.map((variant) => (
+                              <button
+                                key={variant.id}
+                                type="button"
+                                onClick={() => setEditing((prev) => prev ? { ...prev, activeVariantId: variant.id } : prev)}
+                                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${editing.activeVariantId === variant.id ? "border-mint bg-mint/10" : "border-line bg-panel2 hover:border-mint/40"
+                                  }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-gray-100">{variantLabel(variant)}</p>
+                                    <p className="mt-1 truncate text-xs text-gray-500">{variant.variantType || "未定义变体类型"}</p>
+                                  </div>
+                                  <StatusPill value={variant.imagePath ? "有图" : "未出图"} tone={variant.imagePath ? "green" : "amber"} />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="space-y-4 rounded-2xl border border-line bg-panel/70 p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-100">
+                                  {activeVariant ? `${variantLabel(activeVariant)} 详情` : "默认形态详情"}
+                                </h4>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {activeVariant ? "当前变体会继承默认形态，再覆盖必要视觉字段。" : "默认形态定义这个角色最稳定的基础长相与气质。"}
+                                </p>
+                              </div>
+                              {activeVariant ? (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => setEditing((prev) => prev ? ({
+                                    ...prev,
+                                    activeVariantId: DEFAULT_VARIANT_ID,
+                                    variants: prev.variants.filter((item) => item.id !== prev.activeVariantId),
+                                  }) : prev)}
+                                >
+                                  删除变体
+                                </Button>
+                              ) : null}
+                            </div>
+
+                            {activeVariant ? (
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                  <Label className="mb-2 block text-xs text-gray-500">变体名</Label>
+                                  <Input value={activeVariant.variantName} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { variantName: e.target.value }) : prev)} />
+                                </div>
+                                <div>
+                                  <Label className="mb-2 block text-xs text-gray-500">变体类型</Label>
+                                  <Input value={activeVariant.variantType} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { variantType: e.target.value }) : prev)} placeholder="wedding / disguise / injured" />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <Label className="mb-2 block text-xs text-gray-500">触发场景</Label>
+                                  <Input value={activeVariant.triggerReason} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { triggerReason: e.target.value }) : prev)} placeholder="第12集婚礼对峙 / 第8集受伤后" />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <Label className="mb-2 block text-xs text-gray-500">视觉变化摘要</Label>
+                                  <Textarea value={activeVariant.visualChangesSummary} onChange={(e) => setEditing((prev) => prev ? updateVariantMeta(prev, { visualChangesSummary: e.target.value }) : prev)} />
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">性别呈现</Label>
+                                <Input value={getActiveVariantValue(editing, "genderPresentation")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "genderPresentation", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">年龄区间</Label>
+                                <Input value={getActiveVariantValue(editing, "ageRange")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "ageRange", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">体型</Label>
+                                <Input value={getActiveVariantValue(editing, "bodyType")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "bodyType", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">眼神/眼型</Label>
+                                <Input value={getActiveVariantValue(editing, "eyeStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "eyeStyle", e.target.value) : prev)} />
+                              </div>
+                              <div className="md:col-span-2">
+                                <Label className="mb-2 block text-xs text-gray-500">脸部特征</Label>
+                                <Textarea value={getActiveVariantValue(editing, "faceFeatures")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "faceFeatures", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">发型</Label>
+                                <Input value={getActiveVariantValue(editing, "hairStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "hairStyle", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">发色</Label>
+                                <Input value={getActiveVariantValue(editing, "hairColor")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "hairColor", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">标志表情</Label>
+                                <Input value={getActiveVariantValue(editing, "signatureExpression")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "signatureExpression", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">标志姿态</Label>
+                                <Input value={getActiveVariantValue(editing, "signaturePose")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "signaturePose", e.target.value) : prev)} />
+                              </div>
+                              <div className="md:col-span-2">
+                                <Label className="mb-2 block text-xs text-gray-500">服装风格</Label>
+                                <Textarea value={getActiveVariantValue(editing, "clothingStyle")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "clothingStyle", e.target.value) : prev)} />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">色板</Label>
+                                <Input value={getActiveVariantValue(editing, "colorPalette")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "colorPalette", e.target.value) : prev)} placeholder="black, charcoal, deep gold" />
+                              </div>
+                              <div>
+                                <Label className="mb-2 block text-xs text-gray-500">视觉关键词</Label>
+                                <Input value={getActiveVariantValue(editing, "visualKeywords")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "visualKeywords", e.target.value) : prev)} placeholder="wealthy mystery man, restrained menace" />
+                              </div>
+                              <div className="md:col-span-2">
+                                <Label className="mb-2 block text-xs text-gray-500">视觉负面约束</Label>
+                                <Textarea value={getActiveVariantValue(editing, "negativeVisualConstraints")} onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativeVisualConstraints", e.target.value) : prev)} placeholder="no cartoon styling, no teenage appearance" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="image" className="p-5">
+                      <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
+                        <h3 className="text-sm font-semibold text-gray-100">角色图片资产</h3>
+                        <p className="mt-1 text-xs text-gray-500">当前对选中形态维护 prompt 与主图；默认形态和各变体都可分别出图。</p>
+                        <div className="mt-3 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="mb-2 block text-xs text-gray-500">标准出图 Prompt</Label>
+                              <Textarea
+                                value={getActiveVariantValue(editing, "imagePrompt")}
+                                onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "imagePrompt", e.target.value) : prev)}
+                                className="min-h-[128px]"
+                              />
+                            </div>
+                            <div>
+                              <Label className="mb-2 block text-xs text-gray-500">负面 Prompt</Label>
+                              <Textarea
+                                value={getActiveVariantValue(editing, "negativePrompt")}
+                                onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativePrompt", e.target.value) : prev)}
+                                className="min-h-[96px]"
+                              />
+                            </div>
+                            <div>
+                              <Label className="mb-2 block text-xs text-gray-500">当前形态主图路径</Label>
+                              <Input
+                                value={activeVariant?.imagePath ?? editing.imagePath}
+                                onChange={(e) => setEditing((prev) => {
+                                  if (!prev) return prev;
+                                  if (prev.activeVariantId === DEFAULT_VARIANT_ID) {
+                                    return { ...prev, imagePath: e.target.value };
+                                  }
+                                  return {
+                                    ...prev,
+                                    variants: prev.variants.map((variant) => (
+                                      variant.id === prev.activeVariantId ? { ...variant, imagePath: e.target.value } : variant
+                                    )),
+                                  };
+                                })}
+                                placeholder="后续由出图服务回填"
+                              />
+                            </div>
+                          </div>
+                          <div className="rounded-[20px] border border-dashed border-line bg-panel/70 p-3">
+                            {(activeVariant?.imagePath || editing.imagePath) ? (
+                              <div className="space-y-3">
+                                <div className="overflow-hidden rounded-[16px] border border-line bg-panel2">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={resolveAssetUrl(activeVariant?.imagePath || editing.imagePath)}
+                                    alt={editing.name || "角色图片"}
+                                    className="h-[260px] w-full cursor-pointer object-cover"
+                                    onClick={() => setPreviewImage(resolveAssetUrl(activeVariant?.imagePath || editing.imagePath))}
+                                  />
+                                </div>
+                                <p className="text-xs text-gray-500">当前形态已有主图。后续这里可继续接“设为主图 / 基于主图微调 / 批量重生”。</p>
+                              </div>
+                            ) : (
+                              <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[16px] bg-panel2 px-4 text-center">
+                                <p className="text-sm font-medium text-gray-300">还没有角色图片</p>
+                                <p className="mt-2 text-xs leading-6 text-gray-500">
+                                  先用 Copilot 生成完整角色卡和视觉设定。
+                                  <br />
+                                  下一步这里会接“批量生成 4 张 / 设为主图 / 基于主图微调”。
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+                <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
+                  <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
+                    取消
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => void handleGenerateCharacterImage()}
+                    disabled={saving || generatingImage !== null}
+                  >
+                    {generatingImage === "draft"
+                      ? "保存并生成中..."
+                      : generatingImage === editing?.id
+                        ? "生成中..."
+                        : ((activeVariant?.imagePath || editing?.imagePath) ? "保存并重生成主图" : "保存并生成角色图")}
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? "保存中..." : "保存角色"}
+                  </Button>
+                </DialogFooter>
+              </>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      </SectionCard>
     </>
   );
 }
