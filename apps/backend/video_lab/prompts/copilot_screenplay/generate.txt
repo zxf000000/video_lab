@@ -1,0 +1,18 @@
+请基于下面的上下文，为当前分集生成详细剧本。
+
+剧本生成要求：
+1. 根据分集大纲（title、summary、goal、core_conflict、opening_hook、climax、ending_hook）展开为完整剧本。
+2. 合理使用已有的角色（existing_characters）和场景（existing_scenes），台词要匹配角色的 speech_style。
+3. 开场必须呼应 opening_hook，高潮必须体现 climax，结尾必须呼应 ending_hook。
+4. 每场 300-800 字，场次数根据剧情复杂度决定（建议 3-6 场）。
+5. 对白口语化、短平快，动作具体可拍。
+6. 如果上下文提供了已有剧本（screenplay_content），必须参考其结构和风格，不要完全推翻。
+7. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}

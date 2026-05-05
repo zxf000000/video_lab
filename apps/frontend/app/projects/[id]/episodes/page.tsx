@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -10,15 +10,16 @@ import {
   deleteEpisode,
   listCharacters,
   listScenes,
-  createShot,
   getProject,
+  generateScreenplay,
+  generateScenes,
+  generateShots,
+  getTask,
   streamCopilot,
   type Episode,
   type EpisodeProposal,
   type EpisodeCollectionProposal,
-  type SceneCollectionProposal,
-  type SceneProposal,
-  type ShotCollectionProposal,
+  type GenerationTask,
   type ProjectDetail,
   type CharacterAsset,
   type ScenePreset,
@@ -104,6 +105,8 @@ export default function EpisodesPage() {
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState("");
   const [generatingScenes, setGeneratingScenes] = useState<number | null>(null);
+  const [generatingScreenplay, setGeneratingScreenplay] = useState<number | null>(null);
+  const [screenplayDialog, setScreenplayDialog] = useState<{ episode: Episode; content: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   /* ---- data fetch ---- */
@@ -127,6 +130,30 @@ export default function EpisodesPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /* ---- poll active generation tasks (handles page refresh) ---- */
+  const activeTasks = useMemo(() => {
+    return (project?.tasks ?? []).filter(
+      (t) => t.status === "queued" || t.status === "running"
+    );
+  }, [project?.tasks]);
+
+  const getActiveTask = useCallback(
+    (episodeId: number, modelName: string): GenerationTask | undefined => {
+      return activeTasks.find(
+        (t) => t.episodeId === episodeId && t.modelName === modelName
+      );
+    },
+    [activeTasks]
+  );
+
+  useEffect(() => {
+    if (activeTasks.length === 0) return;
+    const timer = setInterval(() => {
+      void refresh();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [activeTasks.length, refresh]);
 
   /* ---- context builder (NO scenes — story first) ---- */
   const buildEpisodeCopilotContext = useCallback(
@@ -379,78 +406,148 @@ export default function EpisodesPage() {
   /* ---- per-episode scene generation ---- */
   const handleGenerateScenes = useCallback(
     async (episode: Episode) => {
-      console.log("[scene-gen] clicked for episode:", episode.title);
       setGeneratingScenes(episode.id);
       try {
-        let collected: SceneProposal[] = [];
-        console.log("[scene-gen] current scenes count:", scenes.length);
-
-        await streamCopilot(
-          {
-            projectId,
-            moduleType: "scene",
-            intent: "generate",
-            messages: [{ role: "user", content: "为此集生成需要的场景 preset" }],
-            context: {
-              current_mode: "episode_scene",
-              generation_mode: "batch",
-              project_summary: project
-                ? { name: project.name, genre: project.genre }
-                : null,
-              brief_summary: project?.brief
-                ? {
-                    logline: project.brief.logline,
-                    world_rules: project.brief.worldRules,
-                    main_conflict: project.brief.mainConflict,
-                  }
-                : null,
-              existing_characters: characters.map((c) => ({
-                name: c.name,
-                role_type: c.roleType,
-              })),
-              existing_scenes: scenes.map((s) => ({
-                name: s.name,
-                scene_type: s.sceneType,
-                space_description: s.spaceDescription,
-              })),
-              current_episode: {
-                episode_no: episode.episodeNo,
-                title: episode.title,
-                summary: episode.summary,
-                goal: episode.goal,
-                core_conflict: episode.coreConflict,
-                opening_hook: episode.openingHook,
-                climax: episode.climax,
-                ending_hook: episode.endingHook,
-              },
-              locked_rules: { project_id: projectId, must_follow_brief: true },
-            },
-          },
-          {
-            onProposal: (event) => {
-              const col = event.proposal as SceneCollectionProposal;
-              if (col?.scenes) {
-                collected = col.scenes;
+        const context = {
+          current_mode: "episode_scene",
+          generation_mode: "batch",
+          project_summary: project
+            ? { name: project.name, genre: project.genre }
+            : null,
+          brief_summary: project?.brief
+            ? {
+                logline: project.brief.logline,
+                world_rules: project.brief.worldRules,
+                main_conflict: project.brief.mainConflict,
               }
-            },
-            onError: (error) => {
-              console.error("Scene generation error:", error);
-            },
-          }
-        );
+            : null,
+          existing_characters: characters.map((c) => ({
+            name: c.name,
+            role_type: c.roleType,
+          })),
+          existing_scenes: scenes.map((s) => ({
+            name: s.name,
+            scene_type: s.sceneType,
+            space_description: s.spaceDescription,
+          })),
+          current_episode: {
+            episode_no: episode.episodeNo,
+            title: episode.title,
+            summary: episode.summary,
+            goal: episode.goal,
+            core_conflict: episode.coreConflict,
+            opening_hook: episode.openingHook,
+            climax: episode.climax,
+            ending_hook: episode.endingHook,
+          },
+          locked_rules: { project_id: projectId, must_follow_brief: true },
+        };
 
-        if (collected.length > 0) {
-          const { createScene } = await import("@/src/api");
-          for (const scene of collected) {
-            await createScene(projectId, { ...scene, episodeId: episode.id });
+        const { task } = await generateScenes(episode.id, {
+          context,
+          messages: [{ role: "user", content: "为此集生成需要的场景 preset" }],
+        });
+
+        const poll = async (): Promise<void> => {
+          const { task: latest } = await getTask(task.id);
+          if (latest.status === "succeeded") {
+            await refresh();
+            return;
           }
-          await refresh();
-        }
+          if (latest.status === "failed") {
+            console.error("Scene generation failed:", latest.errorMessage);
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 3000));
+          return poll();
+        };
+        await poll();
       } finally {
         setGeneratingScenes(null);
       }
     },
     [project, characters, scenes, projectId, refresh]
+  );
+
+  /* ---- per-episode screenplay generation ---- */
+  const handleGenerateScreenplay = useCallback(
+    async (episode: Episode) => {
+      setGeneratingScreenplay(episode.id);
+      try {
+        const context = {
+          current_mode: "single",
+          generation_mode: "single",
+          project_summary: project
+            ? { name: project.name, genre: project.genre }
+            : null,
+          brief_summary: project?.brief
+            ? {
+                logline: project.brief.logline,
+                world_rules: project.brief.worldRules,
+                main_conflict: project.brief.mainConflict,
+                reversal_rules: project.brief.reversalRules,
+                relationship_summary: project.brief.relationshipSummary,
+              }
+            : null,
+          existing_characters: characters.map((c) => ({
+            name: c.name,
+            role_type: c.roleType,
+            identity_summary: c.identitySummary,
+            personality_tags: c.personalityTags,
+            speech_style: c.speechStyle,
+          })),
+          existing_scenes: scenes.map((s) => ({
+            name: s.name,
+            scene_type: s.sceneType,
+            space_description: s.spaceDescription,
+          })),
+          current_episode: {
+            episode_no: episode.episodeNo,
+            title: episode.title,
+            summary: episode.summary,
+            goal: episode.goal,
+            core_conflict: episode.coreConflict,
+            opening_hook: episode.openingHook,
+            climax: episode.climax,
+            ending_hook: episode.endingHook,
+          },
+          screenplay_content: episode.screenplayContent || null,
+          locked_rules: { project_id: projectId, must_follow_brief: true },
+        };
+
+        const { task } = await generateScreenplay(episode.id, {
+          context,
+          messages: [{ role: "user", content: "请为当前分集生成详细剧本" }],
+        });
+
+        const poll = async (): Promise<void> => {
+          const { task: latest } = await getTask(task.id);
+          if (latest.status === "succeeded") {
+            await refresh();
+            return;
+          }
+          if (latest.status === "failed") {
+            console.error("Screenplay generation failed:", latest.errorMessage);
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 3000));
+          return poll();
+        };
+        await poll();
+      } finally {
+        setGeneratingScreenplay(null);
+      }
+    },
+    [project, characters, scenes, projectId, refresh]
+  );
+
+  const handleSaveScreenplay = useCallback(
+    async (episodeId: number, content: string) => {
+      await updateEpisode(episodeId, { screenplayContent: content });
+      setScreenplayDialog(null);
+      await refresh();
+    },
+    [refresh]
   );
 
   /* ---- per-episode shot generation ---- */
@@ -460,81 +557,72 @@ export default function EpisodesPage() {
     async (episode: Episode) => {
       setGeneratingShots(episode.id);
       try {
-        let collected: ShotCollectionProposal | null = null;
-
-        await streamCopilot(
-          {
-            projectId,
-            moduleType: "shot",
-            intent: "generate",
-            messages: [{ role: "user", content: "为此集生成镜头列表（Shot List）" }],
-            context: {
-              current_mode: "episode_shot",
-              generation_mode: "batch",
-              project_summary: project
-                ? { name: project.name, genre: project.genre }
-                : null,
-              brief_summary: project?.brief
-                ? {
-                    logline: project.brief.logline,
-                    world_rules: project.brief.worldRules,
-                    main_conflict: project.brief.mainConflict,
-                  }
-                : null,
-              existing_characters: characters.map((c) => ({
-                id: c.id,
-                name: c.name,
-                role_type: c.roleType,
-              })),
-              existing_scenes: scenes.map((s) => ({
-                id: s.id,
-                name: s.name,
-                scene_type: s.sceneType,
-              })),
-              current_episode: {
-                episode_no: episode.episodeNo,
-                title: episode.title,
-                summary: episode.summary,
-                goal: episode.goal,
-                core_conflict: episode.coreConflict,
-                opening_hook: episode.openingHook,
-                climax: episode.climax,
-                ending_hook: episode.endingHook,
-              },
-              locked_rules: { project_id: projectId, must_follow_brief: true },
-            },
+        const context = {
+          current_mode: "episode_shot",
+          generation_mode: "batch",
+          project_summary: project
+            ? { name: project.name, genre: project.genre }
+            : null,
+          brief_summary: project?.brief
+            ? {
+                logline: project.brief.logline,
+                world_rules: project.brief.worldRules,
+                main_conflict: project.brief.mainConflict,
+              }
+            : null,
+          existing_characters: characters.map((c) => ({
+            id: c.id,
+            name: c.name,
+            role_type: c.roleType,
+          })),
+          existing_scenes: scenes.map((s) => ({
+            id: s.id,
+            name: s.name,
+            scene_type: s.sceneType,
+            space_description: s.spaceDescription,
+            lighting_style: s.lightingStyle,
+            time_of_day: s.timeOfDay,
+            weather: s.weather,
+          })),
+          current_episode: {
+            episode_no: episode.episodeNo,
+            title: episode.title,
+            summary: episode.summary,
+            goal: episode.goal,
+            core_conflict: episode.coreConflict,
+            opening_hook: episode.openingHook,
+            climax: episode.climax,
+            ending_hook: episode.endingHook,
           },
-          {
-            onProposal: (event) => {
-              collected = event.proposal as ShotCollectionProposal;
-            },
-            onError: (error) => {
-              console.error("Shot generation error:", error);
-            },
-          }
-        );
+          screenplay_content: episode.screenplayContent || null,
+          screenplay_scenes: episode.screenplayScenes?.map((s) => ({
+            scene_no: s.sceneNo,
+            location: s.location,
+            summary: s.summary,
+            scene_preset_id: s.scenePresetId,
+          })) || null,
+          locked_rules: { project_id: projectId, must_follow_brief: true },
+        };
 
-        const shotList = (collected as ShotCollectionProposal | null)?.shots;
-        if (shotList?.length) {
-          for (const shot of shotList) {
-            await createShot(episode.id, {
-              shotNo: shot.shotNo,
-              sceneBlock: shot.sceneBlock,
-              visualGoal: shot.visualGoal,
-              shotSize: shot.shotSize,
-              cameraAngle: shot.cameraAngle,
-              composition: shot.composition,
-              actionDescription: shot.actionDescription,
-              facialEmotion: shot.facialEmotion,
-              cameraMotion: shot.cameraMotion,
-              dialogueExcerpt: shot.dialogueExcerpt,
-              estimatedDurationMs: shot.estimatedDurationMs,
-              scenePresetId: shot.scenePresetId,
-              characterIds: shot.characterIds,
-            });
+        const { task } = await generateShots(episode.id, {
+          context,
+          messages: [{ role: "user", content: "为此集生成镜头列表（Shot List）" }],
+        });
+
+        const poll = async (): Promise<void> => {
+          const { task: latest } = await getTask(task.id);
+          if (latest.status === "succeeded") {
+            await refresh();
+            return;
           }
-          await refresh();
-        }
+          if (latest.status === "failed") {
+            console.error("Shot generation failed:", latest.errorMessage);
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 3000));
+          return poll();
+        };
+        await poll();
       } finally {
         setGeneratingShots(null);
       }
@@ -669,16 +757,30 @@ export default function EpisodesPage() {
                     重新生成
                   </Button>
                   <Button
-                    onClick={() => void handleGenerateScenes(ep)}
-                    disabled={generatingScenes === ep.id}
+                    onClick={() => void handleGenerateScreenplay(ep)}
+                    disabled={generatingScreenplay === ep.id || !!getActiveTask(ep.id, "screenplay")}
                   >
-                    {generatingScenes === ep.id ? "生成中..." : "生成场景"}
+                    {generatingScreenplay === ep.id || getActiveTask(ep.id, "screenplay") ? "生成中..." : "生成剧本"}
+                  </Button>
+                  {ep.screenplayContent ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setScreenplayDialog({ episode: ep, content: ep.screenplayContent })}
+                    >
+                      查看剧本
+                    </Button>
+                  ) : null}
+                  <Button
+                    onClick={() => void handleGenerateScenes(ep)}
+                    disabled={generatingScenes === ep.id || !!getActiveTask(ep.id, "scene")}
+                  >
+                    {generatingScenes === ep.id || getActiveTask(ep.id, "scene") ? "生成中..." : "生成场景"}
                   </Button>
                   <Button
                     onClick={() => void handleGenerateShots(ep)}
-                    disabled={generatingShots === ep.id}
+                    disabled={generatingShots === ep.id || !!getActiveTask(ep.id, "shot")}
                   >
-                    {generatingShots === ep.id ? "生成中..." : "生成镜头"}
+                    {generatingShots === ep.id || getActiveTask(ep.id, "shot") ? "生成中..." : "生成镜头"}
                   </Button>
                   <Link href={`/projects/${projectId}/shots`}>
                     <Button variant="secondary">查看镜头</Button>
@@ -906,6 +1008,45 @@ export default function EpisodesPage() {
                 disabled={!regenerateInput.trim()}
               >
                 重新生成
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ---- Screenplay Dialog ---- */}
+      {screenplayDialog && (
+        <Dialog open onOpenChange={() => setScreenplayDialog(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                剧本 — 第 {screenplayDialog.episode.episodeNo} 集「{screenplayDialog.episode.title}」
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Label>剧本内容</Label>
+              <Textarea
+                className="font-mono text-sm"
+                value={screenplayDialog.content}
+                rows={24}
+                onChange={(e) =>
+                  setScreenplayDialog({
+                    ...screenplayDialog,
+                    content: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setScreenplayDialog(null)}>
+                取消
+              </Button>
+              <Button
+                onClick={() =>
+                  void handleSaveScreenplay(screenplayDialog.episode.id, screenplayDialog.content)
+                }
+              >
+                保存剧本
               </Button>
             </DialogFooter>
           </DialogContent>

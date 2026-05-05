@@ -58,8 +58,8 @@ class PromptsRepository:
                     shot_id, version_no, prompt_text, first_frame_prompt, first_frame_negative_prompt,
                     video_prompt, video_negative_prompt,
                     negative_prompt, model_params,
-                    reference_asset_ids, first_frame_url, video_url, status, is_active, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    reference_asset_ids, first_frame_url, first_frame_status, video_url, video_status, status, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["shot_id"],
@@ -73,7 +73,9 @@ class PromptsRepository:
                     payload["model_params"],
                     payload["reference_asset_ids"],
                     payload.get("first_frame_url", ""),
+                    payload.get("first_frame_status", ""),
                     payload.get("video_url", ""),
+                    payload.get("video_status", ""),
                     payload["status"],
                     payload["is_active"],
                     ts,
@@ -98,7 +100,9 @@ class PromptsRepository:
             "model_params",
             "reference_asset_ids",
             "first_frame_url",
+            "first_frame_status",
             "video_url",
+            "video_status",
             "status",
             "is_active",
         ):

@@ -10,6 +10,15 @@
 2.2 `===PROPOSAL===` 和 `===END_PROPOSAL===` 必须各自单独占一行。
 2.3 标记之间只能出现一个完整 JSON 对象，不能出现解释文字、编号、补充说明。
 3. **特殊模式支持**：
+- 当上下文中包含 `screenplay_scenes`（结构化剧本场次）时：
+  - `scene_block` 必须精确映射 `screenplay_scenes` 中的 `scene_no`（如 "S1"、"S2"）
+  - `scene_preset_id` 优先从 `screenplay_scenes[].scene_preset_id` 获取（如果已关联场景 preset）
+  - 其次从 `existing_scenes` 中根据场次的 `location`、`summary` 匹配最合适的场景 preset
+  - 每个镜头的 `action_description` 和 `dialogue_excerpt` 必须引用于对应场次的剧本内容
+  - 镜头的节奏和数量要匹配剧本的场次密度
+- 当上下文中包含 `screenplay_content`（纯文本剧本）但无 `screenplay_scenes` 时：
+  - 优先依据剧本内容拆分镜头，而不是仅依赖分集大纲
+  - `scene_block` 字段必须映射到剧本中的场次编号（如剧本场景1 → "S1"）
 - 如果是「批量生成」模式（generation_mode = batch）：顶层必须只有 `shots` 数组
 - 如果是「单个生成」模式（generation_mode = single）：顶层只有 1 个镜头对象
 4. 每个镜头对象只能包含以下字段：

@@ -150,6 +150,7 @@ def init_db() -> None:
                 outline_summary TEXT NOT NULL DEFAULT '',
                 screenplay_content TEXT NOT NULL DEFAULT '',
                 screenplay_content_en TEXT NOT NULL DEFAULT '',
+                screenplay_scenes TEXT NOT NULL DEFAULT '[]',
                 status TEXT NOT NULL DEFAULT 'draft',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -218,6 +219,7 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         ("negative_constraints", "TEXT NOT NULL DEFAULT ''"),
         ("reference_asset_ids", "TEXT NOT NULL DEFAULT '[]'"),
         ("status", "TEXT NOT NULL DEFAULT 'draft'"),
+        ("image_status", "TEXT NOT NULL DEFAULT ''"),
         ("version_no", "INTEGER NOT NULL DEFAULT 1"),
     ]:
         if col not in existing_chars:
@@ -245,7 +247,9 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     existing_episodes = {row[1] for row in conn.execute("PRAGMA table_info(episodes)").fetchall()}
     if existing_episodes:
         for col, col_def in [
+            ("screenplay_content", "TEXT NOT NULL DEFAULT ''"),
             ("screenplay_content_en", "TEXT NOT NULL DEFAULT ''"),
+            ("screenplay_scenes", "TEXT NOT NULL DEFAULT '[]'"),
             ("status", "TEXT NOT NULL DEFAULT 'draft'"),
             ("episode_no", "INTEGER NOT NULL DEFAULT 1"),
             ("summary", "TEXT NOT NULL DEFAULT ''"),
@@ -295,6 +299,7 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         ("dialogue_excerpt", "TEXT NOT NULL DEFAULT ''"),
         ("estimated_duration_ms", "INTEGER NOT NULL DEFAULT 0"),
         ("sort_order", "INTEGER NOT NULL DEFAULT 0"),
+        ("batch_id", "INTEGER REFERENCES shot_batches(id) ON DELETE SET NULL"),
     ]:
         if col not in existing_shots:
             conn.execute(f"ALTER TABLE shots ADD COLUMN {col} {col_def}")
@@ -318,6 +323,8 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
             ("video_negative_prompt", "TEXT NOT NULL DEFAULT ''"),
             ("first_frame_url", "TEXT NOT NULL DEFAULT ''"),
             ("video_url", "TEXT NOT NULL DEFAULT ''"),
+            ("first_frame_status", "TEXT NOT NULL DEFAULT ''"),
+            ("video_status", "TEXT NOT NULL DEFAULT ''"),
         ]:
             if col not in existing_shot_prompts:
                 conn.execute(f"ALTER TABLE shot_prompts ADD COLUMN {col} {col_def}")

@@ -17,7 +17,7 @@ from ..domain.story_dev.copilot_types import (
 from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
-SUPPORTED_MODULES = {"brief", "character", "scene", "episode", "shot"}
+SUPPORTED_MODULES = {"brief", "character", "scene", "episode", "shot", "screenplay"}
 SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate", "optimize_prompt"}
 START_MARKER = "===PROPOSAL==="
 END_MARKER = "===END_PROPOSAL==="
@@ -362,6 +362,37 @@ def _extract_shot_proposal(text: str) -> dict | None:
     return None
 
 
+def _normalize_screenplay_scene(raw: dict) -> dict:
+    return {
+        "scene_no": int(raw.get("scene_no", 0)),
+        "location": str(raw.get("location", "")),
+        "summary": str(raw.get("summary", "")),
+        "content": str(raw.get("content", "")),
+    }
+
+
+def _extract_screenplay_proposal(text: str) -> dict | None:
+    if START_MARKER not in text or END_MARKER not in text:
+        return None
+    start = text.index(START_MARKER) + len(START_MARKER)
+    end = text.index(END_MARKER, start)
+    raw = text[start:end].strip()
+    try:
+        proposal = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(proposal, dict):
+        return None
+    content = str(proposal.get("content", ""))
+    scenes = []
+    raw_scenes = proposal.get("scenes")
+    if isinstance(raw_scenes, list):
+        scenes = [_normalize_screenplay_scene(s) for s in raw_scenes if isinstance(s, dict)]
+    if not content and not scenes:
+        return None
+    return {"content": content, "scenes": scenes}
+
+
 def _extract_proposal(module_type: str, text: str) -> dict | None:
     if module_type == "brief":
         return _extract_brief_proposal(text)
@@ -373,6 +404,8 @@ def _extract_proposal(module_type: str, text: str) -> dict | None:
         return _extract_episode_proposal(text)
     if module_type == "shot":
         return _extract_shot_proposal(text)
+    if module_type == "screenplay":
+        return _extract_screenplay_proposal(text)
     return None
 
 

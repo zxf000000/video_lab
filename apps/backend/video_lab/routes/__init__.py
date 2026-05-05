@@ -91,6 +91,18 @@ def parse_qs_param(environ, key: str, default: str = "") -> str:
     return qs.get(key, [default])[0]
 
 
+def _parse_json_field(raw: object, default: object = None) -> object:
+    """Parse a JSON string field, returning default on failure."""
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return default
+    if raw is None:
+        return default
+    return raw
+
+
 # ── Serializers ───────────────────────────────────────────────────
 def serialize_project_summary(project: dict[str, object] | None) -> dict[str, object]:
     if not project:
@@ -147,6 +159,7 @@ def serialize_shot(shot: dict[str, object] | None) -> dict[str, object]:
             "estimated_duration_ms": shot.get("estimated_duration_ms", 0),
             "status": shot.get("status", "draft"),
             "sort_order": shot.get("sort_order", 0),
+            "batch_id": shot.get("batch_id"),
             "created_at": shot["created_at"],
             "updated_at": shot["updated_at"],
         }
@@ -255,6 +268,7 @@ def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
             "negative_constraints": char.get("negative_constraints", ""),
             "reference_asset_ids": char.get("reference_asset_ids", "[]"),
             "status": char.get("status", "draft"),
+            "image_status": char.get("image_status", ""),
             "version_no": char.get("version_no", 1),
             "image_path": char.get("image_path", ""),
             "created_at": char["created_at"],
@@ -326,6 +340,9 @@ def serialize_episode(episode: dict[str, object] | None) -> dict[str, object]:
             "opening_hook": episode.get("opening_hook", ""),
             "climax": episode.get("climax", ""),
             "ending_hook": episode.get("ending_hook", ""),
+            "screenplay_content": episode.get("screenplay_content", ""),
+            "screenplay_content_en": episode.get("screenplay_content_en", ""),
+            "screenplay_scenes": _parse_json_field(episode.get("screenplay_scenes"), []),
             "status": episode.get("status", "draft"),
             "sort_order": episode.get("sort_order", 0),
             "created_at": episode["created_at"],
@@ -375,7 +392,9 @@ def serialize_prompt(prompt: dict[str, object] | None) -> dict[str, object]:
         "model_params": prompt.get("model_params", "{}"),
         "reference_asset_ids": prompt.get("reference_asset_ids", "[]"),
         "first_frame_url": prompt.get("first_frame_url", ""),
+        "first_frame_status": prompt.get("first_frame_status", ""),
         "video_url": prompt.get("video_url", ""),
+        "video_status": prompt.get("video_status", ""),
         "status": prompt.get("status", "draft"),
         "is_active": bool(prompt.get("is_active", 0)),
         "created_at": prompt.get("created_at"),

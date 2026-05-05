@@ -22,7 +22,7 @@ export default function ProjectTasksPage() {
   }
 
   return (
-    <SectionCard title="任务面板" description="这里展示当前项目下的新 generation tasks，支持失败任务重试。">
+    <SectionCard title="任务面板" description="这里展示当前项目下的所有任务，支持失败任务重试。">
       {currentProject.tasks.length ? (
         <div className="grid gap-3">
           {currentProject.tasks.map((task) => (

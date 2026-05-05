@@ -38,6 +38,7 @@ class AssetsService:
             "negative_constraints": normalize_text(payload.get("negative_constraints")),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "status": normalize_text(payload.get("status"), "draft"),
+            "image_status": normalize_text(payload.get("image_status")),
             "version_no": max(1, normalize_int(payload.get("version_no"), 1)),
         }
         if not data["name"]:

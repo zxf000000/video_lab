@@ -273,6 +273,9 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     if not proposal:
         return respond_json(start_response, {"error": "Failed to generate prompt from LLM"}, status="500 Internal Server Error")
 
+    proposal["first_frame_prompt"] = _append_once(proposal["first_frame_prompt"], SKETCH_TO_REAL_FRAME_INSTRUCTION)
+    proposal["video_prompt"] = _append_once(proposal["video_prompt"], SKETCH_TO_REAL_VIDEO_INSTRUCTION)
+
     return respond_json(start_response, {
         "first_frame_prompt": proposal["first_frame_prompt"],
         "first_frame_negative_prompt": proposal["first_frame_negative_prompt"],
@@ -322,7 +325,7 @@ def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt:
         filepath.write_bytes(img_resp.content)
 
         # Update shot_prompt with local path
-        prompts_svc.update_prompt(prompt_id, {"first_frame_url": filename})
+        prompts_svc.update_prompt(prompt_id, {"first_frame_url": filename, "first_frame_status": "succeeded"})
 
         # Update generation task
         gen_svc.repository.update_task(task_id, {
@@ -331,6 +334,7 @@ def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt:
             "finished_at": None,  # will be auto-handled
         })
     except Exception as exc:
+        prompts_svc.update_prompt(prompt_id, {"first_frame_status": "failed"})
         gen_svc.repository.update_task(task_id, {
             "status": "failed",
             "error_message": str(exc)[:500],
@@ -455,6 +459,7 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
         "duration_ms": 0,
     }
     task_id = generation_service.repository.create_task(task_payload)
+    prompts_svc.update_prompt(int(prompt_id), {"first_frame_status": "generating"})
     generation_service.repository.update_task(task_id, {"status": "running"})
     _frame_executor.submit(_run_generate_prompt_frame, task_id, int(prompt_id), first_frame_prompt, reference_images)
     task = generation_service.get_task(task_id)
@@ -499,12 +504,13 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
                 duration=5,
                 remove_watermark=False,
             )
-        prompts_svc.update_prompt(prompt_id, {"video_url": video_path})
+        prompts_svc.update_prompt(prompt_id, {"video_url": video_path, "video_status": "succeeded"})
         gen_svc.repository.update_task(task_id, {
             "status": "succeeded",
             "output_assets": json.dumps([{"url": video_path, "type": "video"}]),
         })
     except Exception as exc:
+        prompts_svc.update_prompt(prompt_id, {"video_status": "failed"})
         err_msg = str(exc)[:500]
         if hasattr(exc, "response") and exc.response is not None:
             try:
@@ -580,6 +586,7 @@ def submit_generate_video(environ, start_response, prompt_id: str):
         "duration_ms": 0,
     }
     task_id = generation_service.repository.create_task(task_payload)
+    prompts_svc.update_prompt(int(prompt_id), {"video_status": "generating"})
     generation_service.repository.update_task(task_id, {"status": "running"})
     _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame)
     task = generation_service.get_task(task_id)

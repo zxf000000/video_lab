@@ -9,11 +9,15 @@ import {
   generateEpisodeBatch,
   generateShot,
   getApiBase,
+  listBatchShots,
+  listShotBatches,
   listShots,
   retryTask,
   updateShot,
   type GenerationTask,
+  type ScreenplayScene,
   type Shot,
+  type ShotBatch,
 } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, SectionCard, StatusPill } from "@/src/components/project/project-ui";
@@ -23,6 +27,7 @@ import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
 import ImagePreview from "@/src/components/project/ImagePreview";
+import VideoPreview from "@/src/components/project/VideoPreview";
 
 type EpisodeShots = {
   episodeId: number;
@@ -30,6 +35,7 @@ type EpisodeShots = {
   title: string;
   shots: Shot[];
   tasks: GenerationTask[];
+  screenplayScenes: ScreenplayScene[];
 };
 
 type ShotFormState = {
@@ -68,6 +74,17 @@ const emptyForm = (episodeId: number, shotNo: number): ShotFormState => ({
   estimatedDurationMs: 3000,
   status: "draft",
 });
+
+function matchScreenplayScene(
+  sceneBlock: string,
+  scenes: ScreenplayScene[]
+): ScreenplayScene | null {
+  if (!sceneBlock || !scenes.length) return null;
+  const m = sceneBlock.match(/\d+/);
+  if (!m) return null;
+  const targetNo = Number(m[0]);
+  return scenes.find((s) => s.sceneNo === targetNo) ?? null;
+}
 
 function parseCsvNumbers(value: string) {
   return value
@@ -110,6 +127,14 @@ export default function ProjectPromptsPage() {
   const [editing, setEditing] = useState<ShotFormState | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Batch history
+  const [batchDialogEpId, setBatchDialogEpId] = useState<number | null>(null);
+  const [batches, setBatches] = useState<ShotBatch[]>([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [viewingBatchId, setViewingBatchId] = useState<number | null>(null);
+  const [batchShots, setBatchShots] = useState<Shot[]>([]);
+  const [expandedSceneShotId, setExpandedSceneShotId] = useState<number | null>(null);
+
   const projectId = Number(params.id);
   const sceneOptions = useMemo(() => project?.scenes ?? [], [project]);
 
@@ -128,6 +153,7 @@ export default function ProjectPromptsPage() {
             title: ep.title,
             shots: payload.shots,
             tasks: project.tasks.filter((t) => t.episodeId === ep.id),
+            screenplayScenes: ep.screenplayScenes ?? [],
           };
         })
       );
@@ -184,6 +210,29 @@ export default function ProjectPromptsPage() {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setRetryingTask(null);
+    }
+  }
+
+  async function handleViewBatches(episodeId: number) {
+    setBatchDialogEpId(episodeId);
+    setLoadingBatches(true);
+    try {
+      const { batches: list } = await listShotBatches(episodeId);
+      setBatches(list);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoadingBatches(false);
+    }
+  }
+
+  async function handleViewBatchShots(batchId: number) {
+    setViewingBatchId(batchId);
+    try {
+      const { shots } = await listBatchShots(batchId);
+      setBatchShots(shots);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -272,12 +321,33 @@ export default function ProjectPromptsPage() {
                   >
                     新增镜头
                   </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleViewBatches(ep.episodeId)}
+                  >
+                    历史版本
+                  </Button>
                 </div>
               </div>
 
+              {viewingBatchId ? (
+                <div className="mb-3 flex items-center gap-2 rounded-md bg-mint/10 border border-mint/30 px-3 py-1.5">
+                  <span className="text-xs text-mint">
+                    正在查看版本 #{batches.find((b) => b.id === viewingBatchId)?.versionNo ?? "?"}
+                  </span>
+                  <button
+                    className="text-xs text-mint/70 underline hover:text-mint"
+                    onClick={() => { setViewingBatchId(null); setBatchShots([]); }}
+                  >
+                    返回当前版本
+                  </button>
+                </div>
+              ) : null}
+
               {ep.shots.length ? (
                 <div className="grid gap-2">
-                  {ep.shots.map((shot) => {
+                  {(viewingBatchId ? batchShots : ep.shots).map((shot) => {
                     const latestTask = getLatestTaskStatus(shot.id, ep.tasks);
                     const apiBase = getApiBase();
                     const imageUrl = shot.firstFrameUrl
@@ -298,7 +368,11 @@ export default function ProjectPromptsPage() {
                           </div>
                           <div className="w-[120px] h-[68px] rounded-md bg-panel2 border border-line/50 overflow-hidden flex-shrink-0">
                             {videoUrl ? (
-                              <video src={videoUrl} className="w-full h-full object-cover" muted />
+                              <VideoPreview
+                                src={videoUrl}
+                                poster={imageUrl ?? undefined}
+                                className="w-full h-full"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600">无视频</div>
                             )}
@@ -324,53 +398,80 @@ export default function ProjectPromptsPage() {
                           <p className="mt-1 text-xs leading-5 text-gray-400 line-clamp-1">
                             {shot.visualGoal || shot.sceneBlock || "未填写"}
                           </p>
+                          {matchScreenplayScene(shot.sceneBlock, ep.screenplayScenes) ? (
+                            <div className="mt-1">
+                              <button
+                                className="text-[10px] text-gray-500 hover:text-mint transition"
+                                onClick={() =>
+                                  setExpandedSceneShotId(
+                                    expandedSceneShotId === shot.id ? null : shot.id
+                                  )
+                                }
+                              >
+                                {expandedSceneShotId === shot.id ? "收起剧本" : "查看剧本"}
+                              </button>
+                              {expandedSceneShotId === shot.id ? (
+                                <div className="mt-1 rounded-md bg-panel2/70 border border-line/30 px-3 py-2 max-h-32 overflow-y-auto">
+                                  <p className="text-xs leading-relaxed text-gray-300 whitespace-pre-wrap">
+                                    {matchScreenplayScene(shot.sceneBlock, ep.screenplayScenes)?.content || "无剧本内容"}
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                           {latestTask?.errorMessage ? (
                             <p className="mt-1 text-xs text-red-400 line-clamp-1">{latestTask.errorMessage}</p>
                           ) : null}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <a
-                            href={`/projects/${projectId}/shots/${shot.id}/prompts`}
-                            className="inline-flex rounded-lg border border-line bg-panel2 px-2.5 py-1 text-[11px] font-medium text-gray-400 transition hover:border-mint hover:text-mint"
-                          >
-                            Prompt
-                          </a>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="h-7 px-2.5 text-[11px]"
-                            disabled={generatingShot === shot.id}
-                            onClick={() => handleGenerateShot(shot.id)}
-                          >
-                            {generatingShot === shot.id ? "提交中" : "生成"}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="h-7 px-2.5 text-[11px]"
-                            onClick={() => setEditing(toForm(shot))}
-                          >
-                            编辑
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-7 px-2.5 text-[11px]"
-                            onClick={() => handleDeleteShot(shot)}
-                          >
-                            删除
-                          </Button>
-                          {latestTask?.status === "failed" ? (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-7 px-2.5 text-[11px]"
-                              disabled={retryingTask === latestTask.id}
-                              onClick={() => handleRetryTask(latestTask.id)}
-                            >
-                              {retryingTask === latestTask.id ? "重试中" : "重试"}
-                            </Button>
-                          ) : null}
+                          {!viewingBatchId ? (
+                            <>
+                              <a
+                                href={`/projects/${projectId}/shots/${shot.id}/prompts`}
+                                className="inline-flex rounded-lg border border-line bg-panel2 px-2.5 py-1 text-[11px] font-medium text-gray-400 transition hover:border-mint hover:text-mint"
+                              >
+                                Prompt
+                              </a>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px]"
+                                disabled={generatingShot === shot.id}
+                                onClick={() => handleGenerateShot(shot.id)}
+                              >
+                                {generatingShot === shot.id ? "提交中" : "生成"}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px]"
+                                onClick={() => setEditing(toForm(shot))}
+                              >
+                                编辑
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px]"
+                                onClick={() => handleDeleteShot(shot)}
+                              >
+                                删除
+                              </Button>
+                              {latestTask?.status === "failed" ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-7 px-2.5 text-[11px]"
+                                  disabled={retryingTask === latestTask.id}
+                                  onClick={() => handleRetryTask(latestTask.id)}
+                                >
+                                  {retryingTask === latestTask.id ? "重试中" : "重试"}
+                                </Button>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-600">历史版本（只读）</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -451,6 +552,57 @@ export default function ProjectPromptsPage() {
               </DialogFooter>
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={batchDialogEpId !== null} onOpenChange={(open) => !open && setBatchDialogEpId(null)}>
+        <DialogContent className="max-w-lg bg-panel p-0">
+          <DialogHeader className="border-b border-line px-5 py-4">
+            <DialogTitle>镜头历史版本</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            {loadingBatches ? (
+              <p className="text-sm text-gray-500">加载中...</p>
+            ) : batches.length === 0 ? (
+              <p className="text-sm text-gray-500">暂无历史版本</p>
+            ) : (
+              <div className="grid gap-2">
+                {batches.map((batch) => (
+                  <div
+                    key={batch.id}
+                    className="flex items-center justify-between rounded-md border border-line/50 bg-panel2/50 px-4 py-3"
+                  >
+                    <div>
+                      <span className="text-sm font-semibold text-gray-200">
+                        版本 #{batch.versionNo}
+                      </span>
+                      <span className="ml-3 text-xs text-gray-500">
+                        {new Date(batch.createdAt).toLocaleString("zh-CN")}
+                      </span>
+                      <span className="ml-3 text-xs text-gray-500">
+                        {batch.shotCount} 个镜头
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setBatchDialogEpId(null);
+                        handleViewBatchShots(batch.id);
+                      }}
+                    >
+                      查看
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
+            <Button variant="secondary" onClick={() => setBatchDialogEpId(null)}>
+              关闭
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </SectionCard>

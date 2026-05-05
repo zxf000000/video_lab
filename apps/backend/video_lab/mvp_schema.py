@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS characters (
     negative_constraints TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'draft',
+    image_status TEXT NOT NULL DEFAULT '',
     version_no INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -92,6 +93,9 @@ CREATE TABLE IF NOT EXISTS episodes (
     opening_hook TEXT NOT NULL DEFAULT '',
     climax TEXT NOT NULL DEFAULT '',
     ending_hook TEXT NOT NULL DEFAULT '',
+    screenplay_content TEXT NOT NULL DEFAULT '',
+    screenplay_content_en TEXT NOT NULL DEFAULT '',
+    screenplay_scenes TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'draft',
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
@@ -136,7 +140,9 @@ CREATE TABLE IF NOT EXISTS shot_prompts (
     model_params TEXT NOT NULL DEFAULT '{}',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     first_frame_url TEXT NOT NULL DEFAULT '',
+    first_frame_status TEXT NOT NULL DEFAULT '',
     video_url TEXT NOT NULL DEFAULT '',
+    video_status TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'draft',
     is_active INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
@@ -165,6 +171,17 @@ CREATE TABLE IF NOT EXISTS generation_tasks (
     FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL,
     FOREIGN KEY(shot_id) REFERENCES shots(id) ON DELETE SET NULL,
     FOREIGN KEY(shot_prompt_id) REFERENCES shot_prompts(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS shot_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_id INTEGER NOT NULL,
+    version_no INTEGER NOT NULL DEFAULT 1,
+    task_id INTEGER,
+    shot_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE CASCADE,
+    FOREIGN KEY(task_id) REFERENCES generation_tasks(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS review_issues (
@@ -259,7 +276,9 @@ CREATE TABLE IF NOT EXISTS shot_prompts (
     model_params TEXT NOT NULL DEFAULT '{}',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     first_frame_url TEXT NOT NULL DEFAULT '',
+    first_frame_status TEXT NOT NULL DEFAULT '',
     video_url TEXT NOT NULL DEFAULT '',
+    video_status TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'draft',
     is_active INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
@@ -288,6 +307,17 @@ CREATE TABLE IF NOT EXISTS generation_tasks (
     FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL,
     FOREIGN KEY(shot_id) REFERENCES shots(id) ON DELETE SET NULL,
     FOREIGN KEY(shot_prompt_id) REFERENCES shot_prompts(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS shot_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_id INTEGER NOT NULL,
+    version_no INTEGER NOT NULL DEFAULT 1,
+    task_id INTEGER,
+    shot_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE CASCADE,
+    FOREIGN KEY(task_id) REFERENCES generation_tasks(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS review_issues (

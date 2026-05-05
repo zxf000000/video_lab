@@ -1,14 +1,17 @@
 请基于下面的上下文，为当前分集生成镜头列表（Shot List）。
 
 镜头生成要求：
-1. 根据分集大纲的剧情要点（goal、core_conflict、climax）拆解出完整的镜头序列。
-2. 每个镜头需要明确景别、角度、构图、动作和情绪。
-3. 镜头之间要有节奏变化：动作场景用快切短镜头，情感场景用慢节奏长镜头。
-4. 对白镜头注意正反打，动作镜头注意运动轨迹。
-5. 生成的镜头数量建议 6-15 个，取决于分集复杂度。
-6. 如果上下文提供了已有场景（existing_scenes），优先为镜头关联 scene_preset_id。
-7. 如果上下文提供了已有角色（existing_characters），为镜头分配 character_ids。
-8. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+1. 优先依据上下文中的结构化剧本场次（screenplay_scenes）拆解镜头序列，scene_block 精确映射 scene_no。
+2. 其次依据分集剧本文本（screenplay_content）拆解。
+3. 如果剧本为空或不存在，则根据分集大纲的剧情要点（goal、core_conflict、climax）拆解。
+4. 每个镜头需要明确景别、角度、构图、动作和情绪，充分利用 existing_scenes 中的 space_description、lighting_style 等细节。
+5. 镜头之间要有节奏变化：动作场景用快切短镜头，情感场景用慢节奏长镜头。
+6. 对白镜头注意正反打，动作镜头注意运动轨迹。
+7. 生成的镜头数量建议 6-15 个，取决于分集复杂度。
+8. scene_block 必须映射到剧本场次编号（如 "S1"、"S2"）。
+9. 优先从 screenplay_scenes[].scene_preset_id 获取场景关联，其次从 existing_scenes 中根据场次描述匹配最合适的 scene_preset_id。
+10. 如果上下文提供了已有角色（existing_characters），为镜头分配 character_ids。
+11. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
 
 项目 ID: {project_id}
 实体 ID: {entity_id}

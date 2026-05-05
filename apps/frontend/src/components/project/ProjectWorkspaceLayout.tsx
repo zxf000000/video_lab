@@ -64,20 +64,42 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
   return (
     <ProjectWorkspaceContext.Provider value={{ projectId, project, loading, error, refresh }}>
       <ProjectCopilotProvider>
-        <div className="flex flex-col gap-2">
-          <section className="rounded-lg border border-line bg-panel px-4 py-3 shadow-glow">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-4">
+
+          {/* ============================================================
+              PROJECT HEADER — cyberpunk panel with neon accents
+              ============================================================ */}
+          <section
+            className="border border-line/60 bg-panel px-5 py-4 relative overflow-hidden"
+            style={{ boxShadow: "0 0 30px rgba(0,240,255,0.04)" }}
+          >
+            {/* Neon top accent */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mint/40 to-transparent" />
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1 flex items-center gap-3">
-                <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-500 transition hover:text-gray-300 shrink-0">
-                  <IconArrowLeft size={14} stroke={2} />
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-gray-500 transition hover:text-mint shrink-0"
+                >
+                  <IconArrowLeft size={14} stroke={2.5} />
                   返回
                 </Link>
+
+                <div className="h-5 w-px bg-line/60" />
+
                 <div className="flex items-center gap-2 min-w-0">
-                  <h1 className="text-lg font-semibold tracking-tight text-gray-100 truncate">{project ? project.name : `项目 #${projectId}`}</h1>
+                  <h1
+                    className="text-lg font-bold tracking-tight text-gray-100 truncate"
+                    style={{ fontFamily: "var(--font-mono), monospace" }}
+                  >
+                    {project ? project.name : `项目 #${projectId}`}
+                  </h1>
                   {project ? <StatusPill value={project.currentStage} tone="blue" /> : null}
                   {project ? <StatusPill value={project.status} tone="purple" /> : null}
                 </div>
               </div>
+
               <Button size="sm" variant="outline" onClick={refresh} className="shrink-0">
                 <IconRefresh size={14} stroke={2} />
                 刷新
@@ -85,7 +107,7 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
             </div>
 
             {project ? (
-              <div className="mt-2 grid gap-2">
+              <div className="mt-3 space-y-3">
                 <KeyValueGrid
                   items={[
                     { label: "题材", value: project.genre || "未填写" },
@@ -96,18 +118,39 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
                     { label: "任务数量", value: String(project.tasks.length) },
                   ]}
                 />
-                <div className="rounded-2xl bg-panel2 px-3 py-2">
+
+                {/* Stage navigation */}
+                <div
+                  className="px-3 py-2.5 border border-line/40"
+                  style={{ background: "rgba(10,10,24,0.4)" }}
+                >
                   <ProjectStageNav items={navItems} />
                 </div>
               </div>
             ) : null}
+
+            {/* Bottom accent */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-line/60 to-transparent" />
           </section>
 
-          {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div> : null}
+          {/* Error display */}
+          {error ? (
+            <div
+              className="border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+              style={{ clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)" }}
+            >
+              <span className="text-red-400 font-bold mr-2">[ERR]</span>
+              {error}
+            </div>
+          ) : null}
 
+          {/* Loading or content */}
           {loading && !project ? (
             <SectionCard title="正在加载" description="正在读取项目数据，请稍候。">
-              <div className="text-sm text-gray-500">项目详情加载中...</div>
+              <div className="flex items-center gap-3 py-4">
+                <span className="h-3 w-3 bg-mint animate-pulse" style={{ clipPath: "polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px)" }} />
+                <span className="text-[12px] tracking-wider text-gray-500">项目详情加载中...</span>
+              </div>
             </SectionCard>
           ) : (
             children

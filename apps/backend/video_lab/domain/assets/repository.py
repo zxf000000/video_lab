@@ -74,8 +74,8 @@ class AssetsRepository:
                 INSERT INTO characters (
                     project_id, name, role_type, identity_summary, appearance_summary, personality_tags,
                     speech_style, visual_profile, image_prompt, negative_prompt, image_path, voice_profile, outfit_presets, negative_constraints,
-                    reference_asset_ids, status, version_no, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    reference_asset_ids, status, image_status, version_no, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -94,6 +94,7 @@ class AssetsRepository:
                     payload["negative_constraints"],
                     payload["reference_asset_ids"],
                     payload["status"],
+                    payload.get("image_status", ""),
                     payload["version_no"],
                     ts,
                     ts,
@@ -123,6 +124,7 @@ class AssetsRepository:
             "negative_constraints",
             "reference_asset_ids",
             "status",
+            "image_status",
             "version_no",
         ):
             if key in payload:

@@ -138,7 +138,7 @@ export interface ProjectBrief {
   status: string;
 }
 
-export type CopilotModuleType = "brief" | "character" | "scene" | "episode" | "shot";
+export type CopilotModuleType = "brief" | "character" | "scene" | "episode" | "shot" | "screenplay";
 export type CopilotIntent = "generate" | "rewrite" | "expand" | "compress" | "fill_missing" | "regenerate" | "optimize_prompt";
 
 export interface BriefProposal {
@@ -300,12 +300,25 @@ export interface EpisodeCollectionProposal {
   episodes: EpisodeProposal[];
 }
 
+export interface ScreenplaySceneProposal {
+  sceneNo: number;
+  location: string;
+  summary: string;
+  content: string;
+}
+
+export interface ScreenplayProposal {
+  content: string;
+  scenes: ScreenplaySceneProposal[];
+}
+
 export type CopilotProposal =
   | BriefProposal
   | CharacterCollectionProposal
   | CharacterVariantCollectionProposal
   | SceneCopilotProposal
   | EpisodeCollectionProposal
+  | ScreenplayProposal
   | ShotCopilotProposal;
 
 export interface CopilotStreamRequest {
@@ -346,6 +359,7 @@ export interface CharacterAsset {
   negativeConstraints: string;
   referenceAssetIds: unknown[];
   status: string;
+  imageStatus: string;
   versionNo: number;
   createdAt: string;
   updatedAt: string;
@@ -373,6 +387,14 @@ export interface ScenePreset {
   updatedAt: string;
 }
 
+export interface ScreenplayScene {
+  sceneNo: number;
+  location: string;
+  summary: string;
+  content: string;
+  scenePresetId: number | null;
+}
+
 export interface Episode {
   id: number;
   projectId: number;
@@ -384,6 +406,9 @@ export interface Episode {
   openingHook: string;
   climax: string;
   endingHook: string;
+  screenplayContent: string;
+  screenplayContentEn: string;
+  screenplayScenes: ScreenplayScene[];
   status: string;
   sortOrder: number;
   createdAt: string;
@@ -408,10 +433,20 @@ export interface Shot {
   estimatedDurationMs: number;
   status: string;
   sortOrder: number;
+  batchId: number | null;
   firstFrameUrl: string;
   videoUrl: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ShotBatch {
+  id: number;
+  episodeId: number;
+  versionNo: number;
+  taskId: number | null;
+  shotCount: number;
+  createdAt: string;
 }
 
 export interface ShotPrompt {
@@ -427,7 +462,9 @@ export interface ShotPrompt {
   modelParams: JsonObject;
   referenceAssetIds: unknown[];
   firstFrameUrl: string;
+  firstFrameStatus: string;
   videoUrl: string;
+  videoStatus: string;
   status: string;
   isActive: boolean;
   createdAt: string;
@@ -674,6 +711,25 @@ function normalizeEpisodeProposal(raw: Record<string, unknown>): EpisodeProposal
   };
 }
 
+function normalizeScreenplaySceneProposal(raw: Record<string, unknown>): ScreenplaySceneProposal {
+  return {
+    sceneNo: Number(raw.scene_no ?? raw.sceneNo ?? 0),
+    location: asString(raw.location),
+    summary: asString(raw.summary),
+    content: asString(raw.content),
+  };
+}
+
+function normalizeScreenplayProposal(raw: Record<string, unknown>): ScreenplayProposal {
+  const scenes = Array.isArray(raw.scenes)
+    ? raw.scenes.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null).map(normalizeScreenplaySceneProposal)
+    : [];
+  return {
+    content: asString(raw.content),
+    scenes,
+  };
+}
+
 function normalizeEpisodeCollectionProposal(raw: Record<string, unknown>): EpisodeCollectionProposal {
   const episodes = Array.isArray(raw.episodes) ? raw.episodes : [];
   return {
@@ -790,6 +846,7 @@ function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
     negativeConstraints: asString(raw.negative_constraints),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     status: asString(raw.status, "draft"),
+    imageStatus: asString(raw.image_status),
     versionNo: asNumber(raw.version_no, 1),
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
@@ -832,6 +889,9 @@ function normalizeEpisode(raw: Record<string, unknown>): Episode {
     openingHook: asString(raw.opening_hook),
     climax: asString(raw.climax),
     endingHook: asString(raw.ending_hook),
+    screenplayContent: asString(raw.screenplay_content ?? raw.screenplayContent),
+    screenplayContentEn: asString(raw.screenplay_content_en ?? raw.screenplayContentEn),
+    screenplayScenes: parseJsonValue<ScreenplayScene[]>(raw.screenplay_scenes, []),
     status: asString(raw.status, "draft"),
     sortOrder: asNumber(raw.sort_order, 0),
     createdAt: asString(raw.created_at),
@@ -858,6 +918,7 @@ function normalizeShot(raw: Record<string, unknown>): Shot {
     estimatedDurationMs: asNumber(raw.estimated_duration_ms, 0),
     status: asString(raw.status, "draft"),
     sortOrder: asNumber(raw.sort_order, 0),
+    batchId: raw.batch_id == null ? null : asNumber(raw.batch_id),
     firstFrameUrl: asString(raw.firstFrameUrl),
     videoUrl: asString(raw.videoUrl),
     createdAt: asString(raw.created_at),
@@ -879,7 +940,9 @@ function normalizePrompt(raw: Record<string, unknown>): ShotPrompt {
     modelParams: parseJsonValue<JsonObject>(raw.model_params, {}),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     firstFrameUrl: asString(raw.first_frame_url),
+    firstFrameStatus: asString(raw.first_frame_status),
     videoUrl: asString(raw.video_url),
+    videoStatus: asString(raw.video_status),
     status: asString(raw.status, "draft"),
     isActive: Boolean(raw.is_active),
     createdAt: asString(raw.created_at),
@@ -1102,11 +1165,11 @@ export function deleteCharacter(characterId: number) {
 }
 
 export async function generateCharacterImage(characterId: number) {
-  const payload = await request<{ character: Record<string, unknown> }>(`/api/characters/${characterId}/generate-image`, {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/characters/${characterId}/generate-image`, {
     method: "POST",
     body: JSON.stringify({}),
   });
-  return { character: normalizeCharacter(payload.character) };
+  return { task: normalizeTask(payload.task) };
 }
 
 export async function generateSceneImage(sceneId: number) {
@@ -1212,6 +1275,9 @@ export async function updateEpisode(episodeId: number, data: Partial<Episode>) {
       ...(data.openingHook !== undefined ? { opening_hook: data.openingHook } : {}),
       ...(data.climax !== undefined ? { climax: data.climax } : {}),
       ...(data.endingHook !== undefined ? { ending_hook: data.endingHook } : {}),
+      ...(data.screenplayContent !== undefined ? { screenplay_content: data.screenplayContent } : {}),
+      ...(data.screenplayContentEn !== undefined ? { screenplay_content_en: data.screenplayContentEn } : {}),
+      ...(data.screenplayScenes !== undefined ? { screenplay_scenes: data.screenplayScenes } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
       ...(data.sortOrder !== undefined ? { sort_order: data.sortOrder } : {}),
     }),
@@ -1396,9 +1462,67 @@ export async function generateEpisodeBatch(episodeId: number, data: { provider?:
   return { tasks: payload.tasks.map(normalizeTask) };
 }
 
+export async function generateScreenplay(
+  episodeId: number,
+  data: { context: Record<string, unknown>; messages: { role: string; content: string }[] },
+) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/episodes/${episodeId}/generate-screenplay`, {
+    method: "POST",
+    body: JSON.stringify({ context: data.context, messages: data.messages }),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function generateScenes(
+  episodeId: number,
+  data: { context: Record<string, unknown>; messages: { role: string; content: string }[] },
+) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/episodes/${episodeId}/generate-scenes`, {
+    method: "POST",
+    body: JSON.stringify({ context: data.context, messages: data.messages }),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function generateShots(
+  episodeId: number,
+  data: { context: Record<string, unknown>; messages: { role: string; content: string }[] },
+) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/episodes/${episodeId}/generate-shots`, {
+    method: "POST",
+    body: JSON.stringify({ context: data.context, messages: data.messages }),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
 export async function getTask(taskId: number) {
   const payload = await request<{ task: Record<string, unknown> }>(`/api/tasks/${taskId}`);
   return { task: normalizeTask(payload.task) };
+}
+
+export async function listShotBatches(episodeId: number) {
+  const payload = await request<{ batches: Record<string, unknown>[] }>(
+    `/api/episodes/${episodeId}/shot-batches`
+  );
+  return {
+    batches: payload.batches.map(
+      (b: Record<string, unknown>): ShotBatch => ({
+        id: asNumber(b.id),
+        episodeId: asNumber(b.episode_id),
+        versionNo: asNumber(b.version_no, 1),
+        taskId: b.task_id == null ? null : asNumber(b.task_id),
+        shotCount: asNumber(b.shot_count, 0),
+        createdAt: asString(b.created_at),
+      })
+    ),
+  };
+}
+
+export async function listBatchShots(batchId: number) {
+  const payload = await request<{ shots: Record<string, unknown>[] }>(
+    `/api/shot-batches/${batchId}/shots`
+  );
+  return { shots: payload.shots.map(normalizeShot) };
 }
 
 export async function retryTask(taskId: number) {
@@ -1546,6 +1670,8 @@ export async function streamCopilot(
             normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
           } else if (requestPayload.moduleType === "shot") {
             normalizedProposal = normalizeShotCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "screenplay") {
+            normalizedProposal = normalizeScreenplayProposal(event.proposal);
           } else {
             normalizedProposal = normalizeBriefProposal(event.proposal);
           }
@@ -1589,6 +1715,8 @@ export async function streamCopilot(
             normalizedProposal = normalizeEpisodeCollectionProposal(event.proposal);
           } else if (requestPayload.moduleType === "shot") {
             normalizedProposal = normalizeShotCollectionProposal(event.proposal);
+          } else if (requestPayload.moduleType === "screenplay") {
+            normalizedProposal = normalizeScreenplayProposal(event.proposal);
           } else {
             normalizedProposal = normalizeBriefProposal(event.proposal);
           }

@@ -124,6 +124,7 @@ static/generated/
 # Playwright / Testing
 .playwright/
 .playwright-cli/
+.playwright-mcp/
 *.selenium_log
 
 # OS / Misc

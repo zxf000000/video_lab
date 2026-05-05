@@ -1,6 +1,9 @@
 """Base resource routes for the new AI short drama schema."""
 from __future__ import annotations
 
+import json
+from concurrent.futures import ThreadPoolExecutor
+
 from ..domain.assets import AssetsService
 from ..domain.generation import GenerationService
 from ..domain.projects import ProjectsService
@@ -22,6 +25,26 @@ projects_service = ProjectsService()
 assets_service = AssetsService()
 shots_service = ShotsService()
 generation_service = GenerationService()
+_character_image_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="character-image-gen")
+
+
+def _run_generate_character_image(task_id: int, char_id: int) -> None:
+    assets_svc = AssetsService()
+    gen_svc = GenerationService()
+    try:
+        character = assets_svc.generate_character_image(char_id)
+        assets_svc.repository.update_character(char_id, {"image_status": "succeeded"})
+        output_url = character.get("image_path", "") if character else ""
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+            "output_assets": json.dumps([{"url": output_url, "type": "image"}], ensure_ascii=False) if output_url else "[]",
+        })
+    except Exception as exc:
+        assets_svc.repository.update_character(char_id, {"image_status": "failed"})
+        gen_svc.repository.update_task(task_id, {
+            "status": "failed",
+            "error_message": str(exc)[:500],
+        })
 
 
 @register("GET", r"/api/projects")
@@ -140,13 +163,34 @@ def delete_character(environ, start_response, char_id: str):
 
 @register("POST", r"/api/characters/(?P<char_id>\d+)/generate-image")
 def generate_character_image(environ, start_response, char_id: str):
-    try:
-        character = assets_service.generate_character_image(int(char_id))
-    except ValueError:
+    char_id_int = int(char_id)
+    character = assets_service.repository.get_character(char_id_int)
+    if not character:
         return respond_json(start_response, {"error": "Character not found"}, status="404 Not Found")
+    try:
+        assets_service.repository.update_character(char_id_int, {"image_status": "generating"})
+        task_payload = {
+            "project_id": int(character["project_id"]),
+            "episode_id": None,
+            "shot_id": None,
+            "shot_prompt_id": None,
+            "provider": "kling",
+            "model_name": "kling-v2-1",
+            "status": "queued",
+            "input_payload": "{}",
+            "output_assets": "[]",
+            "retry_count": 0,
+            "error_message": "",
+            "cost_amount": 0,
+            "duration_ms": 0,
+        }
+        task_id = generation_service.repository.create_task(task_payload)
+        generation_service.repository.update_task(task_id, {"status": "running"})
+        _character_image_executor.submit(_run_generate_character_image, task_id, char_id_int)
+        task = generation_service.get_task(task_id)
     except Exception as exc:
         return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
-    return respond_json(start_response, {"character": serialize_character(character)})
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
 
 
 @register("GET", r"/api/projects/(?P<project_id>\d+)/scenes")
@@ -286,3 +330,29 @@ def delete_shot(environ, start_response, shot_id: str):
     except ValueError:
         return respond_json(start_response, {"error": "Shot not found"}, status="404 Not Found")
     return respond_json(start_response, {"ok": True})
+
+
+# ── Shot batches (version history) ──────────────────────────────
+
+@register("GET", r"/api/episodes/(?P<episode_id>\d+)/shot-batches")
+def list_shot_batches(environ, start_response, episode_id: str):
+    from ..domain.shots.batch_repository import BatchRepository
+    repo = BatchRepository()
+    batches = repo.list_batches(int(episode_id))
+    return respond_json(start_response, {"batches": batches})
+
+
+@register("GET", r"/api/shot-batches/(?P<batch_id>\d+)/shots")
+def list_batch_shots(environ, start_response, batch_id: str):
+    shots_repo = shots_service.repository
+    conn = shots_repo.get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM shots WHERE batch_id = ? ORDER BY sort_order ASC, shot_no ASC, id ASC",
+            (int(batch_id),),
+        ).fetchall()
+        from ..domain.common import rows_to_dicts
+        shot_dicts = rows_to_dicts(rows)
+    finally:
+        conn.close()
+    return respond_json(start_response, {"shots": [serialize_shot(s) for s in shot_dicts]})

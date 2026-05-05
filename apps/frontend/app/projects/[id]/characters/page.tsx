@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { API_BASE, createCharacter, deleteCharacter, generateCharacterImage, streamCopilot, type CharacterAsset, type CharacterCollectionProposal, type CharacterProposal, type CharacterVariantCollectionProposal, type CharacterVariantProposal, type CopilotProposal, updateCharacter } from "@/src/api";
 import ProjectCopilotButton from "@/src/components/copilot/ProjectCopilotButton";
@@ -588,6 +588,13 @@ export default function CharactersPage() {
   const [regenerateInput, setRegenerateInput] = useState("");
   const [regenerateCharacter, setRegenerateCharacter] = useState<CharacterFormState | null>(null);
   const [optimizingPrompt, setOptimizingPrompt] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refresh();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
 
   const currentProject = project;
   const isVisualStage = editing !== null;
@@ -1205,10 +1212,9 @@ export default function CharactersPage() {
         characterId = saved.id;
         setEditing(toForm(saved));
       }
-      const { character } = await generateCharacterImage(characterId);
-      setEditing((prev) => (prev && prev.id === character.id) ? toForm(character) : prev);
+      await generateCharacterImage(characterId);
       await refresh();
-      toast.success("角色主图已生成并回填");
+      toast.success("角色主图生成任务已提交");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -1498,6 +1504,7 @@ export default function CharactersPage() {
                         <p className="mt-1 text-sm text-gray-500">{character.roleType || "未填写角色类型"}</p>
                       </div>
                       <StatusPill value={character.status} tone="purple" />
+                      {character.imageStatus ? <StatusPill value={`图片:${character.imageStatus}`} tone={character.imageStatus === "succeeded" ? "green" : character.imageStatus === "failed" ? "amber" : "blue"} /> : null}
                     </div>
                     <p className="mt-4 text-sm leading-6 text-gray-400">{character.appearanceSummary || "未填写外观描述"}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -1536,9 +1543,9 @@ export default function CharactersPage() {
                         variant="secondary"
                         size="sm"
                         onClick={() => void handleGenerateCharacterImage(character)}
-                        disabled={generatingImage === character.id}
+                        disabled={generatingImage === character.id || character.imageStatus === "generating"}
                       >
-                        {generatingImage === character.id ? "生成中..." : (variantSummary.activeImagePath ? "重生成当前形态主图" : "生成当前形态主图")}
+                        {generatingImage === character.id || character.imageStatus === "generating" ? "生成中..." : (variantSummary.activeImagePath ? "重生成当前形态主图" : "生成当前形态主图")}
                       </Button>
                       <Button
                         variant="secondary"

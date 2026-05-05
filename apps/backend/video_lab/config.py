@@ -39,6 +39,7 @@ _STAGE_KEY_MAP = {
     "copilot_episode": "copilot_episode",
     "copilot_shot": "copilot_shot",
     "copilot_shot_prompt": "copilot_shot_prompt",
+    "copilot_screenplay": "copilot_screenplay",
     "character_image": "character_image",
     "scene_image": "scene_image",
     "eval": "eval",

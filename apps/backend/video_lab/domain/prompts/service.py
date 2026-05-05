@@ -24,7 +24,9 @@ class PromptsService:
             "model_params": normalize_json_text(payload.get("model_params"), {}),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "first_frame_url": normalize_text(payload.get("first_frame_url")),
+            "first_frame_status": normalize_text(payload.get("first_frame_status")),
             "video_url": normalize_text(payload.get("video_url")),
+            "video_status": normalize_text(payload.get("video_status")),
             "status": normalize_text(payload.get("status"), "draft"),
             "is_active": 1 if bool(payload.get("is_active", False)) else 0,
         }
@@ -71,8 +73,12 @@ class PromptsService:
             data["reference_asset_ids"] = normalize_json_text(payload.get("reference_asset_ids"), [])
         if "first_frame_url" in payload:
             data["first_frame_url"] = normalize_text(payload.get("first_frame_url"))
+        if "first_frame_status" in payload:
+            data["first_frame_status"] = normalize_text(payload.get("first_frame_status"))
         if "video_url" in payload:
             data["video_url"] = normalize_text(payload.get("video_url"))
+        if "video_status" in payload:
+            data["video_status"] = normalize_text(payload.get("video_status"))
         if "status" in payload:
             data["status"] = normalize_text(payload.get("status"), prompt.get("status", "draft"))
         if "is_active" in payload:

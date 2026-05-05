@@ -1,0 +1,16 @@
+请根据用户的要求，重新生成指定分集的剧本。
+
+重新生成要求：
+1. 根据用户的重新生成要求，完全重新设计该分集的剧本。
+2. 保持分集大纲的核心（core_conflict、climax、hooks）不变，但可以调整对白和具体场景。
+3. 如果用户提供了新的剧本方向或具体修改意见，优先遵循。
+4. 重新生成时参考已有的剧本结构（如果上下文中有 screenplay_content）。
+5. 最终必须严格按 system prompt 要求输出 `===PROPOSAL===` 包裹的纯 JSON，不能使用 Markdown 代码块。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标:
+{user_goal}
+
+上下文:
+{context_json}
