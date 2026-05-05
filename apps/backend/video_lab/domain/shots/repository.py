@@ -45,9 +45,9 @@ class ShotsRepository:
                 """
                 INSERT INTO episodes (
                     project_id, episode_no, title, summary, goal, core_conflict,
-                    opening_hook, climax, ending_hook, status, sort_order,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    opening_hook, climax, ending_hook, screenplay_content, screenplay_content_en,
+                    screenplay_scenes, status, sort_order, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -59,6 +59,9 @@ class ShotsRepository:
                     payload["opening_hook"],
                     payload["climax"],
                     payload["ending_hook"],
+                    payload.get("screenplay_content", ""),
+                    payload.get("screenplay_content_en", ""),
+                    payload.get("screenplay_scenes", "[]"),
                     payload["status"],
                     payload["sort_order"],
                     ts,
@@ -82,6 +85,9 @@ class ShotsRepository:
             "opening_hook",
             "climax",
             "ending_hook",
+            "screenplay_content",
+            "screenplay_content_en",
+            "screenplay_scenes",
             "status",
             "sort_order",
         ):
@@ -129,8 +135,8 @@ class ShotsRepository:
                     scene_block, shot_no, visual_goal, character_ids,
                     scene_preset_id, shot_size, camera_angle, camera_motion, composition,
                     action_description, facial_emotion, dialogue_excerpt,
-                    estimated_duration_ms, sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    estimated_duration_ms, sort_order, batch_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -157,6 +163,7 @@ class ShotsRepository:
                     payload["dialogue_excerpt"],
                     payload["estimated_duration_ms"],
                     payload["sort_order"],
+                    payload.get("batch_id"),
                 ),
             )
             conn.commit()
@@ -204,6 +211,14 @@ class ShotsRepository:
         conn = self.get_connection()
         try:
             conn.execute("DELETE FROM shots WHERE id = ?", (shot_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def delete_shots_by_episode(self, episode_id: int) -> None:
+        conn = self.get_connection()
+        try:
+            conn.execute("DELETE FROM shots WHERE episode_id = ?", (episode_id,))
             conn.commit()
         finally:
             conn.close()

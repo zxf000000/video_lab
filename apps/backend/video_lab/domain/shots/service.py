@@ -22,6 +22,9 @@ class ShotsService:
             "opening_hook": normalize_text(payload.get("opening_hook")),
             "climax": normalize_text(payload.get("climax")),
             "ending_hook": normalize_text(payload.get("ending_hook")),
+            "screenplay_content": normalize_text(payload.get("screenplay_content")),
+            "screenplay_content_en": normalize_text(payload.get("screenplay_content_en")),
+            "screenplay_scenes": normalize_json_text(payload.get("screenplay_scenes"), []),
             "status": normalize_text(payload.get("status"), "draft"),
             "sort_order": normalize_int(payload.get("sort_order"), episode_no),
         }
@@ -50,6 +53,7 @@ class ShotsService:
             "estimated_duration_ms": max(0, normalize_int(payload.get("estimated_duration_ms"), 0)),
             "status": normalize_text(payload.get("status"), "draft"),
             "sort_order": normalize_int(payload.get("sort_order"), shot_no),
+            "batch_id": payload.get("batch_id"),
         }
         return self.repository.create_shot(data)
 
@@ -64,7 +68,7 @@ class ShotsService:
         if not existing:
             raise DomainError("episode not found")
         data = {}
-        for key in ("title", "summary", "goal", "core_conflict", "opening_hook", "climax", "ending_hook", "status"):
+        for key in ("title", "summary", "goal", "core_conflict", "opening_hook", "climax", "ending_hook", "screenplay_content", "screenplay_content_en", "status"):
             if key in payload:
                 data[key] = normalize_text(payload.get(key))
         if "outline_summary" in payload and "summary" not in data:
@@ -73,6 +77,8 @@ class ShotsService:
             data["episode_no"] = max(1, normalize_int(payload.get("episode_no") or payload.get("episode_number"), existing["episode_no"]))
         if "sort_order" in payload:
             data["sort_order"] = normalize_int(payload.get("sort_order"), existing["sort_order"])
+        if "screenplay_scenes" in payload:
+            data["screenplay_scenes"] = normalize_json_text(payload.get("screenplay_scenes"), [])
         self.repository.update_episode(episode_id, data)
 
     def update_shot(self, shot_id: int, payload: dict) -> None:
@@ -126,3 +132,6 @@ class ShotsService:
     def delete_shot(self, shot_id: int) -> None:
         self.get_shot(shot_id)
         self.repository.delete_shot(shot_id)
+
+    def delete_shots_by_episode(self, episode_id: int) -> None:
+        self.repository.delete_shots_by_episode(episode_id)
