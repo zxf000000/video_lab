@@ -250,6 +250,28 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     else:
         duration_hint = "请根据镜头内容推断合适时长(2-8秒)"
 
+    # Compute shot position within scene_block and adjacent shot goals
+    episode_shots = shots_service.repository.list_shots(int(shot["episode_id"]))
+    current_scene_block = shot.get("scene_block", "")
+    same_scene_shots = [s for s in episode_shots if s.get("scene_block") == current_scene_block]
+    shot_position = 1
+    for i, s in enumerate(same_scene_shots, 1):
+        if s["id"] == int(shot_id):
+            shot_position = i
+            break
+    shot_position_hint = f"场次 {current_scene_block} 的第 {shot_position} 个镜头（共 {len(same_scene_shots)} 个）"
+
+    # Find previous and next shot in the same episode
+    prev_shot_goal = "无（本场第一个镜头）"
+    next_shot_goal = "无（本场最后一个镜头）"
+    for i, s in enumerate(episode_shots):
+        if s["id"] == int(shot_id):
+            if i > 0:
+                prev_shot_goal = episode_shots[i - 1].get("visual_goal", "") or "无"
+            if i < len(episode_shots) - 1:
+                next_shot_goal = episode_shots[i + 1].get("visual_goal", "") or "无"
+            break
+
     # Determine video image references based on with_first_frame option
     payload = parse_json(environ)
     with_first_frame = bool(payload.get("with_first_frame", False))
@@ -282,6 +304,9 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         character_context=character_context,
         project_id=shot.get("project_id", ""),
         duration_hint=duration_hint,
+        shot_position=shot_position_hint,
+        prev_shot_goal=prev_shot_goal,
+        next_shot_goal=next_shot_goal,
     )
 
     config = load_config()
