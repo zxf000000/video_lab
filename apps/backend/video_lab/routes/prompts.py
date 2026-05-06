@@ -120,6 +120,34 @@ SKETCH_TO_REAL_VIDEO_INSTRUCTION = (
 )
 
 
+MOTION_NEGATIVE_KEYWORDS: dict[str, str] = {
+    "固定": "镜头晃动, 画面抖动, camera shake, jitter",
+    "推": "画面静止, 镜头跳跃, 卡顿, static frame, stutter",
+    "拉": "画面静止, 镜头跳跃, 卡顿, static frame, stutter",
+    "摇": "画面静止, 镜头跳跃, 跳帧, static frame, stutter",
+    "移": "画面静止, 镜头不稳, 脱靶, static frame, unstable",
+    "跟": "画面静止, 镜头脱靶, 失焦, static frame, tracking loss",
+    "升": "画面静止, 镜头跳跃, 卡顿, static frame, stutter",
+    "降": "画面静止, 镜头跳跃, 卡顿, static frame, stutter",
+    "甩": "画面撕裂, 拖影, 模糊, motion blur, ghosting",
+    "旋转": "画面变形, 畸变, 不稳, distortion, unstable",
+}
+
+
+def _inject_motion_negative(video_negative: str, camera_motion: str) -> str:
+    """Append motion-specific negative keywords based on camera movement type."""
+    if not camera_motion:
+        return video_negative
+    for motion_type, keywords in MOTION_NEGATIVE_KEYWORDS.items():
+        if motion_type in camera_motion:
+            existing = set(video_negative.replace(",", " ").replace("，", " ").split())
+            to_add = [kw.strip() for kw in keywords.split(",") if kw.strip() not in existing]
+            if to_add:
+                return f"{video_negative}, {', '.join(to_add)}" if video_negative else ", ".join(to_add)
+            break
+    return video_negative
+
+
 def _ordinal_label(index: int) -> str:
     if 1 <= index <= len(_ORDINAL_LABELS):
         return f"图{_ORDINAL_LABELS[index - 1]}"
@@ -333,6 +361,10 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         final_duration = max(2, min(8, round(estimated_duration_ms / 1000)))
     elif final_duration <= 0:
         final_duration = 3
+
+    # Inject motion-specific negative keywords
+    camera_motion = shot.get("camera_motion", "")
+    proposal["video_negative_prompt"] = _inject_motion_negative(proposal["video_negative_prompt"], camera_motion)
 
     return respond_json(start_response, {
         "first_frame_prompt": proposal["first_frame_prompt"],

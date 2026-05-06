@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/ta
 import { Textarea } from "@/src/components/ui/textarea";
 import ImagePreview from "@/src/components/project/ImagePreview";
 import VideoPreview from "@/src/components/project/VideoPreview";
+import { AnimatePresence, motion } from "framer-motion";
 
 type EpisodeShots = {
   episodeId: number;
@@ -169,6 +170,12 @@ export default function ProjectPromptsPage() {
   // Duration / aspect ratio / quality
   const [durationSeconds, setDurationSeconds] = useState(3);
   const [aspectRatio, setAspectRatio] = useState("16:9");
+  // 抖音项目默认竖屏
+  useEffect(() => {
+    if (project?.targetPlatform === "抖音") {
+      setAspectRatio("9:16");
+    }
+  }, [project?.targetPlatform]);
   const [resolution, setResolution] = useState("720p");
   // Per-prompt generation
   const [generatingFrame, setGeneratingFrame] = useState<number | null>(null);
@@ -717,10 +724,31 @@ export default function ProjectPromptsPage() {
         />
       )}
 
-      {editing !== null && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60" onClick={closeDetailDrawer} />
-          <div className="absolute right-0 top-0 bottom-0 w-[min(52rem,100vw)] bg-panel border-l border-line flex flex-col shadow-2xl">
+      <AnimatePresence>
+        {editing !== null && (
+          <motion.div
+            key={detailShotId ?? "new-shot"}
+            className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={closeDetailDrawer}
+            />
+            <motion.div
+              className="absolute right-0 top-0 bottom-0 w-[min(52rem,100vw)] bg-panel border-l border-line flex flex-col shadow-2xl"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            >
             <div className="flex items-center justify-between border-b border-line px-6 py-4 shrink-0">
               <div className="min-w-0">
                 <h2 className="text-base font-semibold text-gray-100">
@@ -1056,9 +1084,10 @@ export default function ProjectPromptsPage() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Dialog open={batchDialogEpId !== null} onOpenChange={(open) => !open && setBatchDialogEpId(null)}>
         <DialogContent className="max-w-lg bg-panel p-0">
