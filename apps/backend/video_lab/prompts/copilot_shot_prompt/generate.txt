@@ -10,6 +10,10 @@
 - 对白: {dialogue_excerpt}
 - 视觉目标: {visual_goal}
 - 场次块: {scene_block}
+- 预估时长(秒): {duration_hint}
+- 本镜位置: {shot_position}
+- 上一镜视觉目标: {prev_shot_goal}
+- 下一镜视觉目标: {next_shot_goal}
 
 ## 可用图片引用（必须在首帧提示词中使用图N格式引用）
 {image_reference_list}
