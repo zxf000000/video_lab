@@ -85,21 +85,27 @@ def check_video_prompt(vp: str, has_dialogue: bool) -> dict:
             if not has_dialogue
             else bool(re.search(r"(音色|夹子|醇厚|低沉|慵懒|播音腔|破防|心虚|紧绷)", vp))
         ),
-        "sketch 复原声明": bool(re.search(r"(真实真人|真实人像|面部结构)", vp)),
-        "复原声明在关键词之前": _check_sketch_before_keywords(vp),
+        "真实人像关键词": bool(re.search(r"(真实人像|还原为真实|非插画|真实.*质感|写实.*摄影)", vp)),
+        "写实质感融入角色": bool(re.search(r"(真实肤色|自然发丝|发丝.*光泽|材质.*纹理|电影级.*光|写实.*光|真实.*材质|真实.*布料)", vp)),
+        "写实描述在关键词之前": _check_sketch_before_keywords(vp),
+        "无元指令泄漏": "提取其面部结构" not in vp,
         "无末尾 使用说明 附录": "角色参考图使用说明" not in vp and "参考图使用说明" not in vp,
         # Layer 1 checks
         "前景/背景分层": bool(re.search(r"(前景|后景|背景|主体|群演|分列|通道|虚化.*静止)", vp)),
         "Z轴纵深": bool(re.search(r"(纵深|推近|拉远|推向|退离|前景.*(移动|滑出|偏移)|背景.*(移动|缓移|上移)|走近|退远)", vp)),
-        "手部动作": bool(re.search(r"(手[指掌握抬挥蜷臂腕]|手指|握手|抬手|手部|指尖|手臂)", vp)),
+        "手部动作": bool(re.search(r"(右手|左手|双手|手[指掌握抬挥蜷臂腕]|手指|握手|抬手|手部|指尖|手臂)", vp)),
         "物理重量感": bool(re.search(r"(布料|发丝|呼吸|垂坠|摆荡|飘动|起伏|裙摆|光泽)", vp)),
         "视线引导": bool(re.search(r"(视线|看向|望向|目光|注意力|目光|眼神盯|眯眼|注视)", vp)),
+        # Layer 3 checks
+        "色调/光温描述": bool(re.search(r"(色调|色温|暖色|冷色|暖金|冷蓝|冷亮|冷调|暖调|光温|中性光|黄金时刻|日光|灯光.*色)", vp)),
+        "节奏曲线意识": bool(re.search(r"(节奏|紧凑|放缓|建立情境|冲突|反应|落点|前.*秒.*慢|后.*秒.*缓)", vp)),
+        "180°轴线意识": bool(re.search(r"(轴线|越轴|同侧|同一侧|视线方向.*一致|上一镜.*角度|机位.*保持|保持.*侧拍|保持.*角度)", vp)),
     }
 
 
 def _check_sketch_before_keywords(vp: str) -> bool:
-    """验证 sketch 复原声明出现在 Technical keywords 之前。"""
-    sketch_m = re.search(r"(真实真人|真实人像|面部结构|不保留素描|不要插画)", vp)
+    """验证写实描述出现在 Technical keywords 之前。"""
+    sketch_m = re.search(r"(真实肤色|自然发丝|发丝.*光泽|材质.*纹理|电影级.*光|写实.*光|真实.*材质|真实.*布料|面部结构)", vp)
     kw_m = re.search(r"Technical\s*keywords", vp, re.IGNORECASE)
     if not sketch_m or not kw_m:
         return False
