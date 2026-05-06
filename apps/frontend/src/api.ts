@@ -1409,7 +1409,7 @@ export interface ImageReference {
 }
 
 export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean }) {
-  const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
+  const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; duration_seconds: number; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
     method: "POST",
     body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false }),
   });
@@ -1419,22 +1419,23 @@ export async function generateShotPromptFromShot(shotId: number, opts?: { withFi
     videoPrompt: payload.video_prompt,
     videoNegativePrompt: payload.video_negative_prompt,
     negativePrompt: payload.negative_prompt,
+    durationSeconds: payload.duration_seconds ?? 3,
     imageReferences: payload.image_references ?? [],
   };
 }
 
-export async function generatePromptFrame(promptId: number, referenceImages: string[]) {
+export async function generatePromptFrame(promptId: number, referenceImages: string[], aspectRatio?: string) {
   const payload = await request<{ task: Record<string, unknown> }>(`/api/shot-prompts/${promptId}/generate-frame`, {
     method: "POST",
-    body: JSON.stringify({ referenceImages }),
+    body: JSON.stringify({ referenceImages, aspect_ratio: aspectRatio ?? "16:9" }),
   });
   return { task: normalizeTask(payload.task) };
 }
 
-export async function generatePromptVideo(promptId: number, opts?: { aspectRatio?: string; withFirstFrame?: boolean }) {
+export async function generatePromptVideo(promptId: number, opts?: { aspectRatio?: string; withFirstFrame?: boolean; duration?: number; resolution?: string }) {
   const payload = await request<{ task: Record<string, unknown> }>(`/api/shot-prompts/${promptId}/generate-video`, {
     method: "POST",
-    body: JSON.stringify({ aspect_ratio: opts?.aspectRatio ?? "16:9", with_first_frame: opts?.withFirstFrame ?? false }),
+    body: JSON.stringify({ aspect_ratio: opts?.aspectRatio ?? "16:9", with_first_frame: opts?.withFirstFrame ?? false, duration: opts?.duration, resolution: opts?.resolution }),
   });
   return { task: normalizeTask(payload.task) };
 }

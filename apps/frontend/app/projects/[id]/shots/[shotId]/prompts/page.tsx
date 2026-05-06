@@ -56,6 +56,19 @@ export default function ShotPromptsPage() {
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
   const [withFirstFrame, setWithFirstFrame] = useState(false);
 
+  // Duration / aspect ratio / quality
+  const [durationSeconds, setDurationSeconds] = useState(3);
+  const [aspectRatio, setAspectRatio] = useState("16:9");
+  const [resolution, setResolution] = useState("720p");
+
+  // Init duration from shot when loaded
+  useEffect(() => {
+    if (shot && shot.estimatedDurationMs > 0) {
+      const sec = Math.max(2, Math.min(8, Math.round(shot.estimatedDurationMs / 1000)));
+      setDurationSeconds(sec);
+    }
+  }, [shot]);
+
   // Generate
   const [generatingFrame, setGeneratingFrame] = useState<number | null>(null);
   const [generatingVideo, setGeneratingVideo] = useState<number | null>(null);
@@ -93,12 +106,13 @@ export default function ShotPromptsPage() {
   async function handleGeneratePrompt() {
     setGeneratingPrompt(true);
     try {
-      const result = await generateShotPromptFromShot(shotId, { withFirstFrame });
+      const result = await generateShotPromptFromShot(shotId);
       setFirstFramePrompt(result.firstFramePrompt);
       setFirstFrameNegative(result.firstFrameNegativePrompt);
       setVideoPrompt(result.videoPrompt);
       setVideoNegative(result.videoNegativePrompt);
       setNegativePrompt(result.negativePrompt);
+      if (result.durationSeconds) setDurationSeconds(result.durationSeconds);
       toast.success("AI 已生成 Prompt，请确认后保存");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -116,6 +130,7 @@ export default function ShotPromptsPage() {
         videoPrompt,
         videoNegativePrompt: videoNegative,
         negativePrompt,
+        modelParams: { duration_seconds: durationSeconds, aspect_ratio: aspectRatio, resolution },
         status,
         isActive: prompts.length === 0,
       });
@@ -170,6 +185,7 @@ export default function ShotPromptsPage() {
         videoPrompt: editVideo,
         videoNegativePrompt: editVideoNeg,
         negativePrompt: editNegative,
+        modelParams: { duration_seconds: durationSeconds, aspect_ratio: aspectRatio, resolution },
       });
       cancelEdit();
       await refresh();
@@ -181,10 +197,18 @@ export default function ShotPromptsPage() {
     }
   }
 
+  function getModelParam<T>(prompt: ShotPrompt, key: string, fallback: T): T {
+    const mp = (prompt.modelParams || {}) as Record<string, unknown>;
+    const val = mp[key];
+    if (val === undefined || val === null || val === "" || val === 0) return fallback;
+    return val as T;
+  }
+
   async function handleGenerateFrame(prompt: ShotPrompt) {
     setGeneratingFrame(prompt.id);
     try {
-      const { task } = await generatePromptFrame(prompt.id, []);
+      const ar = getModelParam(prompt, "aspect_ratio", aspectRatio);
+      const { task } = await generatePromptFrame(prompt.id, [], ar);
       toast.info("首帧生成任务已提交");
       if (task.status === "failed") toast.error(task.errorMessage || "首帧生成失败");
       await refresh();
@@ -198,7 +222,10 @@ export default function ShotPromptsPage() {
   async function handleGenerateVideo(prompt: ShotPrompt) {
     setGeneratingVideo(prompt.id);
     try {
-      const { task } = await generatePromptVideo(prompt.id, { withFirstFrame });
+      const ar = getModelParam(prompt, "aspect_ratio", aspectRatio);
+      const dur = getModelParam(prompt, "duration_seconds", durationSeconds);
+      const res = getModelParam(prompt, "resolution", resolution);
+      const { task } = await generatePromptVideo(prompt.id, { withFirstFrame, aspectRatio: ar, duration: dur, resolution: res });
       toast.info("视频生成任务已提交");
       if (task.status === "failed") toast.error(task.errorMessage || "视频生成失败");
       await refresh();
@@ -253,6 +280,12 @@ export default function ShotPromptsPage() {
       <div className="grid gap-5">
       <SectionCard title={shot ? `Shot ${shot.shotNo} Prompt` : "Prompt"} description="Prompt 版本是镜头生成的正式输入，激活后才会被任务读取。">
         <div className="grid gap-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-gray-500">填写或使用 AI 自动填充提示词</span>
+            <Button variant="secondary" onClick={handleGeneratePrompt} disabled={generatingPrompt}>
+              {generatingPrompt ? "AI 生成中..." : "AI 生成 Prompt"}
+            </Button>
+          </div>
           <div>
             <Label className="mb-2 block text-xs text-gray-500">首帧图片提示词 (First Frame Prompt)</Label>
             <Textarea size="1" className={compactTextareaClass} value={firstFramePrompt} onChange={(e) => setFirstFramePrompt(e.target.value)} placeholder="描述镜头第一帧的静态画面，包含场景环境、角色外观、光线氛围..." />
@@ -279,14 +312,34 @@ export default function ShotPromptsPage() {
               <Input value={status} onChange={(e) => setStatus(e.target.value)} />
             </div>
           </div>
-          <div className="flex justify-end gap-2 items-center">
-            <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
-              <input type="checkbox" checked={withFirstFrame} onChange={(e) => setWithFirstFrame(e.target.checked)} className="rounded" />
-              视频引用首帧
-            </label>
-            <Button variant="secondary" onClick={handleGeneratePrompt} disabled={generatingPrompt}>
-              {generatingPrompt ? "AI 生成中..." : "AI 生成 Prompt"}
-            </Button>
+          <div className="mt-1 pt-4 border-t border-line/60">
+            <p className="mb-3 text-[11px] text-gray-500">生成参数 <span className="text-gray-600">— 保存到 Prompt 版本，用于首帧/视频生成，不影响 AI 提示词</span></p>
+            <div className="grid gap-5 md:grid-cols-3">
+              <div>
+                <Label className="mb-2 block text-xs text-gray-500">镜头时长(秒)</Label>
+                <Input type="number" min={2} max={8} value={durationSeconds} onChange={(e) => setDurationSeconds(Number(e.target.value))} />
+              </div>
+              <div>
+                <Label className="mb-2 block text-xs text-gray-500">画面比例</Label>
+              <select className="w-full rounded-lg border border-line bg-panel2 px-3 py-2 text-sm text-gray-100" value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+                <option value="16:9">16:9 (横屏)</option>
+                <option value="9:16">9:16 (竖屏)</option>
+                <option value="1:1">1:1 (方形)</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+              </select>
+            </div>
+            <div>
+              <Label className="mb-2 block text-xs text-gray-500">画质</Label>
+              <select className="w-full rounded-lg border border-line bg-panel2 px-3 py-2 text-sm text-gray-100" value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                <option value="480p">480p</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
             <Button onClick={handleCreatePrompt} disabled={!firstFramePrompt.trim()}>
               新建 Prompt 版本
             </Button>
@@ -329,6 +382,12 @@ export default function ShotPromptsPage() {
       ) : null}
 
       <SectionCard title="Prompt 版本列表" description="为同一个镜头维护多版提示词，并激活其中一个参与生成。">
+        <div className="flex items-center gap-4 mb-3">
+          <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
+            <input type="checkbox" checked={withFirstFrame} onChange={(e) => setWithFirstFrame(e.target.checked)} className="rounded" />
+            视频引用首帧 — 生成视频时将首帧图片作为参考
+          </label>
+        </div>
         {loading ? (
           <div className="text-sm text-gray-500">Prompt 加载中...</div>
         ) : prompts.length ? (
@@ -359,6 +418,20 @@ export default function ShotPromptsPage() {
                         <Label className="mb-1 block text-xs text-gray-500">通用 Negative Prompt</Label>
                         <Textarea size="1" className={compactSmallTextareaClass} value={editNegative} onChange={(e) => setEditNegative(e.target.value)} />
                       </div>
+                      {(() => {
+                        const mp = prompt.modelParams || {};
+                        const dur = mp.duration_seconds as number | undefined;
+                        const ar = mp.aspect_ratio as string | undefined;
+                        const res = mp.resolution as string | undefined;
+                        if (dur || ar || res) {
+                          const parts = [];
+                          if (dur) parts.push(`${dur}s`);
+                          if (ar) parts.push(ar);
+                          if (res) parts.push(res);
+                          return <p className="text-[11px] text-gray-500">生成参数: {parts.join(" · ")} <span className="text-gray-600">（保存时将使用上方全局参数值）</span></p>;
+                        }
+                        return null;
+                      })()}
                       <div className="flex justify-end gap-2">
                         <Button variant="secondary" size="sm" onClick={cancelEdit} disabled={saving}>
                           取消
@@ -380,6 +453,18 @@ export default function ShotPromptsPage() {
                             {prompt.firstFrameStatus ? <StatusPill value={`首帧:${prompt.firstFrameStatus}`} tone={prompt.firstFrameStatus === "succeeded" ? "green" : prompt.firstFrameStatus === "failed" ? "amber" : "blue"} /> : null}
                             {prompt.videoStatus ? <StatusPill value={`视频:${prompt.videoStatus}`} tone={prompt.videoStatus === "succeeded" ? "green" : prompt.videoStatus === "failed" ? "amber" : "blue"} /> : null}
                           </div>
+                          {(() => {
+                            const mp = prompt.modelParams || {};
+                            const dur = mp.duration_seconds as number | undefined;
+                            const ar = mp.aspect_ratio as string | undefined;
+                            const res = mp.resolution as string | undefined;
+                            if (!dur && !ar && !res) return null;
+                            const parts = [];
+                            if (dur) parts.push(`${dur}s`);
+                            if (ar) parts.push(ar);
+                            if (res) parts.push(res);
+                            return <p className="mt-1.5 text-[11px] text-gray-500">生成参数: {parts.join(" · ")}</p>;
+                          })()}
                           {prompt.firstFramePrompt ? (
                             <div className="mt-3">
                               <span className="text-[11px] font-medium text-gray-500">首帧图片</span>
@@ -439,17 +524,17 @@ export default function ShotPromptsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          disabled={generatingFrame === prompt.id || prompt.firstFrameStatus === "generating" || !prompt.isActive}
+                          disabled={generatingFrame === prompt.id || prompt.firstFrameStatus === "queued" || prompt.firstFrameStatus === "generating" || !prompt.isActive}
                           onClick={() => handleGenerateFrame(prompt)}
                         >
-                          {generatingFrame === prompt.id || prompt.firstFrameStatus === "generating" ? "生成中..." : "生成首帧"}
+                          {generatingFrame === prompt.id || prompt.firstFrameStatus === "queued" ? "排队中..." : prompt.firstFrameStatus === "generating" ? "生成中..." : "生成首帧"}
                         </Button>
                         <Button
                           size="sm"
-                          disabled={generatingVideo === prompt.id || prompt.videoStatus === "generating" || !prompt.isActive}
+                          disabled={generatingVideo === prompt.id || prompt.videoStatus === "queued" || prompt.videoStatus === "generating" || prompt.videoStatus === "downloading" || !prompt.isActive}
                           onClick={() => handleGenerateVideo(prompt)}
                         >
-                          {generatingVideo === prompt.id || prompt.videoStatus === "generating" ? "生成中..." : "生成视频"}
+                          {generatingVideo === prompt.id || prompt.videoStatus === "queued" ? "排队中..." : prompt.videoStatus === "downloading" ? "下载中..." : prompt.videoStatus === "generating" ? "生成中..." : "生成视频"}
                         </Button>
                       </div>
                     </div>

@@ -353,6 +353,7 @@ def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt:
     prompts_svc = PromptsService()
     gen_svc = GenerationService()
     cfg = load_config()
+    prompts_svc.update_prompt(prompt_id, {"first_frame_status": "generating"})
     try:
         # Call external image generation API
         size_map = {"16:9": "2560x1440", "9:16": "1440x2560", "1:1": "2048x2048", "4:3": "2048x1536", "3:4": "1536x2048"}
@@ -522,7 +523,7 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
         "duration_ms": 0,
     }
     task_id = generation_service.repository.create_task(task_payload)
-    prompts_svc.update_prompt(int(prompt_id), {"first_frame_status": "generating"})
+    prompts_svc.update_prompt(int(prompt_id), {"first_frame_status": "queued"})
     generation_service.repository.update_task(task_id, {"status": "running"})
     _frame_executor.submit(_run_generate_prompt_frame, task_id, int(prompt_id), first_frame_prompt, reference_images, aspect_ratio)
     task = generation_service.get_task(task_id)
@@ -536,6 +537,7 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
 
     prompts_svc = PromptsService()
     gen_svc = GenerationService()
+    prompts_svc.update_prompt(prompt_id, {"video_status": "generating"})
     try:
         seedance_cfg = load_seedance_config()
         if not seedance_cfg.seedance_api_key:
@@ -546,7 +548,10 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
         video_realism_template = prompts_cfg.get("prompt_video_realism", "{video_prompt}")
         enhanced_prompt = video_realism_template.format(video_prompt=first_frame_prompt)
 
-        provider = SeedanceProvider(seedance_cfg)
+        def _on_progress(msg: str) -> None:
+            if "下载" in msg:
+                prompts_svc.update_prompt(prompt_id, {"video_status": "downloading"})
+        provider = SeedanceProvider(seedance_cfg, on_progress=_on_progress)
         if with_first_frame:
             video_path = provider.generate_i2v(
                 task_id=task_id,
@@ -654,7 +659,7 @@ def submit_generate_video(environ, start_response, prompt_id: str):
         "duration_ms": 0,
     }
     task_id = generation_service.repository.create_task(task_payload)
-    prompts_svc.update_prompt(int(prompt_id), {"video_status": "generating"})
+    prompts_svc.update_prompt(int(prompt_id), {"video_status": "queued"})
     generation_service.repository.update_task(task_id, {"status": "running"})
     _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame, duration, resolution)
     task = generation_service.get_task(task_id)
