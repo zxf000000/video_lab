@@ -1298,6 +1298,71 @@ class TestRunGenerateShots:
         task = gen_repo.get_task(task_id)
         assert task["status"] == "failed"
 
+    def test_injects_screenplay_data_into_context(self, db_setup):
+        from unittest.mock import MagicMock, patch
+        from video_lab.routes.generation_tasks import _run_generate_shots
+        from video_lab.domain.generation.repository import GenerationRepository
+        from video_lab.domain.shots.service import ShotsService
+
+        pid = _create_project()
+        svc = ShotsService()
+        ep_id = svc.create_episode(pid, {"episode_no": 1, "title": "连续性测试"})
+        svc.update_episode(ep_id, {
+            "screenplay_content": "S1: 女人走进大厅。\nS2: 女人停在签约桌前。",
+            "screenplay_scenes": json.dumps([
+                {"scene_no": "S1", "location": "大厅入口", "summary": "女人推门走进来"},
+                {"scene_no": "S2", "location": "签约桌", "summary": "女人停在签约桌前"},
+            ], ensure_ascii=False),
+        })
+
+        gen_repo = GenerationRepository()
+        task_id = gen_repo.create_task({
+            "project_id": pid,
+            "episode_id": ep_id,
+            "shot_id": None,
+            "shot_prompt_id": None,
+            "provider": "copilot",
+            "model_name": "shot",
+            "status": "queued",
+            "input_payload": "{}",
+            "output_assets": "[]",
+            "retry_count": 0,
+            "error_message": "",
+            "cost_amount": 0,
+            "duration_ms": 0,
+        })
+
+        captured_messages = []
+
+        def capture_chat_stream(messages, _system):
+            captured_messages.extend(messages)
+            return iter([SHOT_LLM_RESPONSE])
+
+        mock_provider = MagicMock()
+        mock_provider.chat_stream.side_effect = capture_chat_stream
+
+        with patch("video_lab.routes.generation_tasks.ChatfireProvider", return_value=mock_provider), \
+             patch("video_lab.routes.generation_tasks.load_prompts", return_value={
+                 "prompt_copilot_shot_system": "system",
+                 "prompt_copilot_shot_generate": "{user_goal} {context_json} {project_id} {entity_id}",
+             }), \
+             patch("video_lab.routes.generation_tasks.load_config"):
+            _run_generate_shots(task_id, ep_id, pid, {}, [{"role": "user", "content": "生成镜头"}])
+
+        # Check the compiled user message contains the injected screenplay data
+        user_msgs = [m["content"] for m in captured_messages if m["role"] == "user"]
+        assert len(user_msgs) >= 1
+        last_user = user_msgs[-1]
+        assert "S1" in last_user
+        assert "女人推门走进来" in last_user
+        assert "S2" in last_user
+        assert "女人停在签约桌前" in last_user
+        assert "screenplay_content" in last_user
+        assert "screenplay_scenes" in last_user
+
+        task = gen_repo.get_task(task_id)
+        assert task["status"] == "succeeded"
+
 
 # ---------------------------------------------------------------------------
 # 16. Integration: _run_generate_screenplay with mocked LLM

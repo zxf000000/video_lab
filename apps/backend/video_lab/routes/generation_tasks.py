@@ -122,6 +122,19 @@ def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context:
     shots_svc = ShotsService()
     try:
         gen_svc.repository.update_task(task_id, {"status": "running"})
+        # Inject episode screenplay data so the LLM sees the full narrative arc
+        episode = shots_svc.repository.get_episode(episode_id)
+        if episode:
+            if episode.get("screenplay_content"):
+                context.setdefault("screenplay_content", episode["screenplay_content"])
+            if episode.get("screenplay_scenes"):
+                scenes = episode["screenplay_scenes"]
+                if isinstance(scenes, str):
+                    try:
+                        scenes = json.loads(scenes)
+                    except (json.JSONDecodeError, TypeError):
+                        scenes = []
+                context.setdefault("screenplay_scenes", scenes)
         full_text = _stream_llm_response("shot", context, messages, project_id, episode_id)
         proposal = _extract_shot_proposal(full_text)
         if not proposal or not proposal.get("shots"):
