@@ -75,6 +75,7 @@ def generate_prompt(shot_id: int, base_url: str, with_first_frame: bool = False)
 def check_video_prompt(vp: str, has_dialogue: bool) -> dict:
     """对 video_prompt 文本逐项检查，返回每项是否通过。"""
     return {
+        # Layer 0 checks
         "初始画面(第0秒)": bool(re.search(r"(初始画面|画面初始|^画面初始)", vp)),
         "时间线分段": bool(re.search(r"\d+[-~]\d+\.?\d*\s*秒", vp)),
         "起幅/落幅": bool(re.search(r"(起幅|落幅|固定机位|镜头固定|保持固定|无.*?位移|不推不拉)", vp)),
@@ -87,6 +88,12 @@ def check_video_prompt(vp: str, has_dialogue: bool) -> dict:
         "sketch 复原声明": bool(re.search(r"(真实真人|真实人像|面部结构)", vp)),
         "复原声明在关键词之前": _check_sketch_before_keywords(vp),
         "无末尾 使用说明 附录": "角色参考图使用说明" not in vp and "参考图使用说明" not in vp,
+        # Layer 1 checks
+        "前景/背景分层": bool(re.search(r"(前景|后景|背景|主体|群演|分列|通道|虚化.*静止)", vp)),
+        "Z轴纵深": bool(re.search(r"(纵深|推近|拉远|推向|退离|前景.*(移动|滑出|偏移)|背景.*(移动|缓移|上移)|走近|退远)", vp)),
+        "手部动作": bool(re.search(r"(手[指掌握抬挥蜷臂腕]|手指|握手|抬手|手部|指尖|手臂)", vp)),
+        "物理重量感": bool(re.search(r"(布料|发丝|呼吸|垂坠|摆荡|飘动|起伏|裙摆|光泽)", vp)),
+        "视线引导": bool(re.search(r"(视线|看向|望向|目光|注意力|目光|眼神盯|眯眼|注视)", vp)),
     }
 
 
