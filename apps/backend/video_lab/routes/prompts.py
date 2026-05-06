@@ -82,6 +82,11 @@ def _extract_shot_prompt_proposal(text: str) -> dict | None:
     video_prompt = str(proposal.get("video_prompt", "")).strip()
     video_negative_prompt = str(proposal.get("video_negative_prompt", "")).strip()
     negative_prompt = str(proposal.get("negative_prompt", "")).strip()
+    try:
+        duration_seconds = int(proposal.get("duration_seconds", 0))
+    except (ValueError, TypeError):
+        duration_seconds = 0
+    duration_seconds = max(2, min(8, duration_seconds)) if duration_seconds else 0
     # Fallback: support old single prompt_text format
     if not first_frame_prompt:
         prompt_text = str(proposal.get("prompt_text", "")).strip()
@@ -95,6 +100,7 @@ def _extract_shot_prompt_proposal(text: str) -> dict | None:
         "video_prompt": video_prompt,
         "video_negative_prompt": video_negative_prompt,
         "negative_prompt": negative_prompt,
+        "duration_seconds": duration_seconds,
     }
 
 
@@ -172,6 +178,17 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
                         parts.append(f"外观: {char['appearance_summary']}")
                     if char.get("appearance_prompt"):
                         parts.append(f"外观提示词: {char['appearance_prompt']}")
+                    if char.get("speech_style"):
+                        parts.append(f"说话风格与音色: {char['speech_style']}")
+                    if char.get("personality_tags"):
+                        tags = char["personality_tags"]
+                        if isinstance(tags, str):
+                            try:
+                                tags = json.loads(tags)
+                            except (json.JSONDecodeError, TypeError):
+                                tags = []
+                        if isinstance(tags, list):
+                            parts.append(f"性格标签: {', '.join(tags)}")
                     if image_path:
                         parts.append(f"角色图片路径: /assets/{image_path}")
                     char_descriptions.append(" | ".join(parts))
@@ -225,6 +242,14 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
 
     image_reference_list = "\n".join(image_reference_lines) if image_reference_lines else "无可用图片引用"
 
+    # Build duration hint from shot metadata
+    estimated_duration_ms = max(0, int(shot.get("estimated_duration_ms", 0) or 0))
+    if estimated_duration_ms > 0:
+        duration_sec = max(2, min(8, round(estimated_duration_ms / 1000)))
+        duration_hint = f"{duration_sec}秒（已预设）"
+    else:
+        duration_hint = "请根据镜头内容推断合适时长(2-8秒)"
+
     # Determine video image references based on with_first_frame option
     payload = parse_json(environ)
     with_first_frame = bool(payload.get("with_first_frame", False))
@@ -256,6 +281,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         scene_context=scene_context,
         character_context=character_context,
         project_id=shot.get("project_id", ""),
+        duration_hint=duration_hint,
     )
 
     config = load_config()
@@ -276,12 +302,20 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     proposal["first_frame_prompt"] = _append_once(proposal["first_frame_prompt"], SKETCH_TO_REAL_FRAME_INSTRUCTION)
     proposal["video_prompt"] = _append_once(proposal["video_prompt"], SKETCH_TO_REAL_VIDEO_INSTRUCTION)
 
+    # Use AI-inferred duration, fallback to shot's estimated_duration_ms
+    final_duration = proposal.get("duration_seconds", 0) or 0
+    if final_duration <= 0 and estimated_duration_ms > 0:
+        final_duration = max(2, min(8, round(estimated_duration_ms / 1000)))
+    elif final_duration <= 0:
+        final_duration = 3
+
     return respond_json(start_response, {
         "first_frame_prompt": proposal["first_frame_prompt"],
         "first_frame_negative_prompt": proposal["first_frame_negative_prompt"],
         "video_prompt": proposal["video_prompt"],
         "video_negative_prompt": proposal["video_negative_prompt"],
         "negative_prompt": proposal["negative_prompt"],
+        "duration_seconds": final_duration,
         "image_references": image_refs,
     })
 
@@ -289,7 +323,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
 generation_service = GenerationService()
 
 
-def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str]) -> None:
+def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str], aspect_ratio: str = "16:9") -> None:
     """Background worker: generate first frame image and persist to local storage."""
     prompts_svc = PromptsService()
     gen_svc = GenerationService()
@@ -297,7 +331,8 @@ def _run_generate_prompt_frame(task_id: int, prompt_id: int, first_frame_prompt:
     try:
         # Call external image generation API
         size_map = {"16:9": "2560x1440", "9:16": "1440x2560", "1:1": "2048x2048", "4:3": "2048x1536", "3:4": "1536x2048"}
-        api_body = {"model": cfg.image_model, "prompt": first_frame_prompt, "size": size_map.get("16:9", "2560x1440"), "n": 1}
+        size = size_map.get(aspect_ratio, "2560x1440")
+        api_body = {"model": cfg.image_model, "prompt": first_frame_prompt, "size": size, "n": 1}
         if reference_images:
             api_body["image"] = reference_images if len(reference_images) > 1 else reference_images[0]
         resp = _req.post(
@@ -435,6 +470,9 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
     episode = shots_svc.repository.get_episode(int(shot["episode_id"]))
     project_id = int(episode["project_id"]) if episode else 0
 
+    payload = parse_json(environ)
+    aspect_ratio = str(payload.get("aspect_ratio", "16:9"))
+
     reference_images = _build_frame_reference_images(shot)
 
     first_frame_prompt = str(prompt.get("first_frame_prompt") or prompt.get("prompt_text", "")).strip()
@@ -451,7 +489,7 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
         "provider": "api",
         "model_name": cfg.image_model,
         "status": "queued",
-        "input_payload": json.dumps({"first_frame_prompt": first_frame_prompt, "reference_images": reference_images}),
+        "input_payload": json.dumps({"first_frame_prompt": first_frame_prompt, "reference_images": reference_images, "aspect_ratio": aspect_ratio}),
         "output_assets": "[]",
         "retry_count": 0,
         "error_message": "",
@@ -461,12 +499,12 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
     task_id = generation_service.repository.create_task(task_payload)
     prompts_svc.update_prompt(int(prompt_id), {"first_frame_status": "generating"})
     generation_service.repository.update_task(task_id, {"status": "running"})
-    _frame_executor.submit(_run_generate_prompt_frame, task_id, int(prompt_id), first_frame_prompt, reference_images)
+    _frame_executor.submit(_run_generate_prompt_frame, task_id, int(prompt_id), first_frame_prompt, reference_images, aspect_ratio)
     task = generation_service.get_task(task_id)
     return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
 
 
-def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str], aspect_ratio: str = "16:9", with_first_frame: bool = False) -> None:
+def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str], aspect_ratio: str = "16:9", with_first_frame: bool = False, duration: int = 5, resolution: str = "720p") -> None:
     """Background worker: generate video via seedance. If with_first_frame: i2v (1 first_frame image). Else: character mode (multiple reference_image)."""
     from ..config import load_seedance_config
     from ..providers.seedance import SeedanceProvider
@@ -490,8 +528,8 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
                 prompt=enhanced_prompt,
                 images_list=reference_images,
                 aspect_ratio=aspect_ratio,
-                resolution="720p",
-                duration=5,
+                resolution=resolution,
+                duration=duration,
                 remove_watermark=False,
             )
         else:
@@ -500,8 +538,8 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
                 images_list=reference_images,
                 prompt=enhanced_prompt,
                 aspect_ratio=aspect_ratio,
-                resolution="720p",
-                duration=5,
+                resolution=resolution,
+                duration=duration,
                 remove_watermark=False,
             )
         prompts_svc.update_prompt(prompt_id, {"video_url": video_path, "video_status": "succeeded"})
@@ -548,6 +586,11 @@ def submit_generate_video(environ, start_response, prompt_id: str):
     with_first_frame = bool(payload.get("with_first_frame", False))
     aspect_ratio = str(payload.get("aspect_ratio", "16:9"))
 
+    # Read duration/resolution from request, fallback to prompt's model_params, then defaults
+    model_params = json.loads(str(prompt.get("model_params", "{}") or "{}"))
+    duration = int(payload.get("duration") or model_params.get("duration_seconds", 0) or 5)
+    resolution = str(payload.get("resolution") or model_params.get("resolution", "") or "720p")
+
     # Build reference images
     if with_first_frame:
         # Use the generated first frame image as the single first_frame
@@ -578,7 +621,7 @@ def submit_generate_video(environ, start_response, prompt_id: str):
         "provider": "seedance",
         "model_name": "doubao-seedance-2-0-260128",
         "status": "queued",
-        "input_payload": json.dumps({"video_prompt": video_prompt, "reference_images": reference_images, "with_first_frame": with_first_frame}),
+        "input_payload": json.dumps({"video_prompt": video_prompt, "reference_images": reference_images, "with_first_frame": with_first_frame, "aspect_ratio": aspect_ratio, "duration": duration, "resolution": resolution}),
         "output_assets": "[]",
         "retry_count": 0,
         "error_message": "",
@@ -588,6 +631,6 @@ def submit_generate_video(environ, start_response, prompt_id: str):
     task_id = generation_service.repository.create_task(task_payload)
     prompts_svc.update_prompt(int(prompt_id), {"video_status": "generating"})
     generation_service.repository.update_task(task_id, {"status": "running"})
-    _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame)
+    _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame, duration, resolution)
     task = generation_service.get_task(task_id)
     return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
