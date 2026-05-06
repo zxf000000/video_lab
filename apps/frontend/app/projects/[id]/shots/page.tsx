@@ -11,6 +11,7 @@ import {
   getApiBase,
   listBatchShots,
   listShotBatches,
+  listShotPrompts,
   listShots,
   retryTask,
   updateShot,
@@ -18,6 +19,7 @@ import {
   type ScreenplayScene,
   type Shot,
   type ShotBatch,
+  type ShotPrompt,
 } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, SectionCard, StatusPill } from "@/src/components/project/project-ui";
@@ -134,6 +136,9 @@ export default function ProjectPromptsPage() {
   const [viewingBatchId, setViewingBatchId] = useState<number | null>(null);
   const [batchShots, setBatchShots] = useState<Shot[]>([]);
   const [expandedSceneShotId, setExpandedSceneShotId] = useState<number | null>(null);
+  const [expandedPromptShotId, setExpandedPromptShotId] = useState<number | null>(null);
+  const [shotPromptCache, setShotPromptCache] = useState<Record<number, ShotPrompt[]>>({});
+  const [loadingPrompts, setLoadingPrompts] = useState(false);
 
   const projectId = Number(params.id);
   const sceneOptions = useMemo(() => project?.scenes ?? [], [project]);
@@ -234,6 +239,26 @@ export default function ProjectPromptsPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
+  }
+
+  async function handleTogglePrompt(shotId: number) {
+    if (expandedPromptShotId === shotId) {
+      setExpandedPromptShotId(null);
+      return;
+    }
+    if (!shotPromptCache[shotId]) {
+      setLoadingPrompts(true);
+      try {
+        const { prompts } = await listShotPrompts(shotId);
+        setShotPromptCache((prev) => ({ ...prev, [shotId]: prompts }));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+        return;
+      } finally {
+        setLoadingPrompts(false);
+      }
+    }
+    setExpandedPromptShotId(shotId);
   }
 
   async function handleDeleteShot(shot: Shot) {
@@ -356,8 +381,11 @@ export default function ProjectPromptsPage() {
                     const videoUrl = shot.videoUrl
                       ? (shot.videoUrl.startsWith("http") ? shot.videoUrl : `${apiBase}/assets/${shot.videoUrl}`)
                       : null;
+                    const prompts = shotPromptCache[shot.id];
+                    const activePrompt = prompts?.find((p) => p.isActive) ?? prompts?.[0];
                     return (
-                      <div key={shot.id} className="flex items-center gap-3 rounded-md border border-line/50 bg-panel px-4 py-3">
+                      <div key={shot.id}>
+                        <div className="flex items-center gap-3 rounded-md border border-line/50 bg-panel px-4 py-3">
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="w-[120px] h-[68px] rounded-md bg-panel2 border border-line/50 overflow-hidden flex-shrink-0">
                             {imageUrl ? (
@@ -426,12 +454,12 @@ export default function ProjectPromptsPage() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           {!viewingBatchId ? (
                             <>
-                              <a
-                                href={`/projects/${projectId}/shots/${shot.id}/prompts`}
+                              <button
                                 className="inline-flex rounded-lg border border-line bg-panel2 px-2.5 py-1 text-[11px] font-medium text-gray-400 transition hover:border-mint hover:text-mint"
+                                onClick={() => handleTogglePrompt(shot.id)}
                               >
-                                Prompt
-                              </a>
+                                {expandedPromptShotId === shot.id ? "收起" : "Prompt"}
+                              </button>
                               <Button
                                 variant="secondary"
                                 size="sm"
@@ -474,6 +502,51 @@ export default function ProjectPromptsPage() {
                           )}
                         </div>
                       </div>
+                      {expandedPromptShotId === shot.id ? (
+                        <div className="mt-1 rounded-md border border-mint/30 bg-panel2/30 px-4 py-3">
+                          {loadingPrompts && !shotPromptCache[shot.id] ? (
+                            <p className="text-xs text-gray-500">加载中...</p>
+                          ) : activePrompt ? (
+                            <div className="grid gap-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-mint">
+                                  Prompt v{activePrompt.versionNo}
+                                  {activePrompt.isActive ? (
+                                    <span className="ml-2 text-[10px] text-gray-500">(当前)</span>
+                                  ) : null}
+                                </span>
+                                <a
+                                  href={`/projects/${projectId}/shots/${shot.id}/prompts`}
+                                  className="text-[10px] text-gray-500 underline hover:text-mint transition"
+                                >
+                                  在完整页面编辑 →
+                                </a>
+                              </div>
+                              <div className="grid gap-2 text-xs">
+                                {activePrompt.videoPrompt ? (
+                                  <div>
+                                    <span className="text-gray-500">video_prompt</span>
+                                    <p className="mt-0.5 text-gray-300 leading-relaxed line-clamp-4 whitespace-pre-wrap">
+                                      {activePrompt.videoPrompt}
+                                    </p>
+                                  </div>
+                                ) : null}
+                                {activePrompt.firstFramePrompt ? (
+                                  <div>
+                                    <span className="text-gray-500">first_frame_prompt</span>
+                                    <p className="mt-0.5 text-gray-400 leading-relaxed line-clamp-3 whitespace-pre-wrap">
+                                      {activePrompt.firstFramePrompt}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500">暂无 Prompt</p>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                     );
                   })}
                 </div>
