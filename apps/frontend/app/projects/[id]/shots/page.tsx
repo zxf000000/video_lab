@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import {
@@ -665,14 +666,12 @@ export default function ProjectPromptsPage() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           {!viewingBatchId ? (
                             <>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-7 px-2.5 text-[11px]"
-                                onClick={() => openDetailDrawer(shot)}
+                              <Link
+                                href={`/projects/${projectId}/shots/${shot.id}`}
+                                className="inline-flex items-center justify-center h-7 px-2.5 text-[11px] rounded-md border border-line/60 bg-panel2/80 text-gray-300 hover:bg-panel2 hover:text-mint transition"
                               >
                                 详情
-                              </Button>
+                              </Link>
                               <Button
                                 variant="secondary"
                                 size="sm"
