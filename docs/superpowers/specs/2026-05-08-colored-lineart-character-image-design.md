@@ -27,47 +27,61 @@ Seedance 审核检测的是**摄影质感**（皮肤毛孔纹理、自然光影�
 
 ## Design
 
-### 1. Prompt 模板变更
+### 1. 图片生成 Prompt 层
 
-**`video_lab/domain/assets/service.py` — `_build_character_image_prompt()`**：
+**`video_lab/domain/assets/service.py`**：
 
-当前 suffix：
+`CHARACTER_SKETCH_REFERENCE_INSTRUCTION` 常量（第 10-14 行）：
 ```
-铅笔素描风格、黑白线稿、清晰轮廓线条、纯色背景。
-```
-
-改为：
-```
-色铅笔手绘风格、全彩上色、清晰轮廓线条、平涂色块、纯色背景。非照片、非写实渲染。
+当前：生成角色素描参考图：铅笔素描风格、黑白线稿、清晰轮廓线条、纯色背景。
+改为：生成角色彩色线稿参考图：色铅笔手绘风格、全彩上色、清晰轮廓线条、平涂色块、纯色背景。不要生成真人照片、彩色写真、电影剧照或写实成片。目标是稳定角色五官、体型、发型、服装和整体轮廓，供后续首帧/视频生成时恢复为真实真人影像。
 ```
 
-**`video_lab/prompts/copilot_character/appearance_anchor.txt`** — 第 3 条更新：
-
-当前：
+`_build_character_image_prompt()` suffix：
 ```
-3. **不要出现素描、线稿、插画、铅笔、黑白、纯色背景等画风词**——这不是用来生成图片的
-```
-
-改为：
-```
-3. **不要出现素描、线稿、插画、铅笔、色铅笔、彩色铅笔、纯色背景等画风词**——这不是用来生成图片的
+当前：铅笔素描风格、黑白线稿、清晰轮廓线条、纯色背景。
+改为：色铅笔手绘风格、全彩上色、清晰轮廓线条、平涂色块、纯色背景。非照片、非写实渲染。
 ```
 
-### 2. 与现有系统协同
+**`video_lab/prompts/character_image/prompt.txt`**（ChatFire 提供商路径使用）：
+```
+当前：全身角色素描参考图，{style}风格：{appearance_prompt}。铅笔素描风格，黑白线稿，…
+改为：全身角色彩色线稿参考图，{style}风格：{appearance_prompt}。色铅笔手绘风格，全彩上色，平涂色块，…
+```
 
-- **appearance_anchor**：末尾「恢复为真人影像」指令不变
-- **generate.txt 规则 5**：sketch→real 规则不变，检测条件从「素描图片、黑白线稿、角色设定图或草图」扩展为「素描图片、线稿、手绘图、角色设定图或草图」（去掉「黑白」限定）
-- **图一角色参考图**：角色不变，仅图片风格变化
-- **_stylize_image**：保持 no-op 不变
+### 2. LLM Copilot Prompt 层
 
-### 3. 测试更新
+以下 4 个文件指示 LLM 生成角色 `image_prompt`，需从「pencil sketch / line art」改为「colored pencil / line art」：
+
+| 文件 | 变更 |
+|------|------|
+| `copilot_character/system.txt` | `image_prompt 必须是铅笔素描/线稿风格（pencil sketch / line art）` → `色铅笔线稿风格（colored pencil / line art），平涂色块` |
+| `copilot_character/generate.txt` | `pencil sketch, line art, solid background.` → `colored pencil, line art, flat colors, solid background.` |
+| `copilot_character/fill_missing.txt` | 同上 |
+| `copilot_character/optimize_prompt.txt` | 同上 |
+
+**`copilot_character/appearance_anchor.txt`** — 第 3 条：
+```
+当前：不要出现素描、线稿、插画、铅笔、黑白、纯色背景等画风词
+改为：不要出现素描、线稿、插画、铅笔、色铅笔、彩色铅笔、纯色背景等画风词
+```
+
+### 3. Shot Prompt 层
+
+**`copilot_shot_prompt/generate.txt`** — 规则 5，去掉「黑白」限定以匹配全彩线稿：
+```
+当前：如果任一角色图片是素描图片、黑白线稿、角色设定图或草图
+改为：如果任一角色图片是素描图片、线稿、手绘图、角色设定图或草图
+```
+
+### 4. 测试更新
 
 `test_character_sketch.py`：
 - `test_build_character_image_prompt_sketch_keywords` → 重命名为 `test_build_character_image_prompt_colored_lineart_keywords`
-- 断言更新：存在 `色铅笔手绘风格`、`全彩上色`、`平涂色块`、`非照片`
-- 断言更新：不存在 `电影级质感`、`均匀摄影棚灯光`、`铅笔素描`
+- 断言存在：`色铅笔手绘风格`、`全彩上色`、`平涂色块`、`非照片`
+- 断言不存在：`电影级质感`、`均匀摄影棚灯光`、`铅笔素描`
 
-### 4. 现有角色迁移
+### 5. 现有角色迁移
 
 角色图需要重新生成。在角色编辑页触发 AI 重新生成角色图即可（使用新的 prompt template）。
 
@@ -75,6 +89,12 @@ Seedance 审核检测的是**摄影质感**（皮肤毛孔纹理、自然光影�
 
 | File | Change |
 |------|--------|
-| `video_lab/domain/assets/service.py` | 替换 `_build_character_image_prompt()` 中的风格关键词 suffix |
-| `video_lab/prompts/copilot_character/appearance_anchor.txt` | 第 3 条过滤词新增「色铅笔、彩色铅笔」 |
+| `video_lab/domain/assets/service.py` | `CHARACTER_SKETCH_REFERENCE_INSTRUCTION` + `_build_character_image_prompt()` suffix 替换 |
+| `video_lab/prompts/character_image/prompt.txt` | ChatFire 模板风格关键词替换 |
+| `video_lab/prompts/copilot_character/system.txt` | LLM 指令：pencil sketch → colored pencil line art |
+| `video_lab/prompts/copilot_character/generate.txt` | 同上 |
+| `video_lab/prompts/copilot_character/fill_missing.txt` | 同上 |
+| `video_lab/prompts/copilot_character/optimize_prompt.txt` | 同上 |
+| `video_lab/prompts/copilot_character/appearance_anchor.txt` | 过滤词新增「色铅笔、彩色铅笔」 |
+| `video_lab/prompts/copilot_shot_prompt/generate.txt` | 规则 5 去掉「黑白」限定 |
 | `tests/test_character_sketch.py` | 更新断言匹配新关键词 |
