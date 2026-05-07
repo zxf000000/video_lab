@@ -201,6 +201,18 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     if char_descriptions:
         character_context = "\n".join(char_descriptions)
 
+    # Build appearance anchor from first character with appearance_prompt
+    appearance_anchor = ""
+    if character_ids:
+        for cid in character_ids[:5]:
+            try:
+                char = assets_service.get_character(int(cid))
+                if char and char.get("appearance_prompt", "").strip():
+                    appearance_anchor = char["appearance_prompt"].strip()
+                    break
+            except Exception:
+                continue
+
     # Scene image
     scene_context = "无关联场景"
     scene_preset_id = shot.get("scene_preset_id")
@@ -308,6 +320,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         video_image_reference_list=video_image_reference_list,
         scene_context=scene_context,
         character_context=character_context,
+        appearance_anchor=appearance_anchor,
         project_id=shot.get("project_id", ""),
         duration_hint=duration_hint,
         shot_position=shot_position_hint,
