@@ -33,8 +33,8 @@ def test_stylize_image_noop():
 # 2. _build_character_image_prompt — sketch keywords
 # ---------------------------------------------------------------------------
 
-def test_build_character_image_prompt_sketch_keywords():
-    """Prompt suffix must contain sketch-related terms, not cinematic ones."""
+def test_build_character_image_prompt_colored_lineart_keywords():
+    """Prompt suffix must contain colored lineart terms, not pencil sketch."""
     from video_lab.domain.assets.service import AssetsService
 
     svc = AssetsService()
@@ -54,10 +54,13 @@ def test_build_character_image_prompt_sketch_keywords():
 
     prompt = svc._build_character_image_prompt(character, visual_profile, project, style_keywords)
 
-    assert "铅笔素描风格" in prompt
-    assert "黑白线稿" in prompt
+    assert "色铅笔手绘风格" in prompt
+    assert "全彩上色" in prompt
+    assert "平涂色块" in prompt
     assert "纯色背景" in prompt
-    assert "清晰轮廓线条" in prompt
+    assert "非照片" in prompt
+    assert "铅笔素描" not in prompt
+    assert "黑白线稿" not in prompt
     assert "电影级质感" not in prompt
     assert "均匀摄影棚灯光" not in prompt
 
