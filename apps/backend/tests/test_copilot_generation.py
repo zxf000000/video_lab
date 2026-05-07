@@ -1363,6 +1363,60 @@ class TestRunGenerateShots:
         task = gen_repo.get_task(task_id)
         assert task["status"] == "succeeded"
 
+    def test_injects_spatial_flow_from_scene_presets(self, db_setup):
+        from video_lab.routes.generation_tasks import _inject_spatial_context
+        from video_lab.domain.assets.service import AssetsService
+        from video_lab.domain.shots.service import ShotsService
+
+        pid = _create_project()
+        # Create scene presets with spatial descriptions
+        assets_svc = AssetsService()
+        assets_svc.upsert_scene_preset(pid, {
+            "name": "宴会厅主厅",
+            "scene_type": "indoor",
+            "space_description": "挑高欧式宴会厅，中央水晶吊灯，长条餐桌与香槟台分布两侧",
+            "lighting_style": "暖金色顶光",
+            "time_of_day": "夜",
+        })
+        assets_svc.upsert_scene_preset(pid, {
+            "name": "签约桌",
+            "scene_type": "indoor",
+            "space_description": "宴会厅侧前方黑金签约桌，聚光灯下，背后巨幅屏幕",
+            "lighting_style": "聚光灯",
+            "time_of_day": "夜",
+        })
+        assets_svc.upsert_scene_preset(pid, {
+            "name": "侧厅",
+            "scene_type": "indoor",
+            "space_description": "半隔断侧厅，连接酒柜与沙发区，比主场私密",
+            "lighting_style": "暗调暖光",
+            "time_of_day": "夜",
+        })
+
+        scenes = [
+            {"scene_no": 1, "location": "宴会厅主厅 - 夜", "summary": "女主登场"},
+            {"scene_no": 2, "location": "签约桌 - 夜", "summary": "签约对峙"},
+            {"scene_no": 3, "location": "侧厅 - 夜", "summary": "私下试探"},
+        ]
+        context: dict = {}
+
+        _inject_spatial_context(context, scenes, pid)
+
+        # Verify each scene got space_description
+        assert "space_description" in scenes[0]
+        assert "水晶吊灯" in scenes[0]["space_description"]
+        assert scenes[1]["space_description"] == "宴会厅侧前方黑金签约桌，聚光灯下，背后巨幅屏幕"
+
+        # Verify spatial_flow
+        flow = context["spatial_flow"]
+        assert "S1" in flow and "S2" in flow and "S3" in flow
+        assert "宴会厅主厅" in flow
+        assert "签约桌" in flow
+        assert "侧厅" in flow
+        # Should describe the transition
+        assert "→" in flow
+        assert "移动到" in flow
+
 
 # ---------------------------------------------------------------------------
 # 16. Integration: _run_generate_screenplay with mocked LLM
@@ -2276,3 +2330,193 @@ class TestPromptsService:
 
         service.update_prompt(prompt_id, {"prompt_text": "修改文本"})
         assert service.get_prompt(prompt_id)["status"] == "ready"
+
+
+# ---------------------------------------------------------------------------
+# 14. Appearance anchor injection into shot prompt generation
+# ---------------------------------------------------------------------------
+
+class TestAppearanceAnchorInjection:
+    """Verify appearance_anchor_section flows from character to LLM prompt."""
+
+    SHOT_PROMPT_RESPONSE = """===PROPOSAL===
+{"first_frame_prompt": "图一中的沈之夏，鹅蛋脸，肤色白皙透亮，黑色长发及肩，中景平视", "first_frame_negative_prompt": "模糊 畸形 素描风格 线稿 插画", "video_prompt": "画面初始：沈之夏真实肤色透亮", "video_negative_prompt": "闪烁 抖动 素描风格 线稿", "negative_prompt": "低画质 水印 素描 线稿 非写实", "duration_seconds": 3}
+===END_PROPOSAL==="""
+
+    def test_appearance_anchor_injected_when_character_has_it(self, db_setup):
+        import io
+        from unittest.mock import MagicMock, patch
+        from video_lab.routes.prompts import generate_shot_prompt
+        from video_lab.domain.shots.service import ShotsService
+        from video_lab.domain.assets.service import AssetsService
+
+        pid = _create_project()
+        svc = ShotsService()
+        ep_id = svc.create_episode(pid, {"episode_no": 1, "title": "锚定词测试"})
+
+        # Create character WITH appearance_prompt
+        assets = AssetsService()
+        char_id = assets.upsert_character(pid, {
+            "name": "沈之夏",
+            "appearance_prompt": "沈之夏，鹅蛋脸，肤色白皙透亮，黑色长发及肩，丹凤眼，薄唇淡粉色",
+            "appearance_summary": "年轻女性",
+            "image_path": "",
+        })
+
+        shot_id = svc.create_shot(ep_id, {
+            "shot_no": 1,
+            "visual_goal": "角色外观一致",
+            "character_ids": json.dumps([char_id]),
+        })
+
+        captured_user_prompt = []
+        mock_provider = MagicMock()
+
+        def capture_chat(system, user, timeout):
+            captured_user_prompt.append(user)
+            return self.SHOT_PROMPT_RESPONSE
+
+        mock_provider._chat = capture_chat
+
+        environ = {
+            "REQUEST_METHOD": "POST",
+            "CONTENT_TYPE": "application/json",
+            "wsgi.input": io.BytesIO(b"{}"),
+            "CONTENT_LENGTH": "2",
+        }
+        captured_status = []
+
+        def start_response(status, headers):
+            captured_status.append(status)
+
+        with patch("video_lab.routes.prompts.ChatfireProvider", return_value=mock_provider), \
+             patch("video_lab.routes.prompts.load_config"):
+            generate_shot_prompt(environ, start_response, str(shot_id))
+
+        user_prompt = captured_user_prompt[0]
+        assert "沈之夏，鹅蛋脸，肤色白皙透亮，黑色长发及肩，丹凤眼，薄唇淡粉色" in user_prompt
+        assert "角色外貌锚定词" in user_prompt
+        assert "必须逐字复制" in user_prompt
+
+    def test_appearance_anchor_section_empty_when_no_character_has_it(self, db_setup):
+        import io
+        from unittest.mock import MagicMock, patch
+        from video_lab.routes.prompts import generate_shot_prompt
+        from video_lab.domain.shots.service import ShotsService
+        from video_lab.domain.assets.service import AssetsService
+
+        pid = _create_project()
+        svc = ShotsService()
+        ep_id = svc.create_episode(pid, {"episode_no": 1, "title": "无锚定词"})
+
+        # Create character WITHOUT appearance_prompt
+        assets = AssetsService()
+        char_id = assets.upsert_character(pid, {
+            "name": "李四",
+            "appearance_prompt": "",
+            "appearance_summary": "中年男性",
+            "image_path": "",
+        })
+
+        shot_id = svc.create_shot(ep_id, {
+            "shot_no": 1,
+            "visual_goal": "无锚定词",
+            "character_ids": json.dumps([char_id]),
+        })
+
+        captured_user_prompt = []
+        mock_provider = MagicMock()
+
+        def capture_chat(system, user, timeout):
+            captured_user_prompt.append(user)
+            return self.SHOT_PROMPT_RESPONSE
+
+        mock_provider._chat = capture_chat
+
+        environ = {
+            "REQUEST_METHOD": "POST",
+            "CONTENT_TYPE": "application/json",
+            "wsgi.input": io.BytesIO(b"{}"),
+            "CONTENT_LENGTH": "2",
+        }
+        captured_status = []
+
+        def start_response(status, headers):
+            captured_status.append(status)
+
+        with patch("video_lab.routes.prompts.ChatfireProvider", return_value=mock_provider), \
+             patch("video_lab.routes.prompts.load_config"):
+            generate_shot_prompt(environ, start_response, str(shot_id))
+
+        user_prompt = captured_user_prompt[0]
+        assert "角色外貌锚定词" not in user_prompt
+        assert "{appearance_anchor_section}" not in user_prompt
+
+    def test_appearance_anchor_picks_first_character_only(self, db_setup):
+        import io
+        from unittest.mock import MagicMock, patch
+        from video_lab.routes.prompts import generate_shot_prompt
+        from video_lab.domain.shots.service import ShotsService
+        from video_lab.domain.assets.service import AssetsService
+
+        pid = _create_project()
+        svc = ShotsService()
+        ep_id = svc.create_episode(pid, {"episode_no": 1, "title": "多角色锚定"})
+
+        assets = AssetsService()
+        char1_id = assets.upsert_character(pid, {
+            "name": "主角",
+            "appearance_prompt": "主角外貌：方脸，浓眉，短发",
+            "appearance_summary": "主角",
+            "image_path": "",
+        })
+        char2_id = assets.upsert_character(pid, {
+            "name": "配角",
+            "appearance_prompt": "配角外貌：圆脸，细眉，长发",
+            "appearance_summary": "配角",
+            "image_path": "",
+        })
+
+        shot_id = svc.create_shot(ep_id, {
+            "shot_no": 1,
+            "visual_goal": "多角色",
+            "character_ids": json.dumps([char1_id, char2_id]),
+        })
+
+        captured_user_prompt = []
+        mock_provider = MagicMock()
+
+        def capture_chat(system, user, timeout):
+            captured_user_prompt.append(user)
+            return self.SHOT_PROMPT_RESPONSE
+
+        mock_provider._chat = capture_chat
+
+        environ = {
+            "REQUEST_METHOD": "POST",
+            "CONTENT_TYPE": "application/json",
+            "wsgi.input": io.BytesIO(b"{}"),
+            "CONTENT_LENGTH": "2",
+        }
+        captured_status = []
+
+        def start_response(status, headers):
+            captured_status.append(status)
+
+        with patch("video_lab.routes.prompts.ChatfireProvider", return_value=mock_provider), \
+             patch("video_lab.routes.prompts.load_config"):
+            generate_shot_prompt(environ, start_response, str(shot_id))
+
+        user_prompt = captured_user_prompt[0]
+        # The anchor section header should appear only once
+        assert user_prompt.count("## 角色外貌锚定词") == 1
+        # First character's anchor text is present
+        assert "主角外貌：方脸，浓眉，短发" in user_prompt
+        # Extract the anchor section and verify it only contains first character's text
+        anchor_header = "## 角色外貌锚定词"
+        idx = user_prompt.index(anchor_header) + len(anchor_header)
+        remainder = user_prompt[idx:]
+        next_header = remainder.find("\n## ")
+        anchor_section = remainder[:next_header] if next_header > 0 else remainder
+        assert "主角外貌：方脸，浓眉，短发" in anchor_section
+        assert "配角外貌：圆脸，细眉，长发" not in anchor_section

@@ -27,6 +27,7 @@ class AssetsService:
             "role_type": normalize_text(payload.get("role_type")),
             "identity_summary": normalize_text(payload.get("identity_summary")),
             "appearance_summary": normalize_text(payload.get("appearance_summary")),
+            "appearance_prompt": normalize_text(payload.get("appearance_prompt")),
             "personality_tags": normalize_json_text(payload.get("personality_tags"), []),
             "speech_style": normalize_text(payload.get("speech_style")),
             "visual_profile": normalize_json_text(payload.get("visual_profile"), {}),
