@@ -30,7 +30,7 @@ def test_stylize_image_noop():
 
 
 # ---------------------------------------------------------------------------
-# 2. _build_character_image_prompt — sketch keywords
+# 2. _build_character_image_prompt — colored lineart keywords
 # ---------------------------------------------------------------------------
 
 def test_build_character_image_prompt_colored_lineart_keywords():
