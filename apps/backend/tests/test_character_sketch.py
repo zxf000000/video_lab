@@ -66,8 +66,11 @@ def test_build_character_image_prompt_colored_lineart_keywords():
 
 
 def test_build_character_image_prompt_respects_explicit():
-    """Explicit image_prompt on character should be returned as-is."""
-    from video_lab.domain.assets.service import AssetsService
+    """Explicit image_prompt on character should be returned with sketch instruction appended."""
+    from video_lab.domain.assets.service import (
+        AssetsService,
+        CHARACTER_SKETCH_REFERENCE_INSTRUCTION,
+    )
 
     svc = AssetsService()
     character = {
@@ -77,7 +80,7 @@ def test_build_character_image_prompt_respects_explicit():
         "appearance_summary": "",
     }
     prompt = svc._build_character_image_prompt(character, {}, {}, [])
-    assert prompt == "explicit custom prompt"
+    assert prompt == f"explicit custom prompt。{CHARACTER_SKETCH_REFERENCE_INSTRUCTION}"
 
 
 # ---------------------------------------------------------------------------
@@ -131,8 +134,8 @@ def test_character_image_template_format():
 
     template = DEFAULT_PROMPTS["prompt_character_image"]
     result = template.format(style="都市短剧", appearance_prompt="测试外观描述")
-    assert result.startswith("全身角色参考图，都市短剧风格：测试外观描述。")
-    assert "电影级品质" in result
+    assert result.startswith("全身角色素描参考图，都市短剧风格：测试外观描述。")
+    assert "铅笔素描风格" in result
 
 
 def test_scene_image_template_format():
