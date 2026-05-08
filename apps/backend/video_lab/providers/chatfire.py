@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 import time
@@ -564,15 +565,19 @@ class ChatfireProvider:
         filename = f"shot_{shot_id}_{frame_type}.png"
         return download_asset(image_url, filename, ASSETS_DIR)
 
-    def generate_character_image(self, char_id: int, appearance_prompt: str, style: str) -> str:
-        prompt = self._p("prompt_character_image").format(style=style, appearance_prompt=appearance_prompt)
-        print(f"[PROMPT_DEBUG] provider=chatfire model={self._config.image_model} action=character_image char_id={char_id} final_prompt={prompt!r}")
-        data = self._request("POST", f"{self._base_url}/v1/images/generations", {
+    def generate_character_image(self, char_id: int, appearance_prompt: str = "", style: str = "", ref_image: str = "", prompt: str = "") -> str:
+        final_prompt = prompt if prompt else self._p("prompt_character_image").format(style=style, appearance_prompt=appearance_prompt)
+        print(f"[PROMPT_DEBUG] provider=chatfire model={self._config.image_model} action=character_image char_id={char_id} final_prompt={final_prompt!r}")
+        payload: dict = {
             "model": self._config.image_model,
-            "prompt": prompt,
-            "size": self._image_size_for_aspect_ratio("16:9"),
+            "prompt": final_prompt,
+            "size": self._image_size_for_aspect_ratio("9:16"),
             "n": 1,
-        })
+        }
+        if ref_image:
+            b64 = base64.b64encode(Path(ASSETS_DIR / ref_image).read_bytes()).decode()
+            payload["image"] = f"data:image/png;base64,{b64}"
+        data = self._request("POST", f"{self._base_url}/v1/images/generations", payload)
         image_url = data["data"][0]["url"]
         filename = f"character_{char_id}.png"
         return download_asset(image_url, filename, ASSETS_DIR)
