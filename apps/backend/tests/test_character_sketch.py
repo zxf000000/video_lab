@@ -173,6 +173,70 @@ def test_seedance_debug_format():
     assert "images_count=1" in log_line
 
 
+def test_photo_template_loaded():
+    """prompt_character_photo is loaded from prompts/character_photo/prompt.txt."""
+    from video_lab.config import DEFAULT_PROMPTS
+    key = "prompt_character_photo"
+    template = DEFAULT_PROMPTS.get(key, "")
+    assert template, f"Template '{key}' not loaded"
+    assert "写实真人摄影" in template
+    assert "{appearance_prompt}" in template
+
+
+def test_sketchify_template_loaded():
+    """prompt_character_sketchify is loaded from prompts/character_sketchify/prompt.txt."""
+    from video_lab.config import DEFAULT_PROMPTS
+    key = "prompt_character_sketchify"
+    template = DEFAULT_PROMPTS.get(key, "")
+    assert template, f"Template '{key}' not loaded"
+    assert "彩色铅笔素描" in template
+    assert "非照片" in template
+
+
+def test_generate_character_image_two_step(monkeypatch):
+    """generate_character_image calls provider twice and stores both paths."""
+    from unittest.mock import Mock
+    from video_lab.domain.assets.service import AssetsService
+
+    mock_repo = Mock()
+    mock_repo.get_character.return_value = {
+        "id": 1, "project_id": 1, "name": "Hero",
+        "appearance_prompt": "tall warrior", "negative_prompt": "",
+        "visual_profile": "{}",
+    }
+    mock_repo.get_project.return_value = {"id": 1, "genre": "fantasy"}
+    mock_repo.get_project_brief.return_value = {"style_keywords": "[]"}
+    mock_repo.parse_json_column.return_value = {}
+
+    photo_called = [False]
+    sketchify_called = [False]
+
+    def generate_character_image_side(char_id, appearance_prompt="", style="", ref_image="", prompt=""):
+        if "写实真人摄影" in prompt:
+            photo_called[0] = True
+            return "assets/char_1_photo.png"
+        else:
+            sketchify_called[0] = True
+            assert ref_image == "assets/char_1_photo.png"
+            return "assets/char_1.png"
+
+    mock_image_provider = Mock()
+    mock_image_provider.generate_character_image.side_effect = generate_character_image_side
+    mock_providers = {"image": mock_image_provider}
+
+    monkeypatch.setattr("video_lab.domain.assets.service._get_providers", lambda: mock_providers)
+    svc = AssetsService(mock_repo)
+    svc.generate_character_image(1)
+
+    assert photo_called[0], "photo step was not called"
+    assert sketchify_called[0], "sketchify step was not called"
+    assert mock_image_provider.generate_character_image.call_count == 2
+
+    update_call = mock_repo.update_character.call_args[0][1]
+    assert update_call["image_path"] == "assets/char_1.png"
+    assert update_call["photo_path"] == "assets/char_1_photo.png"
+
+
 # ---------------------------------------------------------------------------
 # 6. optimize_prompt prompt template is loadable
 # ---------------------------------------------------------------------------
