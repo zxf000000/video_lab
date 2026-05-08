@@ -162,8 +162,9 @@ class AssetsService:
         print(f"[PROMPT_DEBUG] action=character_photo char_id={character_id} final_prompt={photo_prompt!r}")
         kling = providers.get("kling")
         if kling and hasattr(kling, "generate_image"):
+            # Use offset task_id so photo and sketch steps don't collide on filename
             photo_path = kling.generate_image(
-                task_id=character_id,
+                task_id=character_id * 10000 + 1,
                 prompt=photo_prompt,
                 model_name="kling-v2-1",
                 aspect_ratio="9:16",
@@ -180,7 +181,7 @@ class AssetsService:
         print(f"[PROMPT_DEBUG] action=character_sketchify char_id={character_id} ref_image={photo_path}")
         if kling and hasattr(kling, "generate_image"):
             image_path = kling.generate_image(
-                task_id=character_id,
+                task_id=character_id * 10000 + 2,
                 prompt=sketchify_prompt,
                 model_name="kling-v2-1",
                 aspect_ratio="9:16",
