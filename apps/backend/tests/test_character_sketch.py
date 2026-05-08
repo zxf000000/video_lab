@@ -134,8 +134,8 @@ def test_character_image_template_format():
 
     template = DEFAULT_PROMPTS["prompt_character_image"]
     result = template.format(style="都市短剧", appearance_prompt="测试外观描述")
-    assert result.startswith("全身角色素描参考图，都市短剧风格：测试外观描述。")
-    assert "铅笔素描风格" in result
+    assert result.startswith("全身角色彩色线稿参考图，都市短剧风格：测试外观描述。")
+    assert "色铅笔手绘风格" in result
 
 
 def test_scene_image_template_format():
@@ -184,7 +184,7 @@ def test_optimize_prompt_template_loaded():
     key = "prompt_copilot_character_optimize_prompt"
     assert key in DEFAULT_PROMPTS, f"Expected key {key!r} not found in DEFAULT_PROMPTS"
     template = DEFAULT_PROMPTS[key]
-    assert "pencil sketch" in template
+    assert "colored pencil" in template
     assert "solid background" in template
 
 
