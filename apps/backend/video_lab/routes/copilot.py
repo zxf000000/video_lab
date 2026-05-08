@@ -18,7 +18,7 @@ from ..providers.chatfire import ChatfireProvider
 from . import _request_ctx, cors_headers, parse_json, register, respond_json
 
 SUPPORTED_MODULES = {"brief", "character", "scene", "episode", "shot", "screenplay"}
-SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate", "optimize_prompt"}
+SUPPORTED_INTENTS = {"generate", "rewrite", "expand", "compress", "fill_missing", "regenerate", "optimize_prompt", "appearance_anchor"}
 START_MARKER = "===PROPOSAL==="
 END_MARKER = "===END_PROPOSAL==="
 
@@ -126,10 +126,14 @@ def _normalize_character_proposal(raw: dict) -> CharacterProposalPayload:
     image_spec = raw.get("image_spec") if isinstance(raw.get("image_spec"), dict) else {}
     if not image_spec and ("image_prompt" in raw or "negative_prompt" in raw):
         image_spec = raw
-    return {
+    result: CharacterProposalPayload = {
         "character_profile": _normalize_character_profile(profile),
         "image_spec": _normalize_character_image_spec(image_spec),
     }
+    appearance_anchor = str(raw.get("appearance_anchor", "")).strip()
+    if appearance_anchor:
+        result["appearance_anchor"] = appearance_anchor
+    return result
 
 
 def _normalize_variant_inherit_rules(raw: dict) -> CharacterVariantInheritRulesPayload:

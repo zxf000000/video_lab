@@ -115,6 +115,72 @@ def _run_generate_scenes(task_id: int, episode_id: int, project_id: int, context
         gen_svc.repository.update_task(task_id, {"status": "failed", "error_message": str(exc)[:500]})
 
 
+# ── Spatial context builder ──────────────────────────────────────
+
+def _inject_spatial_context(context: dict, scenes: list[dict], project_id: int) -> None:
+    """Enrich screenplay_scenes with space_description from scene_presets
+    and build a spatial_flow summary describing physical transitions."""
+    from ..domain.assets import AssetsService
+
+    assets_svc = AssetsService()
+    presets = assets_svc.repository.list_scene_presets(project_id)
+
+    # Build lookup by name (strip time-of-day suffix like " - 夜", " - 日")
+    preset_by_name: dict[str, dict] = {}
+    for p in presets:
+        name = (p.get("name") or "").strip()
+        if name:
+            preset_by_name[name] = dict(p)
+
+    def _match_preset(location: str) -> dict | None:
+        loc = location.strip()
+        if loc in preset_by_name:
+            return preset_by_name[loc]
+        # Try substring match
+        for name, p in preset_by_name.items():
+            if name in loc or loc in name:
+                return p
+        return None
+
+    # Enrich each scene with space metadata
+    for scene in scenes:
+        loc = scene.get("location", "")
+        preset = _match_preset(loc) if loc else None
+        if preset:
+            scene.setdefault("space_description", preset.get("space_description", ""))
+            scene.setdefault("lighting_style", preset.get("lighting_style", ""))
+            scene.setdefault("time_of_day", preset.get("time_of_day", ""))
+
+    # Build spatial flow: describe movement trajectory across scenes
+    flow_lines: list[str] = []
+    prev_name: str | None = None
+    prev_label: str | None = None
+    for i, scene in enumerate(scenes):
+        scene_no = scene.get("scene_no", i + 1)
+        label = f"S{scene_no}"
+        loc = (scene.get("location") or "").strip()
+        preset = _match_preset(loc) if loc else None
+        space_name = (preset.get("name") or loc) if preset else loc
+        space_desc = (preset.get("space_description") or "")[:200] if preset else ""
+
+        if i == 0:
+            flow_lines.append(f"{label}「{space_name}」开场: {space_desc}")
+        else:
+            transition = (
+                f"{prev_label} → {label}: "
+                f"角色从「{prev_name}」移动到「{space_name}」。"
+            )
+            if space_desc:
+                transition += f" 目标空间: {space_desc}"
+            flow_lines.append(transition)
+
+        prev_name = space_name
+        prev_label = label
+
+    if flow_lines:
+        context.setdefault("spatial_flow", "\n".join(flow_lines))
+
+
 # ── Shot executor ────────────────────────────────────────────────
 
 def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict]) -> None:
@@ -135,6 +201,9 @@ def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context:
                     except (json.JSONDecodeError, TypeError):
                         scenes = []
                 context.setdefault("screenplay_scenes", scenes)
+                # Build spatial flow: enrich scenes with space_description from presets
+                if scenes:
+                    _inject_spatial_context(context, scenes, project_id)
         full_text = _stream_llm_response("shot", context, messages, project_id, episode_id)
         proposal = _extract_shot_proposal(full_text)
         if not proposal or not proposal.get("shots"):

@@ -223,6 +223,7 @@ export interface CharacterProposal {
     imagePrompt: string;
     negativePrompt: string;
   };
+  appearanceAnchor?: string;
 }
 
 export interface CharacterCollectionProposal {
@@ -629,6 +630,7 @@ function normalizeCharacterProposal(raw: Record<string, unknown>): CharacterProp
       imagePrompt: asString(imageSpec.image_prompt ?? imageSpec.imagePrompt),
       negativePrompt: asString(imageSpec.negative_prompt ?? imageSpec.negativePrompt),
     },
+    appearanceAnchor: asString(raw.appearance_anchor ?? raw.appearanceAnchor) || undefined,
   };
 }
 
@@ -1124,6 +1126,7 @@ export async function createCharacter(projectId: number, data: Partial<Character
       role_type: data.roleType ?? "",
       identity_summary: data.identitySummary ?? "",
       appearance_summary: data.appearanceSummary ?? "",
+      appearance_prompt: data.appearancePrompt ?? "",
       personality_tags: data.personalityTags ?? [],
       speech_style: data.speechStyle ?? "",
       visual_profile: data.visualProfile ?? {},
@@ -1151,6 +1154,7 @@ export async function updateCharacter(characterId: number, projectId: number, da
       ...(data.roleType !== undefined ? { role_type: data.roleType } : {}),
       ...(data.identitySummary !== undefined ? { identity_summary: data.identitySummary } : {}),
       ...(data.appearanceSummary !== undefined ? { appearance_summary: data.appearanceSummary } : {}),
+      ...(data.appearancePrompt !== undefined ? { appearance_prompt: data.appearancePrompt } : {}),
       ...(data.personalityTags !== undefined ? { personality_tags: data.personalityTags } : {}),
       ...(data.speechStyle !== undefined ? { speech_style: data.speechStyle } : {}),
       ...(data.visualProfile !== undefined ? { visual_profile: data.visualProfile } : {}),

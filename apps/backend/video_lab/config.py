@@ -177,6 +177,8 @@ VENDORS = {
     },
     "DeepSeek": {
         "text": [
+            {"id": "deepseek-v4-pro", "label": "DeepSeek V4 Pro"},
+            {"id": "deepseek-v4-flash", "label": "DeepSeek V4 Flash"},
             {"id": "deepseek-v3.2", "label": "DeepSeek V3.2"},
             {"id": "deepseek-v3.1", "label": "DeepSeek V3.1"},
             {"id": "deepseek-r1", "label": "DeepSeek R1"},
@@ -733,7 +735,7 @@ def _coerce(raw: dict) -> AppConfig:
 
 @dataclass(frozen=True)
 class SeedanceConfig:
-    seedance_api_base: str = "https://ark.cn-beijing.volces.com/api/v3"
+    seedance_api_base: str = "https://ark.cn-beijing.volces.com/api/plan/v3"
     seedance_api_key: str = ""
 
 

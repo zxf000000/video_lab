@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { API_BASE, createCharacter, deleteCharacter, generateCharacterImage, generateCharacterAnchor, optimizeCharacterPrompt, regenerateCharacter, streamCopilot, type CharacterAsset, type CharacterCollectionProposal, type CharacterProposal, type CharacterVariantCollectionProposal, type CharacterVariantProposal, type CopilotProposal, updateCharacter } from "@/src/api";
 import ProjectCopilotButton from "@/src/components/copilot/ProjectCopilotButton";
@@ -404,6 +405,7 @@ function applyMultiVariantProposalToForm(base: CharacterFormState, variants: Cha
 export default function CharactersPage() {
   const { project, refresh } = useProjectWorkspace();
   const { adapter } = useProjectCopilot();
+  const router = useRouter();
   const [editing, setEditing] = useState<CharacterFormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [generatingImageSpec, setGeneratingImageSpec] = useState(false);
@@ -1123,7 +1125,7 @@ export default function CharactersPage() {
               <CharacterCard
                 key={character.id}
                 character={character}
-                onEdit={(c) => setEditing(toForm(c))}
+                onEdit={(c) => router.push(`/projects/${readyProject.id}/characters/${c.id}`)}
                 onRegenerate={handleRegenerate}
                 onGenerateImage={handleGenerateCharacterImage}
                 onOptimizePrompt={handleOptimizePrompt}

@@ -258,6 +258,7 @@ def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
             "role_type": char.get("role_type", ""),
             "identity_summary": char.get("identity_summary", ""),
             "appearance_summary": char.get("appearance_summary", ""),
+            "appearance_prompt": char.get("appearance_prompt", ""),
             "personality_tags": char.get("personality_tags", "[]"),
             "speech_style": char.get("speech_style", ""),
             "visual_profile": char.get("visual_profile", "{}"),

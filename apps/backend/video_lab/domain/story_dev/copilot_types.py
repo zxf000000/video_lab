@@ -35,6 +35,7 @@ class CharacterImageSpecPayload(TypedDict):
 class CharacterProposalPayload(TypedDict):
     character_profile: CharacterProfilePayload
     image_spec: CharacterImageSpecPayload
+    appearance_anchor: NotRequired[str]
 
 
 class CharacterCollectionProposalPayload(TypedDict):

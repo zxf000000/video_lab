@@ -107,6 +107,8 @@ class AssetsRepository:
             conn.close()
 
     def update_character(self, character_id: int, payload: dict) -> None:
+        import sys
+        print(f"DEBUG update_character: character_id={character_id}, payload={payload}", file=sys.stderr)
         fields = []
         values = []
         for key in (

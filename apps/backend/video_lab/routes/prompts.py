@@ -166,6 +166,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
 
     idx = 0
     char_descriptions = []
+    appearance_anchor = ""
     if character_ids:
         for cid in character_ids[:5]:
             try:
@@ -175,6 +176,8 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
                     label = _ordinal_label(idx)
                     name = char.get("name", "角色")
                     image_path = char.get("image_path", "")
+                    if not appearance_anchor and char.get("appearance_prompt", "").strip():
+                        appearance_anchor = char["appearance_prompt"].strip()
                     image_refs.append({"label": label, "type": "character", "name": name, "path": image_path})
                     image_reference_lines.append(f"{label} = {name} (角色图片)")
                     parts = [f"角色名: {name}"]
@@ -201,17 +204,9 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     if char_descriptions:
         character_context = "\n".join(char_descriptions)
 
-    # Build appearance anchor from first character with appearance_prompt
-    appearance_anchor = ""
-    if character_ids:
-        for cid in character_ids[:5]:
-            try:
-                char = assets_service.get_character(int(cid))
-                if char and char.get("appearance_prompt", "").strip():
-                    appearance_anchor = char["appearance_prompt"].strip()
-                    break
-            except Exception:
-                continue
+    appearance_anchor_section = ""
+    if appearance_anchor:
+        appearance_anchor_section = f"## 角色外貌锚定词（必须逐字复制，不得改写）\n{appearance_anchor}"
 
     # Scene image
     scene_context = "无关联场景"
@@ -320,7 +315,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         video_image_reference_list=video_image_reference_list,
         scene_context=scene_context,
         character_context=character_context,
-        appearance_anchor=appearance_anchor,
+        appearance_anchor_section=appearance_anchor_section,
         project_id=shot.get("project_id", ""),
         duration_hint=duration_hint,
         shot_position=shot_position_hint,

@@ -2520,3 +2520,71 @@ class TestAppearanceAnchorInjection:
         anchor_section = remainder[:next_header] if next_header > 0 else remainder
         assert "主角外貌：方脸，浓眉，短发" in anchor_section
         assert "配角外貌：圆脸，细眉，长发" not in anchor_section
+
+
+class TestNormalizeCharacterProposalAppearanceAnchor:
+    """Verify _normalize_character_proposal passes through appearance_anchor field."""
+
+    def test_preserves_appearance_anchor_when_present(self):
+        from video_lab.routes.copilot import _normalize_character_proposal
+
+        raw = {
+            "character_profile": {"name": "苏妙妙", "role_type": "主角"},
+            "image_spec": {"image_prompt": "pencil sketch..."},
+            "appearance_anchor": "标准鹅蛋脸，五官精致，杏仁眼，黑色长发及腰",
+        }
+        result = _normalize_character_proposal(raw)
+        assert result["appearance_anchor"] == "标准鹅蛋脸，五官精致，杏仁眼，黑色长发及腰"
+        assert result["character_profile"]["name"] == "苏妙妙"
+        assert result["image_spec"]["image_prompt"] == "pencil sketch..."
+
+    def test_appearance_anchor_absent_when_missing(self):
+        from video_lab.routes.copilot import _normalize_character_proposal
+
+        raw = {
+            "character_profile": {"name": "李四", "role_type": "配角"},
+            "image_spec": {"image_prompt": "line art..."},
+        }
+        result = _normalize_character_proposal(raw)
+        assert "appearance_anchor" not in result
+
+    def test_appearance_anchor_absent_when_empty_string(self):
+        from video_lab.routes.copilot import _normalize_character_proposal
+
+        raw = {
+            "character_profile": {"name": "王五"},
+            "image_spec": {},
+            "appearance_anchor": "",
+        }
+        result = _normalize_character_proposal(raw)
+        assert "appearance_anchor" not in result
+
+    def test_appearance_anchor_absent_when_whitespace_only(self):
+        from video_lab.routes.copilot import _normalize_character_proposal
+
+        raw = {
+            "character_profile": {"name": "赵六"},
+            "image_spec": {},
+            "appearance_anchor": "   \n  ",
+        }
+        result = _normalize_character_proposal(raw)
+        assert "appearance_anchor" not in result
+
+    def test_character_collection_passes_through_anchor(self):
+        from video_lab.routes.copilot import _extract_character_proposal
+
+        text = """===PROPOSAL===
+{
+  "roles": [
+    {
+      "character_profile": {"name": "苏妙妙", "role_type": "主角", "species": "", "identity_summary": "", "appearance_summary": "", "personality_tags": [], "speech_style": "", "negative_constraints": ""},
+      "image_spec": {"gender_presentation": "", "age_range": "", "body_type": "", "face_features": "", "hair_style": "", "hair_color": "", "eye_style": "", "signature_expression": "", "signature_pose": "", "clothing_style": "", "color_palette": [], "visual_keywords": [], "negative_visual_constraints": [], "image_prompt": "", "negative_prompt": ""},
+      "appearance_anchor": "瓜子脸，丹凤眼，黑色长发，肤白如雪"
+    }
+  ]
+}
+===END_PROPOSAL==="""
+        result = _extract_character_proposal(text)
+        assert result is not None
+        assert result["mode"] == "base_character"
+        assert result["roles"][0]["appearance_anchor"] == "瓜子脸，丹凤眼，黑色长发，肤白如雪"

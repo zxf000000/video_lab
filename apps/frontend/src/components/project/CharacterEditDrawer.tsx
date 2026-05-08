@@ -1,11 +1,11 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { API_BASE } from "@/src/api";
 import { StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/src/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { Textarea } from "@/src/components/ui/textarea";
 
@@ -178,7 +178,7 @@ export function updateActiveVariantValue(
   };
 }
 
-function updateVariantMeta(form: CharacterFormState, patch: Partial<CharacterVariantDraft>) {
+export function updateVariantMeta(form: CharacterFormState, patch: Partial<CharacterVariantDraft>) {
   return {
     ...form,
     variants: form.variants.map((variant) =>
@@ -187,7 +187,7 @@ function updateVariantMeta(form: CharacterFormState, patch: Partial<CharacterVar
   };
 }
 
-function updateImagePath(form: CharacterFormState, value: string): CharacterFormState {
+export function updateImagePath(form: CharacterFormState, value: string): CharacterFormState {
   if (form.activeVariantId === DEFAULT_VARIANT_ID) {
     return { ...form, imagePath: value };
   }
@@ -231,6 +231,189 @@ interface CharacterEditDrawerProps {
   };
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────
+
+export function parseCsv(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+export function buildBaseImageSpec(form: CharacterFormState) {
+  return {
+    genderPresentation: form.genderPresentation,
+    ageRange: form.ageRange,
+    bodyType: form.bodyType,
+    faceFeatures: form.faceFeatures,
+    hairStyle: form.hairStyle,
+    hairColor: form.hairColor,
+    eyeStyle: form.eyeStyle,
+    signatureExpression: form.signatureExpression,
+    signaturePose: form.signaturePose,
+    clothingStyle: form.clothingStyle,
+    colorPalette: parseCsv(form.colorPalette),
+    visualKeywords: parseCsv(form.visualKeywords),
+    negativeVisualConstraints: parseCsv(form.negativeVisualConstraints),
+    imagePrompt: form.imagePrompt,
+    negativePrompt: form.negativePrompt,
+  };
+}
+
+export function buildVariantOverridePayload(variant: CharacterVariantDraft) {
+  return {
+    genderPresentation: variant.override.genderPresentation,
+    ageRange: variant.override.ageRange,
+    bodyType: variant.override.bodyType,
+    faceFeatures: variant.override.faceFeatures,
+    hairStyle: variant.override.hairStyle,
+    hairColor: variant.override.hairColor,
+    eyeStyle: variant.override.eyeStyle,
+    signatureExpression: variant.override.signatureExpression,
+    signaturePose: variant.override.signaturePose,
+    clothingStyle: variant.override.clothingStyle,
+    colorPalette: parseCsv(variant.override.colorPalette),
+    visualKeywords: parseCsv(variant.override.visualKeywords),
+    negativeVisualConstraints: parseCsv(variant.override.negativeVisualConstraints),
+    imagePrompt: variant.override.imagePrompt,
+    negativePrompt: variant.override.negativePrompt,
+  };
+}
+
+export function mergeVariantImageSpec(form: CharacterFormState, variantId: string) {
+  const base = buildBaseImageSpec(form);
+  if (variantId === DEFAULT_VARIANT_ID) return base;
+  const variant = form.variants.find((item) => item.id === variantId);
+  if (!variant) return base;
+  const override = buildVariantOverridePayload(variant);
+  return {
+    genderPresentation: override.genderPresentation || base.genderPresentation,
+    ageRange: override.ageRange || base.ageRange,
+    bodyType: override.bodyType || base.bodyType,
+    faceFeatures: override.faceFeatures || base.faceFeatures,
+    hairStyle: override.hairStyle || base.hairStyle,
+    hairColor: override.hairColor || base.hairColor,
+    eyeStyle: override.eyeStyle || base.eyeStyle,
+    signatureExpression: override.signatureExpression || base.signatureExpression,
+    signaturePose: override.signaturePose || base.signaturePose,
+    clothingStyle: override.clothingStyle || base.clothingStyle,
+    colorPalette: override.colorPalette.length ? override.colorPalette : base.colorPalette,
+    visualKeywords: override.visualKeywords.length ? override.visualKeywords : base.visualKeywords,
+    negativeVisualConstraints: override.negativeVisualConstraints.length
+      ? override.negativeVisualConstraints
+      : base.negativeVisualConstraints,
+    imagePrompt: override.imagePrompt || base.imagePrompt,
+    negativePrompt: override.negativePrompt || base.negativePrompt,
+  };
+}
+
+export function buildVisualProfile(form: CharacterFormState) {
+  const baseImageSpec = buildBaseImageSpec(form);
+  const activeImageSpec = mergeVariantImageSpec(form, form.activeVariantId);
+  return {
+    ...activeImageSpec,
+    baseImageSpec,
+    defaultImagePath: form.imagePath,
+    activeVariantId: form.activeVariantId,
+    variants: form.variants.map((variant) => ({
+      id: variant.id,
+      variantName: variant.variantName,
+      variantType: variant.variantType,
+      triggerReason: variant.triggerReason,
+      visualChangesSummary: variant.visualChangesSummary,
+      inheritRules: variant.inheritRules,
+      imageSpecOverride: buildVariantOverridePayload(variant),
+      imagePath: variant.imagePath,
+    })),
+  };
+}
+
+export function toCharacterForm(character?: import("@/src/api").CharacterAsset): CharacterFormState {
+  if (!character) return emptyForm;
+  const visualProfile = (character as any).visualProfile ?? {};
+  const rawBaseImageSpec = typeof visualProfile.baseImageSpec === "object" && visualProfile.baseImageSpec !== null
+    ? visualProfile.baseImageSpec as Record<string, unknown>
+    : visualProfile;
+  const rawVariants = Array.isArray(visualProfile.variants) ? visualProfile.variants : [];
+  return {
+    id: character.id,
+    name: character.name,
+    roleType: character.roleType,
+    species: typeof rawBaseImageSpec.species === "string" ? rawBaseImageSpec.species : (typeof (character as any).species === "string" ? (character as any).species : ""),
+    identitySummary: character.identitySummary,
+    appearanceSummary: character.appearanceSummary,
+    personalityTags: character.personalityTags.join(", "),
+    speechStyle: character.speechStyle,
+    negativeConstraints: character.negativeConstraints,
+    genderPresentation: typeof rawBaseImageSpec.genderPresentation === "string" ? rawBaseImageSpec.genderPresentation : "",
+    ageRange: typeof rawBaseImageSpec.ageRange === "string" ? rawBaseImageSpec.ageRange : "",
+    bodyType: typeof rawBaseImageSpec.bodyType === "string" ? rawBaseImageSpec.bodyType : "",
+    faceFeatures: typeof rawBaseImageSpec.faceFeatures === "string" ? rawBaseImageSpec.faceFeatures : "",
+    hairStyle: typeof rawBaseImageSpec.hairStyle === "string" ? rawBaseImageSpec.hairStyle : "",
+    hairColor: typeof rawBaseImageSpec.hairColor === "string" ? rawBaseImageSpec.hairColor : "",
+    eyeStyle: typeof rawBaseImageSpec.eyeStyle === "string" ? rawBaseImageSpec.eyeStyle : "",
+    signatureExpression: typeof rawBaseImageSpec.signatureExpression === "string" ? rawBaseImageSpec.signatureExpression : "",
+    signaturePose: typeof rawBaseImageSpec.signaturePose === "string" ? rawBaseImageSpec.signaturePose : "",
+    clothingStyle: typeof rawBaseImageSpec.clothingStyle === "string" ? rawBaseImageSpec.clothingStyle : "",
+    colorPalette: Array.isArray(rawBaseImageSpec.colorPalette) ? rawBaseImageSpec.colorPalette.join(", ") : "",
+    visualKeywords: Array.isArray(rawBaseImageSpec.visualKeywords) ? rawBaseImageSpec.visualKeywords.join(", ") : "",
+    negativeVisualConstraints: Array.isArray(rawBaseImageSpec.negativeVisualConstraints)
+      ? rawBaseImageSpec.negativeVisualConstraints.join(", ")
+      : "",
+    imagePrompt: typeof rawBaseImageSpec.imagePrompt === "string" ? rawBaseImageSpec.imagePrompt : character.imagePrompt,
+    negativePrompt: typeof rawBaseImageSpec.negativePrompt === "string" ? rawBaseImageSpec.negativePrompt : character.negativePrompt,
+    imagePath: typeof visualProfile.defaultImagePath === "string" ? visualProfile.defaultImagePath : character.imagePath,
+    variants: rawVariants
+      .filter((item: any): item is Record<string, unknown> => typeof item === "object" && item !== null)
+      .map((item: any) => createVariantDraft({
+        id: typeof item.id === "string" ? item.id : (typeof item.variantId === "string" ? item.variantId : undefined),
+        variantName: typeof item.variantName === "string" ? item.variantName : (typeof item.variant_name === "string" ? item.variant_name : ""),
+        variantType: typeof item.variantType === "string" ? item.variantType : (typeof item.variant_type === "string" ? item.variant_type : ""),
+        triggerReason: typeof item.triggerReason === "string" ? item.triggerReason : (typeof item.trigger_reason === "string" ? item.trigger_reason : ""),
+        visualChangesSummary:
+          typeof item.visualChangesSummary === "string" ? item.visualChangesSummary : (typeof item.visual_changes_summary === "string" ? item.visual_changes_summary : ""),
+        inheritRules: typeof item.inheritRules === "object" && item.inheritRules !== null
+          ? {
+            keepFaceIdentity: Boolean((item.inheritRules as Record<string, unknown>).keepFaceIdentity ?? (item.inheritRules as Record<string, unknown>).keep_face_identity),
+            keepAgeRange: Boolean((item.inheritRules as Record<string, unknown>).keepAgeRange ?? (item.inheritRules as Record<string, unknown>).keep_age_range),
+            keepBodyType: Boolean((item.inheritRules as Record<string, unknown>).keepBodyType ?? (item.inheritRules as Record<string, unknown>).keep_body_type),
+            keepCoreTemperament: Boolean((item.inheritRules as Record<string, unknown>).keepCoreTemperament ?? (item.inheritRules as Record<string, unknown>).keep_core_temperament),
+          }
+          : {
+            keepFaceIdentity: true,
+            keepAgeRange: true,
+            keepBodyType: true,
+            keepCoreTemperament: true,
+          },
+        override: typeof item.imageSpecOverride === "object" && item.imageSpecOverride !== null
+          ? parseVariantVisual(item.imageSpecOverride as Record<string, unknown>)
+          : (typeof item.image_spec_override === "object" && item.image_spec_override !== null
+            ? parseVariantVisual(item.image_spec_override as Record<string, unknown>)
+            : undefined),
+        imagePath: typeof item.imagePath === "string" ? item.imagePath : (typeof item.image_path === "string" ? item.image_path : ""),
+      })),
+    activeVariantId: typeof visualProfile.activeVariantId === "string" ? visualProfile.activeVariantId : DEFAULT_VARIANT_ID,
+    status: character.status,
+  };
+}
+
+function parseVariantVisual(raw: Record<string, unknown>): VariantVisualDraft {
+  return {
+    genderPresentation: typeof raw.genderPresentation === "string" ? raw.genderPresentation : "",
+    ageRange: typeof raw.ageRange === "string" ? raw.ageRange : "",
+    bodyType: typeof raw.bodyType === "string" ? raw.bodyType : "",
+    faceFeatures: typeof raw.faceFeatures === "string" ? raw.faceFeatures : "",
+    hairStyle: typeof raw.hairStyle === "string" ? raw.hairStyle : "",
+    hairColor: typeof raw.hairColor === "string" ? raw.hairColor : "",
+    eyeStyle: typeof raw.eyeStyle === "string" ? raw.eyeStyle : "",
+    signatureExpression: typeof raw.signatureExpression === "string" ? raw.signatureExpression : "",
+    signaturePose: typeof raw.signaturePose === "string" ? raw.signaturePose : "",
+    clothingStyle: typeof raw.clothingStyle === "string" ? raw.clothingStyle : "",
+    colorPalette: Array.isArray(raw.colorPalette) ? raw.colorPalette.join(", ") : "",
+    visualKeywords: Array.isArray(raw.visualKeywords) ? raw.visualKeywords.join(", ") : "",
+    negativeVisualConstraints: Array.isArray(raw.negativeVisualConstraints) ? raw.negativeVisualConstraints.join(", ") : "",
+    imagePrompt: typeof raw.imagePrompt === "string" ? raw.imagePrompt : "",
+    negativePrompt: typeof raw.negativePrompt === "string" ? raw.negativePrompt : "",
+  };
+}
+
 // ── Component ────────────────────────────────────────────────────────────
 
 export function CharacterEditDrawer({
@@ -250,27 +433,61 @@ export function CharacterEditDrawer({
   const activeVariant = getActiveVariant(form);
 
   return (
-    <Sheet open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent
-        side="right"
-        className="!w-[45rem] max-w-[92vw] max-h-none gap-0 p-0"
-      >
-        <SheetHeader className="shrink-0 border-b border-line px-5 py-4">
-          <SheetTitle>{form.id ? "编辑角色" : "新增角色"}</SheetTitle>
-        </SheetHeader>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="character-edit-drawer"
+          className="fixed inset-0 z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="absolute right-0 top-0 bottom-0 w-[min(52rem,100vw)] bg-panel border-l border-line flex flex-col shadow-2xl"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          >
+            <div className="flex items-center justify-between border-b border-line px-6 py-4 shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-gray-100">
+                  {form.id ? "编辑角色" : "新增角色"}
+                </h2>
+                {form.id && (
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    {form.name || "未命名角色"}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="secondary" size="sm" onClick={onClose}>
+                  关闭
+                </Button>
+              </div>
+            </div>
 
-        <Tabs defaultValue="basic" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="shrink-0 border-b border-line px-5">
-            <TabsList variant="line">
-              <TabsTrigger value="basic">基础角色卡</TabsTrigger>
-              <TabsTrigger value="visual">视觉设定</TabsTrigger>
-              <TabsTrigger value="image">图片资产</TabsTrigger>
-            </TabsList>
-          </div>
+            <Tabs defaultValue="basic" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="shrink-0 border-b border-line px-6">
+                <TabsList>
+                  <TabsTrigger value="basic">基础角色卡</TabsTrigger>
+                  <TabsTrigger value="visual">视觉设定</TabsTrigger>
+                  <TabsTrigger value="image">图片资产</TabsTrigger>
+                </TabsList>
+              </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {/* ── Tab: 基础角色卡 ── */}
-            <TabsContent value="basic" className="p-5">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {/* ── Tab: 基础角色卡 ── */}
+                <TabsContent value="basic" className="p-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label className="mb-2 block text-xs text-gray-500">角色名</Label>
@@ -309,7 +526,7 @@ export function CharacterEditDrawer({
             </TabsContent>
 
             {/* ── Tab: 视觉设定 ── */}
-            <TabsContent value="visual" className="p-5">
+            <TabsContent value="visual" className="p-6">
               <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -531,7 +748,7 @@ export function CharacterEditDrawer({
             </TabsContent>
 
             {/* ── Tab: 图片资产 ── */}
-            <TabsContent value="image" className="p-5">
+            <TabsContent value="image" className="p-6">
               <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
                 <h3 className="text-sm font-semibold text-gray-100">角色图片资产</h3>
                 <p className="mt-1 text-xs text-gray-500">当前对选中形态维护 prompt 与主图；默认形态和各变体都可分别出图。</p>
@@ -593,26 +810,28 @@ export function CharacterEditDrawer({
           </div>
         </Tabs>
 
-        <SheetFooter className="shrink-0 border-t border-line bg-panel2/60 px-5 py-3">
-          <Button variant="secondary" onClick={onClose} disabled={loadingStates.saving}>
-            取消
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onGenerateImage}
-            disabled={loadingStates.saving || loadingStates.generatingImage}
-          >
-            {loadingStates.generatingImage
-              ? "生成中..."
-              : (activeVariant?.imagePath || form.imagePath)
-                ? "保存并重生成主图"
-                : "保存并生成角色图"}
-          </Button>
-          <Button onClick={onSave} disabled={loadingStates.saving}>
-            {loadingStates.saving ? "保存中..." : "保存角色"}
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+            <div className="shrink-0 border-t border-line bg-panel2/60 px-6 py-3 flex justify-end gap-2">
+              <Button variant="secondary" onClick={onClose} disabled={loadingStates.saving}>
+                取消
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={onGenerateImage}
+                disabled={loadingStates.saving || loadingStates.generatingImage}
+              >
+                {loadingStates.generatingImage
+                  ? "生成中..."
+                  : (activeVariant?.imagePath || form.imagePath)
+                    ? "保存并重生成主图"
+                    : "保存并生成角色图"}
+              </Button>
+              <Button onClick={onSave} disabled={loadingStates.saving}>
+                {loadingStates.saving ? "保存中..." : "保存角色"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -282,7 +282,7 @@ export default function ConfigPage() {
                   className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
                   value={sdForm.seedance_api_base}
                   onChange={(e) => sdSet("seedance_api_base", e.target.value)}
-                  placeholder="https://ark.cn-beijing.volces.com/api/v3"
+                  placeholder="https://ark.cn-beijing.volces.com/api/plan/v3"
                 />
               </label>
               <label className="flex items-center gap-2">
@@ -394,9 +394,9 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
         setNewLabel("");
         setAdding(false);
         // Reload models
-        getConfig().then(() => {});
+        getConfig().then(() => { });
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   const selectedLabel = modelList.find((m) => m.id === value)?.label || value || "未选择";
@@ -424,13 +424,12 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
               <button
                 key={name}
                 type="button"
-                className={`truncate px-2 py-1 text-left text-[11px] transition ${
-                  isActive
-                    ? "bg-mint/10 text-mint font-medium"
-                    : hasSelected
-                      ? "text-mint/70 hover:bg-panel2"
-                      : "text-gray-500 hover:bg-panel2 hover:text-gray-100"
-                }`}
+                className={`truncate px-2 py-1 text-left text-[11px] transition ${isActive
+                  ? "bg-mint/10 text-mint font-medium"
+                  : hasSelected
+                    ? "text-mint/70 hover:bg-panel2"
+                    : "text-gray-500 hover:bg-panel2 hover:text-gray-100"
+                  }`}
                 onClick={() => setSelectedVendor(name)}
               >
                 {name}
@@ -440,11 +439,10 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
           {customModels.length > 0 ? (
             <button
               type="button"
-              className={`truncate px-2 py-1 text-left text-[11px] transition ${
-                activeVendor === "__custom"
-                  ? "bg-mint/10 text-mint font-medium"
-                  : "text-amber-600/70 hover:bg-panel2 hover:text-amber-700"
-              }`}
+              className={`truncate px-2 py-1 text-left text-[11px] transition ${activeVendor === "__custom"
+                ? "bg-mint/10 text-mint font-medium"
+                : "text-amber-600/70 hover:bg-panel2 hover:text-amber-700"
+                }`}
               onClick={() => setSelectedVendor("__custom")}
             >
               自定义
@@ -461,14 +459,12 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
               return (
                 <div
                   key={m.id}
-                  className={`group flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs transition ${
-                    isSelected ? "bg-mint/10 text-mint" : "text-gray-400 hover:bg-panel2 hover:text-gray-100"
-                  }`}
+                  className={`group flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs transition ${isSelected ? "bg-mint/10 text-mint" : "text-gray-400 hover:bg-panel2 hover:text-gray-100"
+                    }`}
                   onClick={() => onChange(m.id)}
                 >
-                  <span className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-full border ${
-                    isSelected ? "border-mint" : "border-slate-300"
-                  }`}>
+                  <span className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-mint" : "border-slate-300"
+                    }`}>
                     {isSelected ? <span className="h-1.5 w-1.5 rounded-full bg-mint" /> : null}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{m.label}</span>
@@ -479,7 +475,7 @@ function VendorModelSection({ title, desc, category, vendors, models: modelList,
                       className="hidden shrink-0 rounded p-0.5 text-[10px] text-gray-500 transition hover:bg-red-500/10 hover:text-red-400 group-hover:block"
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteModel(category, m.id).catch(() => {});
+                        deleteModel(category, m.id).catch(() => { });
                       }}
                     >
                       <IconX size={10} stroke={2} />
