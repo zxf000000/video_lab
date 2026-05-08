@@ -106,9 +106,16 @@ def _run_optimize_prompt(task_id: int, char_id: int) -> None:
         if not image_prompt:
             raise ValueError("LLM 未返回优化后的 image_prompt")
 
+        vp = assets_svc.repository.parse_json_column(character.get("visual_profile"), {})
+        base_spec = vp.get("baseImageSpec") if isinstance(vp.get("baseImageSpec"), dict) else vp
+        base_spec["imagePrompt"] = image_prompt
+        base_spec["negativePrompt"] = negative_prompt
+        if isinstance(vp.get("baseImageSpec"), dict):
+            vp["baseImageSpec"] = base_spec
         assets_svc.repository.update_character(char_id, {
             "image_prompt": image_prompt,
             "negative_prompt": negative_prompt,
+            "visual_profile": json.dumps(vp, ensure_ascii=False),
             "prompt_status": "succeeded",
         })
         gen_svc.repository.update_task(task_id, {
@@ -192,9 +199,17 @@ def _run_generate_prompt(task_id: int, char_id: int) -> None:
         if not image_prompt:
             raise ValueError("LLM 未返回生成的 image_prompt")
 
+        # Also update visual_profile.baseImageSpec so frontend picks up the generated prompt
+        vp = assets_svc.repository.parse_json_column(character.get("visual_profile"), {})
+        base_spec = vp.get("baseImageSpec") if isinstance(vp.get("baseImageSpec"), dict) else vp
+        base_spec["imagePrompt"] = image_prompt
+        base_spec["negativePrompt"] = negative_prompt
+        if isinstance(vp.get("baseImageSpec"), dict):
+            vp["baseImageSpec"] = base_spec
         assets_svc.repository.update_character(char_id, {
             "image_prompt": image_prompt,
             "negative_prompt": negative_prompt,
+            "visual_profile": json.dumps(vp, ensure_ascii=False),
             "prompt_status": "succeeded",
         })
         gen_svc.repository.update_task(task_id, {
