@@ -123,6 +123,7 @@ class AssetsRepository:
             "image_prompt",
             "negative_prompt",
             "image_path",
+            "photo_path",
             "voice_profile",
             "outfit_presets",
             "negative_constraints",

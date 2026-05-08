@@ -826,12 +826,12 @@ def create_character(project_id: int, data: dict[str, Any]) -> int:
 def update_character(char_id: int, data: dict[str, Any]) -> None:
     conn = get_connection()
     try:
-        if "image_path" in data:
+        if "image_path" in data or "photo_path" in data:
             conn.execute(
                 """UPDATE characters
-                   SET name = ?, appearance_prompt = ?, personality_tags = ?, voice_profile = ?, image_path = ?, updated_at = ?
+                   SET name = ?, appearance_prompt = ?, personality_tags = ?, voice_profile = ?, image_path = ?, photo_path = ?, updated_at = ?
                    WHERE id = ?""",
-                (data["name"], data["appearance_prompt"], _to_str(data.get("personality_tags", "")), data["voice_profile"], data["image_path"], now_iso(), char_id),
+                (data["name"], data["appearance_prompt"], _to_str(data.get("personality_tags", "")), data["voice_profile"], data.get("image_path", ""), data.get("photo_path", ""), now_iso(), char_id),
             )
         else:
             conn.execute(
