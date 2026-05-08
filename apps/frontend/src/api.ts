@@ -347,6 +347,7 @@ export interface CharacterAsset {
   roleType: string;
   species: string;
   appearanceSummary: string;
+  appearancePrompt: string;
   personalityTags: string[];
   speechStyle: string;
   identitySummary: string;
@@ -838,6 +839,7 @@ function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
     species: asString(raw.species),
     identitySummary: asString(raw.identity_summary),
     appearanceSummary: asString(raw.appearance_summary),
+    appearancePrompt: asString(raw.appearance_prompt),
     personalityTags: parseJsonValue<string[]>(raw.personality_tags, []),
     speechStyle: asString(raw.speech_style),
     visualProfile: parseJsonValue<JsonObject>(raw.visual_profile, {}),
