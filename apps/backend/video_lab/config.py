@@ -44,6 +44,8 @@ _STAGE_KEY_MAP = {
     "scene_image": "scene_image",
     "eval": "eval",
     "video_realism": "video_realism",
+    "character_photo": "character_photo",
+    "character_sketchify": "character_sketchify",
 }
 
 
@@ -282,6 +284,7 @@ VENDORS = {
             {"id": "doubao-seededit-3-0-i2i-250628", "label": "即梦编辑 3.0"},
         ],
         "video": [
+            {"id": "doubao-seedance-2-0-260128", "label": "Seedance 2.0"},
             {"id": "doubao-seedance-1-5-pro-251215", "label": "Seedance 1.5 Pro"},
             {"id": "doubao-seedance-1-5-pro-251215-f", "label": "Seedance 1.5 Pro (快)"},
             {"id": "doubao-seedance-1-0-pro-250528", "label": "Seedance 1.0 Pro"},
@@ -737,6 +740,7 @@ def _coerce(raw: dict) -> AppConfig:
 class SeedanceConfig:
     seedance_api_base: str = "https://ark.cn-beijing.volces.com/api/plan/v3"
     seedance_api_key: str = ""
+    seedance_model: str = "doubao-seedance-2-0-260128"
 
 
 _SEEDANCE_FIELD_NAMES = {f.name for f in fields(SeedanceConfig)}
