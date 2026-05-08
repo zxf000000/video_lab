@@ -18,22 +18,49 @@ export function CharacterCard({
   onDelete,
   onClick,
 }: CharacterCardProps) {
-  const imageUrl = character.imagePath ? `${API_BASE}/assets/${character.imagePath}` : null;
+  const photoUrl = character.photoPath ? `${API_BASE}/assets/${character.photoPath}` : null;
+  const sketchUrl = character.imagePath ? `${API_BASE}/assets/${character.imagePath}` : null;
+  const hasImages = photoUrl || sketchUrl;
 
   return (
     <div
       className="rounded-lg border border-line bg-panel2 overflow-hidden cursor-pointer transition hover:border-mint/40 hover:shadow-md"
       onClick={() => onClick(character)}
     >
-      <div className="relative h-28 w-full bg-panel">
-        {imageUrl ? (
-          <ImagePreview src={imageUrl} alt={character.name} className="w-full h-full">
-            <img
-              src={imageUrl}
-              alt={character.name}
-              className="w-full h-full object-contain transition hover:opacity-85"
-            />
-          </ImagePreview>
+      <div className="relative h-28 w-full bg-panel flex">
+        {hasImages ? (
+          <>
+            <div className="w-1/2 h-full border-r border-line/30">
+              {photoUrl ? (
+                <ImagePreview src={photoUrl} alt={`${character.name} 真人参考`} className="w-full h-full">
+                  <img
+                    src={photoUrl}
+                    alt={`${character.name} 真人参考`}
+                    className="w-full h-full object-cover transition hover:opacity-85"
+                  />
+                </ImagePreview>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-[10px] text-gray-600">—</p>
+                </div>
+              )}
+            </div>
+            <div className="w-1/2 h-full">
+              {sketchUrl ? (
+                <ImagePreview src={sketchUrl} alt={character.name} className="w-full h-full">
+                  <img
+                    src={sketchUrl}
+                    alt={character.name}
+                    className="w-full h-full object-cover transition hover:opacity-85"
+                  />
+                </ImagePreview>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-[10px] text-gray-600">—</p>
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <p className="text-xs text-gray-500">待生成</p>
