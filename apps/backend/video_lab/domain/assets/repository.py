@@ -127,6 +127,9 @@ class AssetsRepository:
             "reference_asset_ids",
             "status",
             "image_status",
+            "prompt_status",
+            "anchor_status",
+            "regenerate_status",
             "version_no",
         ):
             if key in payload:

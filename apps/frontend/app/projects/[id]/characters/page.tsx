@@ -410,6 +410,7 @@ export default function CharactersPage() {
   const [creatingFromProposal, setCreatingFromProposal] = useState<string>("");
   const [regenerating, setRegenerating] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [activeLoading, setActiveLoading] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -1054,34 +1055,46 @@ export default function CharactersPage() {
   }
 
   async function handleOptimizePrompt(character: CharacterAsset) {
+    const key = `${character.id}:optimize`;
+    setActiveLoading((prev) => ({ ...prev, [key]: "optimize" }));
     try {
       await optimizeCharacterPrompt(character.id);
       toast.success("Prompt 优化任务已提交");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActiveLoading((prev) => { const n = { ...prev }; delete n[key]; return n; });
     }
   }
 
   async function handleGenerateAppearancePrompt(character: CharacterAsset) {
+    const key = `${character.id}:anchor`;
+    setActiveLoading((prev) => ({ ...prev, [key]: "anchor" }));
     try {
       await generateCharacterAnchor(character.id);
       toast.success("外观锚定词生成任务已提交");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActiveLoading((prev) => { const n = { ...prev }; delete n[key]; return n; });
     }
   }
 
   async function handleRegenerate(character: CharacterAsset) {
     const input = window.prompt("请描述重新生成的要求：");
     if (!input?.trim()) return;
+    const key = `${character.id}:regenerate`;
+    setActiveLoading((prev) => ({ ...prev, [key]: "regenerate" }));
     try {
       await regenerateCharacter(character.id, input.trim());
       toast.success("重新生成任务已提交");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActiveLoading((prev) => { const n = { ...prev }; delete n[key]; return n; });
     }
   }
 
@@ -1117,10 +1130,10 @@ export default function CharactersPage() {
                 onGenerateAppearanceAnchor={handleGenerateAppearancePrompt}
                 onDelete={handleDelete}
                 loadingStates={{
-                  generatingImage: character.imageStatus === "generating",
-                  optimizingPrompt: character.promptStatus === "running",
-                  generatingAnchor: character.anchorStatus === "running",
-                  regenerating: character.regenerateStatus === "running",
+                  generatingImage: character.imageStatus === "generating" || `${character.id}:image` in activeLoading,
+                  optimizingPrompt: character.promptStatus === "running" || `${character.id}:optimize` in activeLoading,
+                  generatingAnchor: character.anchorStatus === "running" || `${character.id}:anchor` in activeLoading,
+                  regenerating: character.regenerateStatus === "running" || `${character.id}:regenerate` in activeLoading,
                 }}
               />
             ))}

@@ -146,8 +146,13 @@ export function CharacterCard({
           <Button variant="secondary" size="sm" onClick={() => onEdit(character)}>
             编辑
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => onRegenerate(character)}>
-            重新生成
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onRegenerate(character)}
+            disabled={loadingStates.regenerating}
+          >
+            {loadingStates.regenerating ? "重新生成中..." : "重新生成"}
           </Button>
           <Button
             variant="secondary"
