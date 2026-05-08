@@ -225,6 +225,14 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         if col not in existing_chars:
             conn.execute(f"ALTER TABLE characters ADD COLUMN {col} {col_def}")
 
+    for col, col_def in [
+        ("prompt_status", "TEXT NOT NULL DEFAULT ''"),
+        ("anchor_status", "TEXT NOT NULL DEFAULT ''"),
+        ("regenerate_status", "TEXT NOT NULL DEFAULT ''"),
+    ]:
+        if col not in existing_chars:
+            conn.execute(f"ALTER TABLE characters ADD COLUMN {col} {col_def}")
+
     existing_projects = {row[1] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
     if "deleted_at" not in existing_projects:
         conn.execute("ALTER TABLE projects ADD COLUMN deleted_at TEXT DEFAULT NULL")
