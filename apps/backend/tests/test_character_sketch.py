@@ -30,11 +30,11 @@ def test_stylize_image_noop():
 
 
 # ---------------------------------------------------------------------------
-# 2. _build_character_image_prompt — sketch keywords
+# 2. _build_character_image_prompt — colored lineart keywords
 # ---------------------------------------------------------------------------
 
-def test_build_character_image_prompt_sketch_keywords():
-    """Prompt suffix must contain sketch-related terms, not cinematic ones."""
+def test_build_character_image_prompt_colored_lineart_keywords():
+    """Prompt suffix must contain colored lineart terms, not pencil sketch."""
     from video_lab.domain.assets.service import AssetsService
 
     svc = AssetsService()
@@ -54,17 +54,23 @@ def test_build_character_image_prompt_sketch_keywords():
 
     prompt = svc._build_character_image_prompt(character, visual_profile, project, style_keywords)
 
-    assert "铅笔素描风格" in prompt
-    assert "黑白线稿" in prompt
+    assert "色铅笔手绘风格" in prompt
+    assert "全彩上色" in prompt
+    assert "平涂色块" in prompt
     assert "纯色背景" in prompt
-    assert "清晰轮廓线条" in prompt
+    assert "非照片" in prompt
+    assert "铅笔素描" not in prompt
+    assert "黑白线稿" not in prompt
     assert "电影级质感" not in prompt
     assert "均匀摄影棚灯光" not in prompt
 
 
 def test_build_character_image_prompt_respects_explicit():
-    """Explicit image_prompt on character should be returned as-is."""
-    from video_lab.domain.assets.service import AssetsService
+    """Explicit image_prompt on character should be returned with sketch instruction appended."""
+    from video_lab.domain.assets.service import (
+        AssetsService,
+        CHARACTER_SKETCH_REFERENCE_INSTRUCTION,
+    )
 
     svc = AssetsService()
     character = {
@@ -74,7 +80,7 @@ def test_build_character_image_prompt_respects_explicit():
         "appearance_summary": "",
     }
     prompt = svc._build_character_image_prompt(character, {}, {}, [])
-    assert prompt == "explicit custom prompt"
+    assert prompt == f"explicit custom prompt。{CHARACTER_SKETCH_REFERENCE_INSTRUCTION}"
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +134,8 @@ def test_character_image_template_format():
 
     template = DEFAULT_PROMPTS["prompt_character_image"]
     result = template.format(style="都市短剧", appearance_prompt="测试外观描述")
-    assert result.startswith("全身角色参考图，都市短剧风格：测试外观描述。")
-    assert "电影级品质" in result
+    assert result.startswith("全身角色彩色线稿参考图，都市短剧风格：测试外观描述。")
+    assert "色铅笔手绘风格" in result
 
 
 def test_scene_image_template_format():
@@ -178,7 +184,7 @@ def test_optimize_prompt_template_loaded():
     key = "prompt_copilot_character_optimize_prompt"
     assert key in DEFAULT_PROMPTS, f"Expected key {key!r} not found in DEFAULT_PROMPTS"
     template = DEFAULT_PROMPTS[key]
-    assert "pencil sketch" in template
+    assert "colored pencil" in template
     assert "solid background" in template
 
 

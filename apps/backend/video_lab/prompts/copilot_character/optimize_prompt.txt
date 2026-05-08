@@ -1,7 +1,7 @@
 请优化当前角色的 image_prompt，使其更精准、更适合素描风格出图。
 
 要求：
-1. 优化后的 image_prompt 必须以 "pencil sketch, line art, solid background." 开头
+1. 优化后的 image_prompt 必须以 "colored pencil, line art, flat colors, solid background." 开头
 2. 保留角色原有的身份、外观、服装、姿态等核心视觉信息
 3. 使用更精准的素描/线稿术语描述
 4. 保持纯色背景
@@ -46,7 +46,7 @@
         "color_palette": [],
         "visual_keywords": [],
         "negative_visual_constraints": [],
-        "image_prompt": "pencil sketch, line art, solid background. ...",
+        "image_prompt": "colored pencil, line art, flat colors, solid background. ...",
         "negative_prompt": "realistic, photographic, 3D render, oil painting, digital painting, textured shading, ..."
       }}
     }}

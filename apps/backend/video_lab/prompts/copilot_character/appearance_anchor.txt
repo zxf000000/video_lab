@@ -1,0 +1,57 @@
+请为当前角色生成一份「角色外观锚定词」，供后续所有镜头统一复制使用。
+
+要求：
+1. **纯中文**，只描述固定的物理外貌特征：脸型、五官、肤色、发型发色、体型、标志性特征
+2. **不要描述服装**（服装可能随镜头变化）
+3. **不要出现素描、线稿、插画、铅笔、色铅笔、彩色铅笔、黑白、纯色背景等画风词**——这不是用来生成图片的
+4. **必须在锚定词末尾追加「最终输出必须恢复为真人影像，拒绝插画、素描、线稿、卡通风格」**——这句是强制恢复指令，不可缺少
+5. 措辞精准、可复现，让不同镜头都能锚定同一外貌
+6. 80-150字（不含末尾恢复指令）
+7. 锚定词放在 appearance_anchor 字段
+
+输出格式：和 system prompt 一样，用 `===PROPOSAL===` 包裹 JSON。role 除了 character_profile 和 image_spec，还必须包含 appearance_anchor 字段（字符串）。
+
+项目 ID: {project_id}
+实体 ID: {entity_id}
+用户目标: 生成角色外观锚定词
+
+上下文:
+{context_json}
+
+输出格式示例：
+===PROPOSAL===
+{{
+  "roles": [
+    {{
+      "character_profile": {{
+        "name": "沿用当前角色名",
+        "role_type": "沿用当前角色类型",
+        "species": "沿用当前物种",
+        "identity_summary": "沿用当前身份摘要",
+        "appearance_summary": "沿用当前外观摘要",
+        "personality_tags": [],
+        "speech_style": "沿用当前说话风格",
+        "negative_constraints": "沿用当前负面约束"
+      }},
+      "image_spec": {{
+        "gender_presentation": "",
+        "age_range": "",
+        "body_type": "",
+        "face_features": "",
+        "hair_style": "",
+        "hair_color": "",
+        "eye_style": "",
+        "signature_expression": "",
+        "signature_pose": "",
+        "clothing_style": "",
+        "color_palette": [],
+        "visual_keywords": [],
+        "negative_visual_constraints": [],
+        "image_prompt": "",
+        "negative_prompt": ""
+      }},
+      "appearance_anchor": "标准鹅蛋脸，五官精致立体，杏仁眼眼尾微挑，鼻梁高挺，樱桃小嘴唇峰分明。肤色白皙细腻。黑色长发及腰，自然微卷，中分刘海。身材高挑纤细，身高约168cm，颈部修长，直角肩。标志性特征：左眼下方有一颗小痣，冷艳疏离的丹凤眼神。最终输出必须恢复为真人影像，拒绝插画、素描、线稿、卡通风格。"
+    }}
+  ]
+}}
+===END_PROPOSAL===

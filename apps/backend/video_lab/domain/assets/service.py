@@ -8,7 +8,7 @@ from .repository import AssetsRepository
 
 
 CHARACTER_SKETCH_REFERENCE_INSTRUCTION = (
-    "生成角色素描参考图：铅笔素描风格、黑白线稿、清晰轮廓线条、纯色背景。"
+    "生成角色彩色线稿参考图：色铅笔手绘风格、全彩上色、清晰轮廓线条、平涂色块、纯色背景。"
     "不要生成真人照片、彩色写真、电影剧照或写实成片。"
     "目标是稳定角色五官、体型、发型、服装和整体轮廓，供后续首帧/视频生成时恢复为真实真人影像。"
 )
@@ -27,6 +27,7 @@ class AssetsService:
             "role_type": normalize_text(payload.get("role_type")),
             "identity_summary": normalize_text(payload.get("identity_summary")),
             "appearance_summary": normalize_text(payload.get("appearance_summary")),
+            "appearance_prompt": normalize_text(payload.get("appearance_prompt")),
             "personality_tags": normalize_json_text(payload.get("personality_tags"), []),
             "speech_style": normalize_text(payload.get("speech_style")),
             "visual_profile": normalize_json_text(payload.get("visual_profile"), {}),
@@ -230,10 +231,12 @@ class AssetsService:
             "全身从头到脚完整可见",
             "站立角色参考图",
             "纯色背景",
-            "铅笔素描风格",
-            "黑白线稿",
+            "色铅笔手绘风格",
+            "全彩上色",
             "清晰轮廓线条",
+            "平涂色块",
             "不要生成真人照片、彩色写真或电影剧照",
+            "非照片、非写实渲染",
             "高一致性角色设定",
         ])
         return "。".join(segment for segment in segments if segment)

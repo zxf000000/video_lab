@@ -72,10 +72,10 @@ class AssetsRepository:
             cur = conn.execute(
                 """
                 INSERT INTO characters (
-                    project_id, name, role_type, identity_summary, appearance_summary, personality_tags,
+                    project_id, name, role_type, identity_summary, appearance_summary, appearance_prompt, personality_tags,
                     speech_style, visual_profile, image_prompt, negative_prompt, image_path, voice_profile, outfit_presets, negative_constraints,
                     reference_asset_ids, status, image_status, version_no, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -83,6 +83,7 @@ class AssetsRepository:
                     payload["role_type"],
                     payload["identity_summary"],
                     payload["appearance_summary"],
+                    payload.get("appearance_prompt", ""),
                     payload["personality_tags"],
                     payload["speech_style"],
                     payload["visual_profile"],
@@ -113,6 +114,7 @@ class AssetsRepository:
             "role_type",
             "identity_summary",
             "appearance_summary",
+            "appearance_prompt",
             "personality_tags",
             "speech_style",
             "visual_profile",
