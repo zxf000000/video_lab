@@ -1219,7 +1219,7 @@ export default function CharactersPage() {
           onSave={handleSave}
           onGenerateImage={async () => {
             if (!editing) return;
-            const isFormSource = typeof editing.personalityTags === “string”;
+            const isFormSource = typeof editing.personalityTags === "string";
             let characterId = editing.id;
             if (isFormSource || !characterId) {
               const saved = await persistCharacter(editing);
@@ -1228,7 +1228,7 @@ export default function CharactersPage() {
             }
             await generateCharacterImage(characterId);
             await refresh();
-            toast.success(“角色主图生成任务已提交”);
+            toast.success("角色主图生成任务已提交");
           }}
           onGenerateImageSpec={handleGenerateImageSpec}
           onAddVariant={() => {
