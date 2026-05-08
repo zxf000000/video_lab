@@ -188,7 +188,16 @@ export default function CharacterDetailPage() {
     const path = defaultImg || char.imagePath;
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    return `${apiBase}/assets/${path}`;
+    const bust = char.updatedAt ? `?t=${new Date(char.updatedAt).getTime()}` : "";
+    return `${apiBase}/assets/${path}${bust}`;
+  }
+
+  function getCharPhotoUrl(char: CharacterAsset) {
+    const path = char.photoPath;
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    const bust = char.updatedAt ? `?t=${new Date(char.updatedAt).getTime()}` : "";
+    return `${apiBase}/assets/${path}${bust}`;
   }
 
   return (
@@ -224,7 +233,8 @@ export default function CharacterDetailPage() {
         <div className="flex-1 overflow-y-auto">
           {characters.map((char) => {
             const isActive = char.id === characterId;
-            const imageUrl = getCharImageUrl(char);
+            const sketchUrl = getCharImageUrl(char);
+            const photoUrl = getCharPhotoUrl(char);
             return (
               <Link
                 key={char.id}
@@ -236,14 +246,17 @@ export default function CharacterDetailPage() {
                 }`}
                 style={isActive ? { boxShadow: "inset 0 0 20px rgba(0,240,255,0.03)" } : undefined}
               >
-                {/* Thumbnail */}
-                <div className="w-[72px] h-[40px] rounded-sm bg-panel2 border border-line/30 overflow-hidden shrink-0">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={char.name} className="w-full h-full object-cover" />
+                {/* Dual thumbnail */}
+                <div className="w-[72px] h-[40px] rounded-sm bg-panel2 border border-line/30 overflow-hidden shrink-0 flex">
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="" className="w-1/2 h-full object-cover border-r border-line/20" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[9px] text-gray-700">
-                      no img
-                    </div>
+                    <div className="w-1/2 h-full flex items-center justify-center text-[8px] text-gray-700">—</div>
+                  )}
+                  {sketchUrl ? (
+                    <img src={sketchUrl} alt={char.name} className="w-1/2 h-full object-cover" />
+                  ) : (
+                    <div className="w-1/2 h-full flex items-center justify-center text-[8px] text-gray-700">—</div>
                   )}
                 </div>
 
@@ -341,58 +354,76 @@ export default function CharacterDetailPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="card" className="flex flex-col min-h-0 flex-1">
+            <Tabs defaultValue="overview" className="flex flex-col min-h-0 flex-1">
               <div className="border-b border-line/50 px-6 shrink-0">
                 <TabsList>
-                  <TabsTrigger value="card">角色卡片</TabsTrigger>
-                  <TabsTrigger value="basic">基础角色卡</TabsTrigger>
+                  <TabsTrigger value="overview">角色概览</TabsTrigger>
+                  <TabsTrigger value="identity">身份性格</TabsTrigger>
                   <TabsTrigger value="visual">视觉设定</TabsTrigger>
-                  <TabsTrigger value="image">图片资产</TabsTrigger>
+                  <TabsTrigger value="image">图片生成</TabsTrigger>
                 </TabsList>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto">
-                {/* ── Tab: 基础角色卡 ── */}
-                <TabsContent value="basic" className="px-6 py-4">
+                {/* ── Tab: 身份性格 ── */}
+                <TabsContent value="identity" className="px-6 py-4">
                   <motion.div
                     key={characterId}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="grid gap-4 md:grid-cols-2"
+                    className="space-y-6"
                   >
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">角色名</Label>
-                      <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">角色类型</Label>
-                      <Input value={editing.roleType} onChange={(e) => setEditing((prev) => prev ? { ...prev, roleType: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">物种</Label>
-                      <Input value={editing.species} onChange={(e) => setEditing((prev) => prev ? { ...prev, species: e.target.value } : prev)} placeholder="人类、外星人、机器人..." />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">角色定位</Label>
-                      <Textarea value={editing.identitySummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, identitySummary: e.target.value } : prev)} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">外观描述</Label>
-                      <Textarea value={editing.appearanceSummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, appearanceSummary: e.target.value } : prev)} />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">性格标签</Label>
-                      <Input value={editing.personalityTags} onChange={(e) => setEditing((prev) => prev ? { ...prev, personalityTags: e.target.value } : prev)} placeholder="冷静, 阴狠, 傲慢" />
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-xs text-gray-500">说话风格</Label>
-                      <Input value={editing.speechStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, speechStyle: e.target.value } : prev)} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-2 block text-xs text-gray-500">负面约束</Label>
-                      <Textarea value={editing.negativeConstraints} onChange={(e) => setEditing((prev) => prev ? { ...prev, negativeConstraints: e.target.value } : prev)} />
-                    </div>
+                    {/* 基本身份 */}
+                    <section>
+                      <h3 className="text-[11px] font-semibold tracking-wider text-gray-400 mb-3 border-b border-line/40 pb-2">基本身份</h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">角色名</Label>
+                          <Input value={editing.name} onChange={(e) => setEditing((prev) => prev ? { ...prev, name: e.target.value } : prev)} />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">角色类型</Label>
+                          <Input value={editing.roleType} onChange={(e) => setEditing((prev) => prev ? { ...prev, roleType: e.target.value } : prev)} />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">物种</Label>
+                          <Input value={editing.species} onChange={(e) => setEditing((prev) => prev ? { ...prev, species: e.target.value } : prev)} placeholder="人类、外星人、机器人..." />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="mb-2 block text-xs text-gray-500">角色定位</Label>
+                          <Textarea value={editing.identitySummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, identitySummary: e.target.value } : prev)} />
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* 外观文本描述 */}
+                    <section>
+                      <h3 className="text-[11px] font-semibold tracking-wider text-gray-400 mb-3 border-b border-line/40 pb-2">外观文本描述</h3>
+                      <div>
+                        <Label className="mb-2 block text-xs text-gray-500">外观描述</Label>
+                        <Textarea value={editing.appearanceSummary} onChange={(e) => setEditing((prev) => prev ? { ...prev, appearanceSummary: e.target.value } : prev)} />
+                      </div>
+                    </section>
+
+                    {/* 性格表达 */}
+                    <section>
+                      <h3 className="text-[11px] font-semibold tracking-wider text-gray-400 mb-3 border-b border-line/40 pb-2">性格表达</h3>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">性格标签</Label>
+                          <Input value={editing.personalityTags} onChange={(e) => setEditing((prev) => prev ? { ...prev, personalityTags: e.target.value } : prev)} placeholder="冷静, 阴狠, 傲慢" />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">说话风格</Label>
+                          <Input value={editing.speechStyle} onChange={(e) => setEditing((prev) => prev ? { ...prev, speechStyle: e.target.value } : prev)} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="mb-2 block text-xs text-gray-500">负面约束</Label>
+                          <Textarea value={editing.negativeConstraints} onChange={(e) => setEditing((prev) => prev ? { ...prev, negativeConstraints: e.target.value } : prev)} />
+                        </div>
+                      </div>
+                    </section>
                   </motion.div>
                 </TabsContent>
 
@@ -529,7 +560,9 @@ export default function CharacterDetailPage() {
                             </div>
                           ) : null}
 
-                          <div className="grid gap-4 md:grid-cols-2">
+                          {/* 基础体貌 */}
+                          <h4 className="text-[10px] font-semibold tracking-wider text-gray-500 mt-2 mb-2 border-b border-line/30 pb-1.5">基础体貌</h4>
+                          <div className="grid gap-4 md:grid-cols-3">
                             <div>
                               <Label className="mb-2 block text-xs text-gray-500">性别呈现</Label>
                               <Input
@@ -551,18 +584,16 @@ export default function CharacterDetailPage() {
                                 onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "bodyType", e.target.value) : prev)}
                               />
                             </div>
+                          </div>
+
+                          {/* 面部特征 */}
+                          <h4 className="text-[10px] font-semibold tracking-wider text-gray-500 mt-4 mb-2 border-b border-line/30 pb-1.5">面部特征</h4>
+                          <div className="grid gap-4 md:grid-cols-2">
                             <div>
                               <Label className="mb-2 block text-xs text-gray-500">眼神/眼型</Label>
                               <Input
                                 value={getActiveVariantValue(editing, "eyeStyle")}
                                 onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "eyeStyle", e.target.value) : prev)}
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <Label className="mb-2 block text-xs text-gray-500">脸部特征</Label>
-                              <Textarea
-                                value={getActiveVariantValue(editing, "faceFeatures")}
-                                onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "faceFeatures", e.target.value) : prev)}
                               />
                             </div>
                             <div>
@@ -579,6 +610,18 @@ export default function CharacterDetailPage() {
                                 onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "hairColor", e.target.value) : prev)}
                               />
                             </div>
+                            <div className="md:col-span-2">
+                              <Label className="mb-2 block text-xs text-gray-500">脸部特征</Label>
+                              <Textarea
+                                value={getActiveVariantValue(editing, "faceFeatures")}
+                                onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "faceFeatures", e.target.value) : prev)}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 气质表现 */}
+                          <h4 className="text-[10px] font-semibold tracking-wider text-gray-500 mt-4 mb-2 border-b border-line/30 pb-1.5">气质表现</h4>
+                          <div className="grid gap-4 md:grid-cols-2">
                             <div>
                               <Label className="mb-2 block text-xs text-gray-500">标志表情</Label>
                               <Input
@@ -593,6 +636,11 @@ export default function CharacterDetailPage() {
                                 onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "signaturePose", e.target.value) : prev)}
                               />
                             </div>
+                          </div>
+
+                          {/* 服装配色 */}
+                          <h4 className="text-[10px] font-semibold tracking-wider text-gray-500 mt-4 mb-2 border-b border-line/30 pb-1.5">服装配色</h4>
+                          <div className="grid gap-4 md:grid-cols-2">
                             <div className="md:col-span-2">
                               <Label className="mb-2 block text-xs text-gray-500">服装风格</Label>
                               <Textarea
@@ -616,14 +664,17 @@ export default function CharacterDetailPage() {
                                 placeholder="wealthy mystery man, restrained menace"
                               />
                             </div>
-                            <div className="md:col-span-2">
-                              <Label className="mb-2 block text-xs text-gray-500">视觉负面约束</Label>
-                              <Textarea
-                                value={getActiveVariantValue(editing, "negativeVisualConstraints")}
-                                onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativeVisualConstraints", e.target.value) : prev)}
-                                placeholder="no cartoon styling, no teenage appearance"
-                              />
-                            </div>
+                          </div>
+
+                          {/* 视觉约束 */}
+                          <h4 className="text-[10px] font-semibold tracking-wider text-gray-500 mt-4 mb-2 border-b border-line/30 pb-1.5">视觉约束</h4>
+                          <div>
+                            <Label className="mb-2 block text-xs text-gray-500">视觉负面约束</Label>
+                            <Textarea
+                              value={getActiveVariantValue(editing, "negativeVisualConstraints")}
+                              onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativeVisualConstraints", e.target.value) : prev)}
+                              placeholder="no cartoon styling, no teenage appearance"
+                            />
                           </div>
                         </div>
                       </div>
@@ -631,217 +682,239 @@ export default function CharacterDetailPage() {
                   </motion.div>
                 </TabsContent>
 
-                {/* ── Tab: 图片资产 ── */}
+                {/* ── Tab: 图片生成 ── */}
                 <TabsContent value="image" className="px-6 py-4">
                   <motion.div
                     key={characterId}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
+                    className="space-y-5"
                   >
-                    <div className="rounded-lg border border-line bg-panel2/60 px-4 py-3">
-                      <h3 className="text-sm font-semibold text-gray-100">角色图片资产</h3>
-                      <p className="mt-1 text-xs text-gray-500">当前对选中形态维护 prompt 与主图；默认形态和各变体都可分别出图。</p>
-                      <div className="mt-3 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-                        <div className="space-y-4">
+                    {/* Prompt 编辑区 */}
+                    <section>
+                      <h3 className="text-[11px] font-semibold tracking-wider text-gray-400 mb-3 border-b border-line/40 pb-2">出图 Prompt</h3>
+                      <p className="text-xs text-gray-500 mb-3">当前选中形态的 prompt 与负面词；修改后需保存再点击生成。</p>
+                      <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">标准出图 Prompt</Label>
+                          <Textarea
+                            value={getActiveVariantValue(editing, "imagePrompt")}
+                            onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "imagePrompt", e.target.value) : prev)}
+                            className="min-h-[160px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">负面 Prompt</Label>
+                          <Textarea
+                            value={getActiveVariantValue(editing, "negativePrompt")}
+                            onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativePrompt", e.target.value) : prev)}
+                            className="min-h-[160px]"
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* 主图路径 + 预览 */}
+                    <section>
+                      <h3 className="text-[11px] font-semibold tracking-wider text-gray-400 mb-3 border-b border-line/40 pb-2">当前形态主图</h3>
+                      <div className="grid gap-4 md:grid-cols-[1fr_280px]">
+                        <div className="space-y-3">
                           <div>
-                            <Label className="mb-2 block text-xs text-gray-500">标准出图 Prompt</Label>
-                            <Textarea
-                              value={getActiveVariantValue(editing, "imagePrompt")}
-                              onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "imagePrompt", e.target.value) : prev)}
-                              className="min-h-[128px]"
-                            />
-                          </div>
-                          <div>
-                            <Label className="mb-2 block text-xs text-gray-500">负面 Prompt</Label>
-                            <Textarea
-                              value={getActiveVariantValue(editing, "negativePrompt")}
-                              onChange={(e) => setEditing((prev) => prev ? updateActiveVariantValue(prev, "negativePrompt", e.target.value) : prev)}
-                              className="min-h-[96px]"
-                            />
-                          </div>
-                          <div>
-                            <Label className="mb-2 block text-xs text-gray-500">当前形态主图路径</Label>
+                            <Label className="mb-2 block text-xs text-gray-500">主图路径</Label>
                             <Input
                               value={activeVariant?.imagePath ?? editing.imagePath}
                               onChange={(e) => setEditing((prev) => prev ? updateImagePath(prev, e.target.value) : prev)}
-                              placeholder="后续由出图服务回填"
+                              placeholder="由出图服务回填，也可手动指定"
                             />
                           </div>
+                          <p className="text-[10px] text-gray-500">
+                            当前形态：{activeVariant ? `${variantLabel(activeVariant)}` : "默认形态"}
+                          </p>
                         </div>
-                        <div className="rounded-[20px] border border-dashed border-line bg-panel/70 p-3">
+                        <div className="rounded-xl border border-line bg-panel2 overflow-hidden">
                           {(activeVariant?.imagePath || editing.imagePath) ? (
-                            <div className="space-y-3">
-                              <div className="overflow-hidden rounded-[16px] border border-line bg-panel2">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={resolveAssetUrl(activeVariant?.imagePath || editing.imagePath)}
-                                  alt={editing.name || "角色图片"}
-                                  className="h-[260px] w-full object-cover"
-                                />
-                              </div>
-                              <p className="text-xs text-gray-500">当前形态已有主图。</p>
+                            <div className="h-[260px]">
+                              <img
+                                src={resolveAssetUrl(activeVariant?.imagePath || editing.imagePath) + (currentCharacter.updatedAt ? `?t=${new Date(currentCharacter.updatedAt).getTime()}` : "")}
+                                alt={editing.name || "角色图片"}
+                                className="h-full w-full object-cover"
+                              />
                             </div>
                           ) : (
-                            <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[16px] bg-panel2 px-4 text-center">
+                            <div className="flex h-[260px] flex-col items-center justify-center px-4 text-center">
                               <p className="text-sm font-medium text-gray-300">还没有角色图片</p>
-                              <p className="mt-2 text-xs leading-6 text-gray-500">
-                                先用 Copilot 生成完整角色卡和视觉设定。
+                              <p className="mt-2 text-xs leading-5 text-gray-500">
+                                用 Copilot 生成角色卡和视觉设定后，
                                 <br />
-                                点击「生成角色图」按钮开始出图。
+                                点击上方「生成角色图」开始出图。
                               </p>
                             </div>
                           )}
                         </div>
                       </div>
-                    </div>
+                    </section>
                   </motion.div>
                 </TabsContent>
 
-                {/* ── Tab: 角色卡片 ── */}
-                <TabsContent value="card" className="px-6 py-4">
+                {/* ── Tab: 角色概览 ── */}
+                <TabsContent value="overview" className="px-6 py-4">
                   <motion.div
                     key={characterId}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
+                    className="space-y-5"
                   >
-                    <div className="rounded-lg border border-line bg-panel2/60 px-5 py-4">
-                      <h3 className="text-sm font-semibold text-gray-100">角色卡片概览</h3>
-                      <p className="mt-1 text-xs text-gray-500">卡片上的完整信息与快捷操作。</p>
+                    {/* 角色形象 + 基础档案 */}
+                    <div className="flex gap-5 items-start">
+                      {/* Left: dual images (photo + sketch) */}
+                      <div className="shrink-0 w-[480px] flex gap-3">
+                        {(() => {
+                          const photoUrl = currentCharacter.photoPath
+                            ? `${getApiBase()}/assets/${currentCharacter.photoPath}`
+                            : null;
+                          const sketchUrl = currentCharacter.imagePath
+                            ? `${getApiBase()}/assets/${currentCharacter.imagePath}`
+                            : null;
+                          return (
+                            <>
+                              <div className="w-1/2">
+                                {photoUrl ? (
+                                  <ImagePreview src={photoUrl} alt={`${currentCharacter.name} 真人参考`} className="rounded-xl overflow-hidden border border-line">
+                                    <img src={photoUrl} alt={`${currentCharacter.name} 真人参考`} className="w-full h-auto object-contain rounded-xl" />
+                                  </ImagePreview>
+                                ) : (
+                                  <div className="w-full aspect-[3/4] rounded-xl bg-panel border border-dashed border-line flex items-center justify-center">
+                                    <p className="text-xs text-gray-500">待生成真人图</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="w-1/2">
+                                {sketchUrl ? (
+                                  <ImagePreview src={sketchUrl} alt={currentCharacter.name} className="rounded-xl overflow-hidden border border-line">
+                                    <img src={sketchUrl} alt={currentCharacter.name} className="w-full h-auto object-contain rounded-xl" />
+                                  </ImagePreview>
+                                ) : (
+                                  <div className="w-full aspect-[3/4] rounded-xl bg-panel border border-dashed border-line flex items-center justify-center">
+                                    <p className="text-xs text-gray-500">待生成素描图</p>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
 
-                      <div className="mt-4 flex gap-5 items-start">
-                        {/* Left: image preview */}
-                        <div className="shrink-0 w-[280px]">
+                      {/* Right: info cards */}
+                      <div className="min-w-0 flex-1 space-y-3">
+                        {/* 状态指示 */}
+                        <div className="flex flex-wrap gap-2">
                           {(() => {
-                            const imageUrl = currentCharacter.imagePath
-                              ? `${getApiBase()}/assets/${currentCharacter.imagePath}`
-                              : null;
-                            return imageUrl ? (
-                              <ImagePreview src={imageUrl} alt={currentCharacter.name} className="rounded-xl overflow-hidden border border-line">
-                                <img
-                                  src={imageUrl}
-                                  alt={currentCharacter.name}
-                                  className="w-full h-auto object-contain rounded-xl"
+                            const vs = getCharacterVariantSummary(currentCharacter);
+                            return (
+                              <>
+                                <StatusPill value={vs.activeVariantLabel} tone="blue" />
+                                <StatusPill value={`${vs.variantCount} 个变体`} tone="slate" />
+                                <StatusPill
+                                  value={`${vs.imageReadyCount} 个形态有图`}
+                                  tone={vs.imageReadyCount ? "green" : "amber"}
                                 />
-                              </ImagePreview>
-                            ) : (
-                              <div className="w-full aspect-[3/4] rounded-xl bg-panel border border-dashed border-line flex items-center justify-center">
-                                <p className="text-xs text-gray-500">暂无角色图片</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+
+                        {/* 角色定位 + 当前形态 */}
+                        <div className="grid gap-3 grid-cols-2">
+                          <div className="rounded-lg border border-line/50 bg-panel/70 px-3 py-2.5">
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">角色定位</p>
+                            <p className="mt-1 text-xs leading-5 text-gray-300">{currentCharacter.identitySummary || "未填写"}</p>
+                          </div>
+                          {(() => {
+                            const vs = getCharacterVariantSummary(currentCharacter);
+                            return (
+                              <div className="rounded-lg border border-line/50 bg-panel/70 px-3 py-2.5">
+                                <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">当前形态</p>
+                                <p className="mt-1 text-xs text-gray-300">{vs.activeVariantLabel}</p>
+                                <p className="mt-0.5 text-[10px] text-gray-500">
+                                  {vs.activeImagePath ? "已有主图" : "尚未出图"}
+                                </p>
                               </div>
                             );
                           })()}
                         </div>
 
-                        {/* Right: info + actions */}
-                        <div className="min-w-0 flex-1">
-                          {/* Appearance summary */}
-                          <div>
-                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">外观描述</p>
-                            <p className="mt-1 text-sm leading-6 text-gray-300">
-                              {currentCharacter.appearanceSummary || "未填写外观描述"}
-                            </p>
-                          </div>
+                        {/* 外观描述 */}
+                        <div className="rounded-lg border border-line/50 bg-panel/70 px-3 py-2.5">
+                          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">外观描述</p>
+                          <p className="mt-1 text-xs leading-5 text-gray-300">
+                            {currentCharacter.appearanceSummary || "未填写外观描述"}
+                          </p>
+                        </div>
 
-                          {/* Appearance anchor */}
-                          {currentCharacter.appearancePrompt ? (
-                            <div className="mt-3 rounded-lg bg-mint/5 border border-mint/20 px-3 py-2">
-                              <p className="text-[10px] font-medium text-mint/70 uppercase tracking-wider">外观锚定词</p>
-                              <p className="mt-0.5 text-xs leading-5 text-gray-300 line-clamp-4">{currentCharacter.appearancePrompt}</p>
-                            </div>
-                          ) : null}
-
-                          {/* Personality tags */}
-                          <div className="mt-3">
-                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">性格标签</p>
-                            <div className="mt-1.5 flex flex-wrap gap-1.5">
-                              {currentCharacter.personalityTags.length ? (
-                                currentCharacter.personalityTags.map((tag) => (
-                                  <span key={tag} className="rounded-full bg-panel px-2.5 py-0.5 text-[11px] text-gray-400 shadow-sm">
-                                    {tag}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-xs text-gray-600">未填写</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Variant summary + identity info */}
-                          <div className="mt-3 grid gap-2 grid-cols-2">
-                            {(() => {
-                              const vs = getCharacterVariantSummary(currentCharacter);
-                              return (
-                                <>
-                                  <StatusPill value={vs.activeVariantLabel} tone="blue" />
-                                  <StatusPill value={`${vs.variantCount} 个变体`} tone="slate" />
-                                  <StatusPill
-                                    value={`${vs.imageReadyCount} 个形态有图`}
-                                    tone={vs.imageReadyCount ? "green" : "amber"}
-                                  />
-                                </>
-                              );
-                            })()}
-                          </div>
-
-                          <div className="mt-2 grid gap-2 grid-cols-2">
-                            <div className="rounded-lg bg-panel px-3 py-2 shadow-sm">
-                              <p className="text-[10px] font-medium text-gray-500">角色定位</p>
-                              <p className="mt-0.5 text-xs text-gray-300">{currentCharacter.identitySummary || "未填写"}</p>
-                            </div>
-                            {(() => {
-                              const vs = getCharacterVariantSummary(currentCharacter);
-                              return (
-                                <div className="rounded-lg bg-panel px-3 py-2 shadow-sm">
-                                  <p className="text-[10px] font-medium text-gray-500">当前激活形态</p>
-                                  <p className="mt-0.5 text-xs text-gray-300">{vs.activeVariantLabel}</p>
-                                  <p className="mt-0.5 text-[10px] text-gray-500">
-                                    {vs.activeImagePath ? "当前形态已有主图" : "当前形态尚未出图"}
-                                  </p>
-                                </div>
-                              );
-                            })()}
-                          </div>
-
-                          {/* Card action buttons */}
-                          <div className="mt-4">
-                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-2">快捷操作</p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleCardAction("重新生成", regenerateCharacter)}
-                                disabled={cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running"}
-                              >
-                                {cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running" ? "重新生成中..." : "重新生成"}
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleCardAction("生成当前形态主图", generateCharacterImage)}
-                                disabled={cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating"}
-                              >
-                                {cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating" ? "生成中..." : "生成当前形态主图"}
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleCardAction("优化 Prompt", optimizeCharacterPrompt)}
-                                disabled={cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running"}
-                              >
-                                {cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running" ? "优化中..." : "优化 Prompt"}
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleCardAction("生成外观锚定词", generateCharacterAnchor)}
-                                disabled={cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running"}
-                              >
-                                {cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running" ? "生成中..." : "生成外观锚定词"}
-                              </Button>
-                            </div>
+                        {/* 性格标签 */}
+                        <div className="rounded-lg border border-line/50 bg-panel/70 px-3 py-2.5">
+                          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">性格标签</p>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {currentCharacter.personalityTags.length ? (
+                              currentCharacter.personalityTags.map((tag) => (
+                                <span key={tag} className="rounded-full bg-panel2 px-2.5 py-0.5 text-[11px] text-gray-300 border border-line/30">
+                                  {tag}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-gray-600">未填写</span>
+                            )}
                           </div>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* 外观锚定词 */}
+                    {currentCharacter.appearancePrompt ? (
+                      <div className="rounded-lg bg-mint/5 border border-mint/20 px-3 py-2.5">
+                        <p className="text-[10px] font-medium text-mint/70 uppercase tracking-wider">外观锚定词</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-300">{currentCharacter.appearancePrompt}</p>
+                      </div>
+                    ) : null}
+
+                    {/* 快捷操作 */}
+                    <div className="rounded-lg border border-line/50 bg-panel2/40 px-4 py-3">
+                      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-2.5">快捷操作</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCardAction("重新生成", regenerateCharacter)}
+                          disabled={cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running"}
+                        >
+                          {cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running" ? "重新生成中..." : "重新生成"}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCardAction("生成当前形态主图", generateCharacterImage)}
+                          disabled={cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating"}
+                        >
+                          {cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating" ? "生成中..." : "生成当前形态主图"}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCardAction("优化 Prompt", optimizeCharacterPrompt)}
+                          disabled={cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running"}
+                        >
+                          {cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running" ? "优化中..." : "优化 Prompt"}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCardAction("生成外观锚定词", generateCharacterAnchor)}
+                          disabled={cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running"}
+                        >
+                          {cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running" ? "生成中..." : "生成外观锚定词"}
+                        </Button>
                       </div>
                     </div>
                   </motion.div>
