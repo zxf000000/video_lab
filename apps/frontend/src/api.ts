@@ -360,6 +360,9 @@ export interface CharacterAsset {
   referenceAssetIds: unknown[];
   status: string;
   imageStatus: string;
+  promptStatus: string;
+  anchorStatus: string;
+  regenerateStatus: string;
   versionNo: number;
   createdAt: string;
   updatedAt: string;
@@ -847,6 +850,9 @@ function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     status: asString(raw.status, "draft"),
     imageStatus: asString(raw.image_status),
+    promptStatus: asString(raw.prompt_status, ""),
+    anchorStatus: asString(raw.anchor_status, ""),
+    regenerateStatus: asString(raw.regenerate_status, ""),
     versionNo: asNumber(raw.version_no, 1),
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
@@ -1170,6 +1176,21 @@ export async function generateCharacterImage(characterId: number) {
     body: JSON.stringify({}),
   });
   return { task: normalizeTask(payload.task) };
+}
+
+export async function optimizeCharacterPrompt(characterId: number): Promise<{ task_id: number; status: string }> {
+  return request(`/api/characters/${characterId}/optimize-prompt`, { method: "POST" });
+}
+
+export async function generateCharacterAnchor(characterId: number): Promise<{ task_id: number; status: string }> {
+  return request(`/api/characters/${characterId}/generate-anchor`, { method: "POST" });
+}
+
+export async function regenerateCharacter(characterId: number, input: string): Promise<{ task_id: number; status: string }> {
+  return request(`/api/characters/${characterId}/regenerate`, {
+    method: "POST",
+    body: JSON.stringify({ input }),
+  });
 }
 
 export async function generateSceneImage(sceneId: number) {
