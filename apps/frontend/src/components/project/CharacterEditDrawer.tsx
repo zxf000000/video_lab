@@ -253,7 +253,7 @@ export function CharacterEditDrawer({
     <Sheet open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent
         side="right"
-        className="w-[45rem] max-w-[92vw] max-h-none gap-0 p-0"
+        className="!w-[45rem] max-w-[92vw] max-h-none gap-0 p-0"
       >
         <SheetHeader className="shrink-0 border-b border-line px-5 py-4">
           <SheetTitle>{form.id ? "编辑角色" : "新增角色"}</SheetTitle>

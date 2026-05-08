@@ -42,11 +42,11 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-[60] flex max-h-[90vh] flex-col gap-4 rounded-none border-0 !bg-panel !text-gray-100 p-0 shadow-2xl",
-          "data-[side=right]:top-0 data-[side=right]:right-0 data-[side=right]:h-screen data-[side=right]:w-[min(32rem,92vw)] data-[side=right]:border-l data-[side=right]:border-line",
-          "data-[side=left]:top-0 data-[side=left]:left-0 data-[side=left]:h-screen data-[side=left]:w-[min(32rem,92vw)] data-[side=left]:border-r data-[side=left]:border-line",
-          "data-[side=top]:top-0 data-[side=top]:left-0 data-[side=top]:w-screen",
-          "data-[side=bottom]:bottom-0 data-[side=bottom]:left-0 data-[side=bottom]:w-screen",
+          "!fixed z-[60] flex flex-col gap-4 rounded-none border-0 !bg-panel !text-gray-100 p-0 shadow-2xl !m-0 !max-w-none",
+          "data-[side=right]:!top-0 data-[side=right]:!right-0 data-[side=right]:!h-screen data-[side=right]:w-[min(32rem,92vw)] data-[side=right]:!border-l data-[side=right]:border-line",
+          "data-[side=left]:!top-0 data-[side=left]:!left-0 data-[side=left]:!h-screen data-[side=left]:w-[min(32rem,92vw)] data-[side=left]:!border-r data-[side=left]:border-line",
+          "data-[side=top]:!top-0 data-[side=top]:!left-0 data-[side=top]:!w-screen",
+          "data-[side=bottom]:!bottom-0 data-[side=bottom]:!left-0 data-[side=bottom]:!w-screen",
           className
         )}
         {...props}
