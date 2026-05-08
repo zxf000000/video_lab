@@ -11,7 +11,7 @@ import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, KeyValueGrid, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
-import { ImageViewer } from "@/src/components/ui-legacy";
+
 import { CharacterCard } from "@/src/components/project/CharacterCard";
 import { CharacterEditDrawer, CharacterFormState, CharacterVariantDraft, VariantVisualDraft, DEFAULT_VARIANT_ID, getActiveVariant, getActiveVariantValue, updateActiveVariantValue, variantLabel, createVariantDraft, emptyForm, resolveAssetUrl } from "@/src/components/project/CharacterEditDrawer";
 
@@ -411,7 +411,7 @@ export default function CharactersPage() {
   const [generatingImageSpec, setGeneratingImageSpec] = useState(false);
   const [creatingFromProposal, setCreatingFromProposal] = useState<string>("");
   const [regenerating, setRegenerating] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const [activeLoading, setActiveLoading] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -1102,7 +1102,6 @@ export default function CharactersPage() {
 
   return (
     <>
-      <ImageViewer src={previewImage} alt="角色图片预览" onClose={() => setPreviewImage(null)} />
       <SectionCard
         title="角色资产"
         description="角色卡是视觉生成和剧本一致性的关键事实源，先稳定角色，再扩剧情。"
@@ -1120,23 +1119,14 @@ export default function CharactersPage() {
         }
       >
         {currentProject.characters.length ? (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
             {currentProject.characters.map((character) => (
               <CharacterCard
                 key={character.id}
                 character={character}
                 onEdit={(c) => router.push(`/projects/${readyProject.id}/characters/${c.id}`)}
-                onRegenerate={handleRegenerate}
-                onGenerateImage={handleGenerateCharacterImage}
-                onOptimizePrompt={handleOptimizePrompt}
-                onGenerateAppearanceAnchor={handleGenerateAppearancePrompt}
                 onDelete={handleDelete}
-                loadingStates={{
-                  generatingImage: character.imageStatus === "generating" || `${character.id}:image` in activeLoading,
-                  optimizingPrompt: character.promptStatus === "running" || `${character.id}:optimize` in activeLoading,
-                  generatingAnchor: character.anchorStatus === "running" || `${character.id}:anchor` in activeLoading,
-                  regenerating: character.regenerateStatus === "running" || `${character.id}:regenerate` in activeLoading,
-                }}
+                onClick={(c) => router.push(`/projects/${readyProject.id}/characters/${c.id}`)}
               />
             ))}
           </div>

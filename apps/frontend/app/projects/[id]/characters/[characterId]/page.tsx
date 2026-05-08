@@ -6,11 +6,15 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { IconArrowLeft, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import {
+  generateCharacterAnchor,
   generateCharacterImage,
   getApiBase,
+  optimizeCharacterPrompt,
+  regenerateCharacter,
   updateCharacter,
   type CharacterAsset,
 } from "@/src/api";
+import ImagePreview from "@/src/components/project/ImagePreview";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
@@ -38,6 +42,39 @@ import {
   variantLabel,
 } from "@/src/components/project/CharacterEditDrawer";
 
+const CARD_DEFAULT_VARIANT_ID = "default";
+
+function getCharacterVariantSummary(character: CharacterAsset) {
+  const visualProfile = (character.visualProfile ?? {}) as Record<string, unknown>;
+  const activeVariantId = typeof visualProfile.activeVariantId === "string" ? visualProfile.activeVariantId : CARD_DEFAULT_VARIANT_ID;
+  const rawVariants = Array.isArray(visualProfile.variants) ? visualProfile.variants : [];
+  const variants = rawVariants.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+  const activeVariant = activeVariantId === CARD_DEFAULT_VARIANT_ID
+    ? null
+    : variants.find((item) => {
+      const variantId = typeof item.id === "string" ? item.id : (typeof item.variantId === "string" ? item.variantId : "");
+      return variantId === activeVariantId;
+    }) ?? null;
+  const activeVariantLabel = activeVariant
+    ? (typeof activeVariant.variantName === "string" && activeVariant.variantName)
+    || (typeof activeVariant.variantType === "string" && activeVariant.variantType)
+    || "未命名变体"
+    : "默认形态";
+  const activeImagePath = activeVariant
+    ? (typeof activeVariant.imagePath === "string" ? activeVariant.imagePath : (typeof activeVariant.image_path === "string" ? activeVariant.image_path : ""))
+    : (typeof visualProfile.defaultImagePath === "string" ? visualProfile.defaultImagePath : character.imagePath);
+  const imageReadyCount = variants.filter((item) => {
+    const imagePath = typeof item.imagePath === "string" ? item.imagePath : (typeof item.image_path === "string" ? item.image_path : "");
+    return Boolean(imagePath);
+  }).length + ((typeof visualProfile.defaultImagePath === "string" ? visualProfile.defaultImagePath : character.imagePath) ? 1 : 0);
+  return {
+    variantCount: variants.length,
+    activeVariantLabel,
+    activeImagePath,
+    imageReadyCount,
+  };
+}
+
 export default function CharacterDetailPage() {
   const params = useParams<{ id: string; characterId: string }>();
   const router = useRouter();
@@ -50,6 +87,7 @@ export default function CharacterDetailPage() {
 
   const [editing, setEditing] = useState<CharacterFormState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cardLoading, setCardLoading] = useState<Record<string, boolean>>({});
 
   // Init form when character changes
   useEffect(() => {
@@ -122,6 +160,20 @@ export default function CharacterDetailPage() {
       toast.success("角色主图生成任务已提交");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleCardAction(action: string, fn: (id: number) => Promise<unknown>) {
+    if (!currentCharacter) return;
+    setCardLoading((prev) => ({ ...prev, [action]: true }));
+    try {
+      await fn(currentCharacter.id);
+      await refresh();
+      toast.success(`${action} 任务已提交`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCardLoading((prev) => ({ ...prev, [action]: false }));
     }
   }
 
@@ -289,9 +341,10 @@ export default function CharacterDetailPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="basic" className="flex flex-col min-h-0 flex-1">
+            <Tabs defaultValue="card" className="flex flex-col min-h-0 flex-1">
               <div className="border-b border-line/50 px-6 shrink-0">
                 <TabsList>
+                  <TabsTrigger value="card">角色卡片</TabsTrigger>
                   <TabsTrigger value="basic">基础角色卡</TabsTrigger>
                   <TabsTrigger value="visual">视觉设定</TabsTrigger>
                   <TabsTrigger value="image">图片资产</TabsTrigger>
@@ -639,6 +692,155 @@ export default function CharacterDetailPage() {
                               </p>
                             </div>
                           )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+
+                {/* ── Tab: 角色卡片 ── */}
+                <TabsContent value="card" className="px-6 py-4">
+                  <motion.div
+                    key={characterId}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="rounded-lg border border-line bg-panel2/60 px-5 py-4">
+                      <h3 className="text-sm font-semibold text-gray-100">角色卡片概览</h3>
+                      <p className="mt-1 text-xs text-gray-500">卡片上的完整信息与快捷操作。</p>
+
+                      <div className="mt-4 flex gap-5 items-start">
+                        {/* Left: image preview */}
+                        <div className="shrink-0 w-[280px]">
+                          {(() => {
+                            const imageUrl = currentCharacter.imagePath
+                              ? `${getApiBase()}/assets/${currentCharacter.imagePath}`
+                              : null;
+                            return imageUrl ? (
+                              <ImagePreview src={imageUrl} alt={currentCharacter.name} className="rounded-xl overflow-hidden border border-line">
+                                <img
+                                  src={imageUrl}
+                                  alt={currentCharacter.name}
+                                  className="w-full h-auto object-contain rounded-xl"
+                                />
+                              </ImagePreview>
+                            ) : (
+                              <div className="w-full aspect-[3/4] rounded-xl bg-panel border border-dashed border-line flex items-center justify-center">
+                                <p className="text-xs text-gray-500">暂无角色图片</p>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Right: info + actions */}
+                        <div className="min-w-0 flex-1">
+                          {/* Appearance summary */}
+                          <div>
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">外观描述</p>
+                            <p className="mt-1 text-sm leading-6 text-gray-300">
+                              {currentCharacter.appearanceSummary || "未填写外观描述"}
+                            </p>
+                          </div>
+
+                          {/* Appearance anchor */}
+                          {currentCharacter.appearancePrompt ? (
+                            <div className="mt-3 rounded-lg bg-mint/5 border border-mint/20 px-3 py-2">
+                              <p className="text-[10px] font-medium text-mint/70 uppercase tracking-wider">外观锚定词</p>
+                              <p className="mt-0.5 text-xs leading-5 text-gray-300 line-clamp-4">{currentCharacter.appearancePrompt}</p>
+                            </div>
+                          ) : null}
+
+                          {/* Personality tags */}
+                          <div className="mt-3">
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">性格标签</p>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {currentCharacter.personalityTags.length ? (
+                                currentCharacter.personalityTags.map((tag) => (
+                                  <span key={tag} className="rounded-full bg-panel px-2.5 py-0.5 text-[11px] text-gray-400 shadow-sm">
+                                    {tag}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-gray-600">未填写</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Variant summary + identity info */}
+                          <div className="mt-3 grid gap-2 grid-cols-2">
+                            {(() => {
+                              const vs = getCharacterVariantSummary(currentCharacter);
+                              return (
+                                <>
+                                  <StatusPill value={vs.activeVariantLabel} tone="blue" />
+                                  <StatusPill value={`${vs.variantCount} 个变体`} tone="slate" />
+                                  <StatusPill
+                                    value={`${vs.imageReadyCount} 个形态有图`}
+                                    tone={vs.imageReadyCount ? "green" : "amber"}
+                                  />
+                                </>
+                              );
+                            })()}
+                          </div>
+
+                          <div className="mt-2 grid gap-2 grid-cols-2">
+                            <div className="rounded-lg bg-panel px-3 py-2 shadow-sm">
+                              <p className="text-[10px] font-medium text-gray-500">角色定位</p>
+                              <p className="mt-0.5 text-xs text-gray-300">{currentCharacter.identitySummary || "未填写"}</p>
+                            </div>
+                            {(() => {
+                              const vs = getCharacterVariantSummary(currentCharacter);
+                              return (
+                                <div className="rounded-lg bg-panel px-3 py-2 shadow-sm">
+                                  <p className="text-[10px] font-medium text-gray-500">当前激活形态</p>
+                                  <p className="mt-0.5 text-xs text-gray-300">{vs.activeVariantLabel}</p>
+                                  <p className="mt-0.5 text-[10px] text-gray-500">
+                                    {vs.activeImagePath ? "当前形态已有主图" : "当前形态尚未出图"}
+                                  </p>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Card action buttons */}
+                          <div className="mt-4">
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-2">快捷操作</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleCardAction("重新生成", regenerateCharacter)}
+                                disabled={cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running"}
+                              >
+                                {cardLoading["重新生成"] || currentCharacter.regenerateStatus === "running" ? "重新生成中..." : "重新生成"}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleCardAction("生成当前形态主图", generateCharacterImage)}
+                                disabled={cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating"}
+                              >
+                                {cardLoading["生成当前形态主图"] || currentCharacter.imageStatus === "generating" ? "生成中..." : "生成当前形态主图"}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleCardAction("优化 Prompt", optimizeCharacterPrompt)}
+                                disabled={cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running"}
+                              >
+                                {cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running" ? "优化中..." : "优化 Prompt"}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleCardAction("生成外观锚定词", generateCharacterAnchor)}
+                                disabled={cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running"}
+                              >
+                                {cardLoading["生成外观锚定词"] || currentCharacter.anchorStatus === "running" ? "生成中..." : "生成外观锚定词"}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
