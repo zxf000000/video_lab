@@ -26,6 +26,7 @@ assets_service = AssetsService()
 shots_service = ShotsService()
 generation_service = GenerationService()
 _character_image_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="character-image-gen")
+_character_copilot_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="char-copilot")
 
 
 def _run_generate_character_image(task_id: int, char_id: int) -> None:
@@ -45,6 +46,227 @@ def _run_generate_character_image(task_id: int, char_id: int) -> None:
             "status": "failed",
             "error_message": str(exc)[:500],
         })
+
+
+def _run_optimize_prompt(task_id: int, char_id: int) -> None:
+    from ..config import load_config, load_prompts
+    from ..providers.chatfire import ChatfireProvider
+    from ..routes.copilot import _extract_character_proposal, _compile_messages
+    assets_svc = AssetsService()
+    gen_svc = GenerationService()
+    try:
+        character = assets_svc.repository.get_character(char_id)
+        if not character:
+            raise ValueError("Character not found")
+        project_id = int(character["project_id"])
+        prompts = load_prompts()
+        config = load_config()
+        provider = ChatfireProvider(config, prompts)
+
+        system_prompt = prompts.get("prompt_copilot_character_system", "")
+        user_template = prompts.get("prompt_copilot_character_optimize_prompt", "")
+        if not system_prompt or not user_template:
+            raise ValueError("optimize_prompt templates not configured")
+
+        context = {
+            "generation_stage": "visual_refine",
+            "current_character": {
+                "character_profile": {
+                    "name": character.get("name", ""),
+                    "role_type": character.get("role_type", ""),
+                    "species": character.get("species", ""),
+                    "identity_summary": character.get("identity_summary", ""),
+                    "appearance_summary": character.get("appearance_summary", ""),
+                    "personality_tags": character.get("personality_tags", "[]"),
+                    "speech_style": character.get("speech_style", ""),
+                    "negative_constraints": character.get("negative_constraints", ""),
+                },
+                "image_spec": {
+                    "image_prompt": character.get("image_prompt", ""),
+                    "negative_prompt": character.get("negative_prompt", ""),
+                },
+            },
+        }
+
+        user_goal = "请优化当前角色的 image_prompt，使其更适合彩色铅笔线稿风格出图"
+        compiled_messages = _compile_messages(
+            [{"role": "user", "content": user_goal}],
+            user_template=user_template,
+            context=context,
+            user_goal=user_goal,
+            project_id=project_id,
+            entity_id=char_id,
+        )
+        raw = provider._chat(system_prompt, compiled_messages[-1]["content"], timeout=300)
+        proposal = _extract_character_proposal(raw)
+        role = (proposal.get("roles") or [None])[0] if proposal else None
+        image_spec = (role or {}).get("image_spec", {})
+        image_prompt = str(image_spec.get("image_prompt", "")).strip() if image_spec else ""
+        negative_prompt = str(image_spec.get("negative_prompt", "")).strip() if image_spec else ""
+        if not image_prompt:
+            raise ValueError("LLM 未返回优化后的 image_prompt")
+
+        assets_svc.repository.update_character(char_id, {
+            "image_prompt": image_prompt,
+            "negative_prompt": negative_prompt,
+            "prompt_status": "succeeded",
+        })
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+            "output_assets": json.dumps([{"image_prompt": image_prompt, "negative_prompt": negative_prompt}], ensure_ascii=False),
+        })
+    except Exception as exc:
+        assets_svc.repository.update_character(char_id, {"prompt_status": "failed"})
+        gen_svc.repository.update_task(task_id, {"status": "failed", "error_message": str(exc)[:500]})
+
+
+def _run_generate_anchor(task_id: int, char_id: int) -> None:
+    from ..config import load_config, load_prompts
+    from ..providers.chatfire import ChatfireProvider
+    from ..routes.copilot import _extract_character_proposal, _compile_messages
+    assets_svc = AssetsService()
+    gen_svc = GenerationService()
+    try:
+        character = assets_svc.repository.get_character(char_id)
+        if not character:
+            raise ValueError("Character not found")
+        project_id = int(character["project_id"])
+        prompts = load_prompts()
+        config = load_config()
+        provider = ChatfireProvider(config, prompts)
+
+        system_prompt = prompts.get("prompt_copilot_character_system", "")
+        user_template = prompts.get("prompt_copilot_character_appearance_anchor", "")
+        if not system_prompt or not user_template:
+            raise ValueError("appearance_anchor templates not configured")
+
+        context = {
+            "generation_stage": "visual_refine",
+            "current_character": {
+                "character_profile": {
+                    "name": character.get("name", ""),
+                    "role_type": character.get("role_type", ""),
+                    "species": character.get("species", ""),
+                    "identity_summary": character.get("identity_summary", ""),
+                    "appearance_summary": character.get("appearance_summary", ""),
+                    "personality_tags": character.get("personality_tags", "[]"),
+                    "speech_style": character.get("speech_style", ""),
+                    "negative_constraints": character.get("negative_constraints", ""),
+                },
+                "image_spec": {
+                    "image_prompt": character.get("image_prompt", ""),
+                    "negative_prompt": character.get("negative_prompt", ""),
+                },
+            },
+        }
+
+        user_goal = "请为当前角色生成外观锚定词"
+        compiled_messages = _compile_messages(
+            [{"role": "user", "content": user_goal}],
+            user_template=user_template,
+            context=context,
+            user_goal=user_goal,
+            project_id=project_id,
+            entity_id=char_id,
+        )
+        raw = provider._chat(system_prompt, compiled_messages[-1]["content"], timeout=300)
+        proposal = _extract_character_proposal(raw)
+        role = (proposal.get("roles") or [None])[0] if proposal else None
+        appearance_anchor = str((role or {}).get("appearance_anchor", "")).strip() if proposal else ""
+        if not appearance_anchor:
+            raise ValueError("LLM 未返回外观锚定词")
+
+        assets_svc.repository.update_character(char_id, {
+            "appearance_prompt": appearance_anchor,
+            "anchor_status": "succeeded",
+        })
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+            "output_assets": json.dumps([{"appearance_anchor": appearance_anchor}], ensure_ascii=False),
+        })
+    except Exception as exc:
+        assets_svc.repository.update_character(char_id, {"anchor_status": "failed"})
+        gen_svc.repository.update_task(task_id, {"status": "failed", "error_message": str(exc)[:500]})
+
+
+def _run_regenerate_character(task_id: int, char_id: int, regenerate_input: str) -> None:
+    from ..config import load_config, load_prompts
+    from ..providers.chatfire import ChatfireProvider
+    from ..routes.copilot import _extract_character_proposal, _compile_messages
+    assets_svc = AssetsService()
+    gen_svc = GenerationService()
+    try:
+        character = assets_svc.repository.get_character(char_id)
+        if not character:
+            raise ValueError("Character not found")
+        project_id = int(character["project_id"])
+        prompts = load_prompts()
+        config = load_config()
+        provider = ChatfireProvider(config, prompts)
+
+        system_prompt = prompts.get("prompt_copilot_character_system", "")
+        user_template = prompts.get("prompt_copilot_character_regenerate", "")
+        if not system_prompt or not user_template:
+            raise ValueError("regenerate templates not configured")
+
+        existing_chars = assets_svc.repository.list_characters(project_id)
+        context = {
+            "generation_stage": "visual_refine",
+            "current_character": {
+                "character_profile": {
+                    "name": character.get("name", ""),
+                    "role_type": character.get("role_type", ""),
+                    "species": character.get("species", ""),
+                    "identity_summary": character.get("identity_summary", ""),
+                    "appearance_summary": character.get("appearance_summary", ""),
+                    "personality_tags": character.get("personality_tags", "[]"),
+                    "speech_style": character.get("speech_style", ""),
+                    "negative_constraints": character.get("negative_constraints", ""),
+                },
+                "image_spec": {},
+            },
+            "existing_characters": [{
+                "character_profile": {
+                    "name": c.get("name", ""),
+                    "role_type": c.get("role_type", ""),
+                    "species": c.get("species", ""),
+                    "identity_summary": c.get("identity_summary", ""),
+                    "appearance_summary": c.get("appearance_summary", ""),
+                    "personality_tags": c.get("personality_tags", "[]"),
+                    "speech_style": c.get("speech_style", ""),
+                },
+                "image_spec": {},
+            } for c in existing_chars],
+        }
+
+        compiled_messages = _compile_messages(
+            [{"role": "user", "content": regenerate_input}],
+            user_template=user_template,
+            context=context,
+            user_goal=regenerate_input,
+            project_id=project_id,
+            entity_id=char_id,
+        )
+        raw = provider._chat(system_prompt, compiled_messages[-1]["content"], timeout=300)
+        proposal = _extract_character_proposal(raw)
+        role = (proposal.get("roles") or [None])[0] if proposal else None
+        if role:
+            profile = role.get("character_profile", {})
+            assets_svc.repository.update_character(char_id, {
+                "name": str(profile.get("name", character.get("name", ""))),
+                "role_type": str(profile.get("role_type", character.get("role_type", ""))),
+                "identity_summary": str(profile.get("identity_summary", character.get("identity_summary", ""))),
+                "appearance_summary": str(profile.get("appearance_summary", character.get("appearance_summary", ""))),
+                "personality_tags": json.dumps([str(t) for t in profile.get("personality_tags", [])], ensure_ascii=False) if profile.get("personality_tags") else character.get("personality_tags", "[]"),
+                "speech_style": str(profile.get("speech_style", character.get("speech_style", ""))),
+                "regenerate_status": "succeeded",
+            })
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+        })
+    except Exception as exc:
+        assets_svc.repository.update_character(char_id, {"regenerate_status": "failed"})
+        gen_svc.repository.update_task(task_id, {"status": "failed", "error_message": str(exc)[:500]})
 
 
 @register("GET", r"/api/projects")
@@ -187,6 +409,106 @@ def generate_character_image(environ, start_response, char_id: str):
         task_id = generation_service.repository.create_task(task_payload)
         generation_service.repository.update_task(task_id, {"status": "running"})
         _character_image_executor.submit(_run_generate_character_image, task_id, char_id_int)
+        task = generation_service.get_task(task_id)
+    except Exception as exc:
+        return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
+
+
+@register("POST", r"/api/characters/(?P<char_id>\d+)/optimize-prompt")
+def optimize_character_prompt(environ, start_response, char_id: str):
+    char_id_int = int(char_id)
+    character = assets_service.repository.get_character(char_id_int)
+    if not character:
+        return respond_json(start_response, {"error": "Character not found"}, status="404 Not Found")
+    try:
+        assets_service.repository.update_character(char_id_int, {"prompt_status": "running"})
+        task_payload = {
+            "project_id": int(character["project_id"]),
+            "episode_id": None,
+            "shot_id": None,
+            "shot_prompt_id": None,
+            "provider": "chatfire",
+            "model_name": "",
+            "status": "queued",
+            "input_payload": "{}",
+            "output_assets": "[]",
+            "retry_count": 0,
+            "error_message": "",
+            "cost_amount": 0,
+            "duration_ms": 0,
+        }
+        task_id = generation_service.repository.create_task(task_payload)
+        generation_service.repository.update_task(task_id, {"status": "running"})
+        _character_copilot_executor.submit(_run_optimize_prompt, task_id, char_id_int)
+        task = generation_service.get_task(task_id)
+    except Exception as exc:
+        return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
+
+
+@register("POST", r"/api/characters/(?P<char_id>\d+)/generate-anchor")
+def generate_character_anchor(environ, start_response, char_id: str):
+    char_id_int = int(char_id)
+    character = assets_service.repository.get_character(char_id_int)
+    if not character:
+        return respond_json(start_response, {"error": "Character not found"}, status="404 Not Found")
+    try:
+        assets_service.repository.update_character(char_id_int, {"anchor_status": "running"})
+        task_payload = {
+            "project_id": int(character["project_id"]),
+            "episode_id": None,
+            "shot_id": None,
+            "shot_prompt_id": None,
+            "provider": "chatfire",
+            "model_name": "",
+            "status": "queued",
+            "input_payload": "{}",
+            "output_assets": "[]",
+            "retry_count": 0,
+            "error_message": "",
+            "cost_amount": 0,
+            "duration_ms": 0,
+        }
+        task_id = generation_service.repository.create_task(task_payload)
+        generation_service.repository.update_task(task_id, {"status": "running"})
+        _character_copilot_executor.submit(_run_generate_anchor, task_id, char_id_int)
+        task = generation_service.get_task(task_id)
+    except Exception as exc:
+        return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
+
+
+@register("POST", r"/api/characters/(?P<char_id>\d+)/regenerate")
+def regenerate_character(environ, start_response, char_id: str):
+    char_id_int = int(char_id)
+    character = assets_service.repository.get_character(char_id_int)
+    if not character:
+        return respond_json(start_response, {"error": "Character not found"}, status="404 Not Found")
+    payload = parse_json(environ)
+    regenerate_input = str(payload.get("input", "")).strip()
+    if not regenerate_input:
+        return respond_json(start_response, {"error": "input is required"}, status="400 Bad Request")
+    try:
+        assets_service.repository.update_character(char_id_int, {"regenerate_status": "running"})
+        task_payload = {
+            "project_id": int(character["project_id"]),
+            "episode_id": None,
+            "shot_id": None,
+            "shot_prompt_id": None,
+            "provider": "chatfire",
+            "model_name": "",
+            "status": "queued",
+            "input_payload": json.dumps({"input": regenerate_input}, ensure_ascii=False),
+            "output_assets": "[]",
+            "retry_count": 0,
+            "error_message": "",
+            "cost_amount": 0,
+            "duration_ms": 0,
+        }
+        task_id = generation_service.repository.create_task(task_payload)
+        generation_service.repository.update_task(task_id, {"status": "running"})
+        _character_copilot_executor.submit(_run_regenerate_character, task_id, char_id_int, regenerate_input)
         task = generation_service.get_task(task_id)
     except Exception as exc:
         return respond_json(start_response, {"error": str(exc)}, status="500 Internal Server Error")
