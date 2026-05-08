@@ -34,6 +34,7 @@ export interface PromptsData {
 
 export interface SeedanceConfig {
   seedance_api_base: string;
+  seedance_model: string;
 }
 
 export interface KlingConfig {
@@ -356,6 +357,7 @@ export interface CharacterAsset {
   imagePrompt: string;
   negativePrompt: string;
   imagePath: string;
+  photoPath: string;
   voiceProfile: JsonObject;
   outfitPresets: unknown[];
   negativeConstraints: string;
@@ -848,6 +850,7 @@ function normalizeCharacter(raw: Record<string, unknown>): CharacterAsset {
     imagePrompt: asString(raw.image_prompt),
     negativePrompt: asString(raw.negative_prompt),
     imagePath: asString(raw.image_path),
+    photoPath: asString(raw.photo_path),
     voiceProfile: parseJsonValue<JsonObject>(raw.voice_profile, {}),
     outfitPresets: parseJsonValue<unknown[]>(raw.outfit_presets, []),
     negativeConstraints: asString(raw.negative_constraints),
@@ -1087,6 +1090,13 @@ export async function updateProject(projectId: number, data: Partial<CreateProje
 
 export function deleteProject(projectId: number) {
   return request<{ ok: boolean }>(`/api/projects/${projectId}`, { method: "DELETE" });
+}
+
+export function deleteProjects(projectIds: number[]) {
+  return request<{ ok: boolean; deleted: number }>("/api/projects/batch-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids: projectIds }),
+  });
 }
 
 export async function getProjectBrief(projectId: number): Promise<{ brief: ProjectBrief }> {
