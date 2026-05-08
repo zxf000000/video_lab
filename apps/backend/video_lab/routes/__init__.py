@@ -275,6 +275,7 @@ def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
             "regenerate_status": char.get("regenerate_status", ""),
             "version_no": char.get("version_no", 1),
             "image_path": char.get("image_path", ""),
+            "photo_path": char.get("photo_path", ""),
             "created_at": char["created_at"],
             "updated_at": char["updated_at"],
         }
@@ -286,6 +287,7 @@ def serialize_character(char: dict[str, object] | None) -> dict[str, object]:
         "personality_tags": char["personality_tags"],
         "voice_profile": char["voice_profile"],
         "image_path": char.get("image_path", ""),
+        "photo_path": char.get("photo_path", ""),
         "locked": bool(char["locked"]),
         "created_at": char["created_at"],
         "updated_at": char["updated_at"],
