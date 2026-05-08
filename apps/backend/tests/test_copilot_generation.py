@@ -2449,7 +2449,7 @@ class TestAppearanceAnchorInjection:
             generate_shot_prompt(environ, start_response, str(shot_id))
 
         user_prompt = captured_user_prompt[0]
-        assert "角色外貌锚定词" not in user_prompt
+        assert "## 角色外貌锚定词（必须逐字复制，不得改写）" not in user_prompt
         assert "{appearance_anchor_section}" not in user_prompt
 
     def test_appearance_anchor_picks_first_character_only(self, db_setup):
