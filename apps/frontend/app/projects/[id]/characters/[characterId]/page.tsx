@@ -8,6 +8,7 @@ import { IconArrowLeft, IconChevronLeft, IconChevronRight } from "@tabler/icons-
 import {
   generateCharacterAnchor,
   generateCharacterImage,
+  generateCharacterPrompt,
   getApiBase,
   optimizeCharacterPrompt,
   regenerateCharacter,
@@ -906,6 +907,14 @@ export default function CharacterDetailPage() {
                           disabled={cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running"}
                         >
                           {cardLoading["优化 Prompt"] || currentCharacter.promptStatus === "running" ? "优化中..." : "优化 Prompt"}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleCardAction("生成 Prompt", generateCharacterPrompt)}
+                          disabled={cardLoading["生成 Prompt"] || currentCharacter.promptStatus === "running"}
+                        >
+                          {cardLoading["生成 Prompt"] || currentCharacter.promptStatus === "running" ? "生成中..." : "生成 Prompt"}
                         </Button>
                         <Button
                           variant="secondary"

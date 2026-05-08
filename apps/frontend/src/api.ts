@@ -1198,6 +1198,10 @@ export async function optimizeCharacterPrompt(characterId: number): Promise<{ ta
   return request(`/api/characters/${characterId}/optimize-prompt`, { method: "POST" });
 }
 
+export async function generateCharacterPrompt(characterId: number): Promise<{ task_id: number; status: string }> {
+  return request(`/api/characters/${characterId}/generate-prompt`, { method: "POST" });
+}
+
 export async function generateCharacterAnchor(characterId: number): Promise<{ task_id: number; status: string }> {
   return request(`/api/characters/${characterId}/generate-anchor`, { method: "POST" });
 }
