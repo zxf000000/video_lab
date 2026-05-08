@@ -183,6 +183,8 @@ def _run_generate_prompt(task_id: int, char_id: int) -> None:
         )
         raw = provider._chat(system_prompt, compiled_messages[-1]["content"], timeout=300)
         proposal = _extract_character_proposal(raw)
+        if proposal is None:
+            print(f"[PROMPT_DEBUG] action=generate_prompt char_id={char_id} parse_failed raw={raw[:800]!r}")
         role = (proposal.get("roles") or [None])[0] if proposal else None
         image_spec = (role or {}).get("image_spec", {})
         image_prompt = str(image_spec.get("image_prompt", "")).strip() if image_spec else ""

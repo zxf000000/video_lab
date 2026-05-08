@@ -90,12 +90,12 @@ export default function CharacterDetailPage() {
   const [saving, setSaving] = useState(false);
   const [cardLoading, setCardLoading] = useState<Record<string, boolean>>({});
 
-  // Init form when character changes
+  // Init form when character changes or server-side fields update (e.g. generated prompt)
   useEffect(() => {
     if (currentCharacter) {
       setEditing(toCharacterForm(currentCharacter));
     }
-  }, [characterId]);
+  }, [characterId, currentCharacter?.imagePrompt, currentCharacter?.negativePrompt, currentCharacter?.promptStatus]);
 
   // Flat character list for prev/next
   const currentIndex = characters.findIndex((c) => c.id === characterId);
