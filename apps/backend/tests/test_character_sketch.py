@@ -65,6 +65,40 @@ def test_build_character_image_prompt_colored_lineart_keywords():
     assert "均匀摄影棚灯光" not in prompt
 
 
+def test_build_character_image_prompt_for_photo_excludes_sketch_keywords():
+    """for_photo=True omits sketch/lineart keywords and anti-photo instructions."""
+    from video_lab.domain.assets.service import AssetsService
+
+    svc = AssetsService()
+    character = {
+        "name": "Test",
+        "identity_summary": "测试角色",
+        "appearance_summary": "测试外观",
+        "image_prompt": "",
+    }
+    prompt = svc._build_character_image_prompt(character, {}, {"genre": "fantasy"}, [], for_photo=True)
+
+    assert "全身从头到脚完整可见" in prompt
+    assert "纯色背景" in prompt
+    assert "色铅笔手绘风格" not in prompt
+    assert "全彩上色" not in prompt
+    assert "非照片" not in prompt
+    assert "不要生成真人照片" not in prompt
+    assert "高一致性角色设定" not in prompt
+
+
+def test_build_character_image_prompt_for_photo_explicit_strips_sketch_instruction():
+    """for_photo=True with explicit image_prompt skips CHARACTER_SKETCH_REFERENCE_INSTRUCTION."""
+    from video_lab.domain.assets.service import AssetsService
+
+    svc = AssetsService()
+    character = {"name": "Test", "image_prompt": "custom", "identity_summary": "", "appearance_summary": ""}
+    prompt = svc._build_character_image_prompt(character, {}, {}, [], for_photo=True)
+    assert prompt == "custom"
+    assert "线稿" not in prompt
+    assert "色铅笔" not in prompt
+
+
 def test_build_character_image_prompt_respects_explicit():
     """Explicit image_prompt on character should be returned with sketch instruction appended."""
     from video_lab.domain.assets.service import (

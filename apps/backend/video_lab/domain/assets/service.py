@@ -150,14 +150,14 @@ class AssetsService:
         brief = self.repository.get_project_brief(int(character["project_id"])) or {}
         visual_profile = self.repository.parse_json_column(character.get("visual_profile"), {})
         style_keywords = self.repository.parse_json_column(brief.get("style_keywords"), [])
-        prompt_body = self._build_character_image_prompt(character, visual_profile, project, style_keywords)
+        photo_prompt_body = self._build_character_image_prompt(character, visual_profile, project, style_keywords, for_photo=True)
         negative_prompt = normalize_text(character.get("negative_prompt"))
         style = normalize_text(project.get("genre"), "cinematic")
         providers = _get_providers()
 
         # Step 1: Generate photorealistic reference photo
         photo_prompt = DEFAULT_PROMPTS["prompt_character_photo"].format(
-            style=style, appearance_prompt=prompt_body,
+            style=style, appearance_prompt=photo_prompt_body,
         )
         print(f"[PROMPT_DEBUG] action=character_photo char_id={character_id} final_prompt={photo_prompt!r}")
         kling = providers.get("kling")
@@ -228,9 +228,11 @@ class AssetsService:
         updated["variants"] = next_variants
         return updated
 
-    def _build_character_image_prompt(self, character: dict, visual_profile: dict, project: dict, style_keywords: list) -> str:
+    def _build_character_image_prompt(self, character: dict, visual_profile: dict, project: dict, style_keywords: list, for_photo: bool = False) -> str:
         explicit_prompt = normalize_text(character.get("image_prompt"))
         if explicit_prompt:
+            if for_photo:
+                return explicit_prompt
             return f"{explicit_prompt}。{CHARACTER_SKETCH_REFERENCE_INSTRUCTION}"
         segments = [
             f"现代中文短剧角色全身设定图，题材 {normalize_text(project.get('genre'), '都市短剧')}",
@@ -255,18 +257,25 @@ class AssetsService:
             segments.append(f"视觉关键词 {' / '.join(str(item) for item in visual_keywords if str(item).strip())}")
         if isinstance(style_keywords, list) and style_keywords:
             segments.append(f"项目风格 {' / '.join(str(item) for item in style_keywords if str(item).strip())}")
-        segments.extend([
-            "全身从头到脚完整可见",
-            "站立角色参考图",
-            "纯色背景",
-            "色铅笔手绘风格",
-            "全彩上色",
-            "清晰轮廓线条",
-            "平涂色块",
-            "不要生成真人照片、彩色写真或电影剧照",
-            "非照片、非写实渲染",
-            "高一致性角色设定",
-        ])
+        if for_photo:
+            segments.extend([
+                "全身从头到脚完整可见",
+                "站立角色参考图",
+                "纯色背景",
+            ])
+        else:
+            segments.extend([
+                "全身从头到脚完整可见",
+                "站立角色参考图",
+                "纯色背景",
+                "色铅笔手绘风格",
+                "全彩上色",
+                "清晰轮廓线条",
+                "平涂色块",
+                "不要生成真人照片、彩色写真或电影剧照",
+                "非照片、非写实渲染",
+                "高一致性角色设定",
+            ])
         return "。".join(segment for segment in segments if segment)
 
     def get_scene_preset(self, scene_preset_id: int) -> dict | None:
