@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from ...config import DEFAULT_PROMPTS
 from ...services import _get_providers
 from ..common import DomainError, normalize_int, normalize_json_text, normalize_text
 from .repository import AssetsRepository
@@ -151,27 +152,54 @@ class AssetsService:
         style_keywords = self.repository.parse_json_column(brief.get("style_keywords"), [])
         prompt_body = self._build_character_image_prompt(character, visual_profile, project, style_keywords)
         negative_prompt = normalize_text(character.get("negative_prompt"))
+        style = normalize_text(project.get("genre"), "cinematic")
         providers = _get_providers()
+
+        # Step 1: Generate photorealistic reference photo
+        photo_prompt = DEFAULT_PROMPTS["prompt_character_photo"].format(
+            style=style, appearance_prompt=prompt_body,
+        )
+        print(f"[PROMPT_DEBUG] action=character_photo char_id={character_id} final_prompt={photo_prompt!r}")
         kling = providers.get("kling")
         if kling and hasattr(kling, "generate_image"):
-            image_path = kling.generate_image(
+            photo_path = kling.generate_image(
                 task_id=character_id,
-                prompt=prompt_body,
+                prompt=photo_prompt,
                 model_name="kling-v2-1",
                 aspect_ratio="9:16",
                 negative_prompt=negative_prompt,
             )
         else:
+            photo_path = providers["image"].generate_character_image(
+                character_id,
+                prompt=photo_prompt,
+            )
+
+        # Step 2: Convert photo to colored pencil sketch
+        sketchify_prompt = DEFAULT_PROMPTS["prompt_character_sketchify"].format()
+        print(f"[PROMPT_DEBUG] action=character_sketchify char_id={character_id} ref_image={photo_path}")
+        if kling and hasattr(kling, "generate_image"):
+            image_path = kling.generate_image(
+                task_id=character_id,
+                prompt=sketchify_prompt,
+                model_name="kling-v2-1",
+                aspect_ratio="9:16",
+                negative_prompt="",
+                image=photo_path,
+            )
+        else:
             image_path = providers["image"].generate_character_image(
                 character_id,
-                prompt_body,
-                normalize_text(project.get("genre"), "cinematic"),
+                prompt=sketchify_prompt,
+                ref_image=photo_path,
             )
+
         updated_visual_profile = self._update_variant_image_path(visual_profile, image_path)
         self.repository.update_character(
             character_id,
             {
                 "image_path": image_path,
+                "photo_path": photo_path,
                 "visual_profile": json.dumps(updated_visual_profile, ensure_ascii=False),
             },
         )
