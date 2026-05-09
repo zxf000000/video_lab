@@ -95,7 +95,7 @@ export default function CharacterDetailPage() {
     if (currentCharacter) {
       setEditing(toCharacterForm(currentCharacter));
     }
-  }, [characterId, currentCharacter?.imagePrompt, currentCharacter?.negativePrompt, currentCharacter?.promptStatus]);
+  }, [characterId, currentCharacter?.imagePrompt, currentCharacter?.negativePrompt, currentCharacter?.promptStatus, currentCharacter?.imagePath, currentCharacter?.photoPath, currentCharacter?.imageStatus]);
 
   // Flat character list for prev/next
   const currentIndex = characters.findIndex((c) => c.id === characterId);
@@ -129,6 +129,7 @@ export default function CharacterDetailPage() {
     try {
       const resolvedImageSpec = mergeVariantImageSpec(editing, editing.activeVariantId);
       const selectedVariant = getActiveVariant(editing);
+      const imagePath = selectedVariant?.imagePath || editing.imagePath || undefined;
       await updateCharacter(editing.id, projectId, {
         name: editing.name,
         roleType: editing.roleType,
@@ -141,7 +142,7 @@ export default function CharacterDetailPage() {
         visualProfile: buildVisualProfile(editing),
         imagePrompt: resolvedImageSpec.imagePrompt,
         negativePrompt: resolvedImageSpec.negativePrompt,
-        imagePath: selectedVariant?.imagePath ?? editing.imagePath,
+        imagePath,
         status: editing.status,
       });
       await refresh();
