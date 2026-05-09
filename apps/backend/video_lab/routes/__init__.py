@@ -313,7 +313,6 @@ def serialize_scene(scene: dict[str, object] | None) -> dict[str, object]:
             "negative_prompt": scene.get("negative_prompt", ""),
             "reference_asset_ids": scene.get("reference_asset_ids", "[]"),
             "variants": scene.get("variants", "[]"),
-            "episode_id": scene.get("episode_id"),
             "status": scene.get("status", "draft"),
             "version_no": scene.get("version_no", 1),
             "created_at": scene["created_at"],

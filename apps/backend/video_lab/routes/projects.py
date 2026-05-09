@@ -821,3 +821,38 @@ def list_batch_shots(environ, start_response, batch_id: str):
     finally:
         conn.close()
     return respond_json(start_response, {"shots": [serialize_shot(s) for s in shot_dicts]})
+
+
+# ── Scene override endpoints ─────────────────────────────────────
+
+@register("GET", r"/api/scene-presets/(?P<scene_preset_id>\d+)/overrides")
+def list_scene_overrides(environ, start_response, scene_preset_id: str):
+    overrides = assets_service.list_overrides_for_preset(int(scene_preset_id))
+    return respond_json(start_response, {"overrides": overrides})
+
+
+@register("POST", r"/api/episodes/(?P<episode_id>\d+)/scene-presets/(?P<scene_preset_id>\d+)/overrides")
+def create_scene_override(environ, start_response, episode_id: str, scene_preset_id: str):
+    payload = parse_json(environ)
+    try:
+        override_id = assets_service.upsert_episode_scene_override(
+            int(episode_id), int(scene_preset_id), payload
+        )
+        override = assets_service.repository.get_episode_scene_override(override_id)
+    except Exception as exc:
+        return respond_json(start_response, {"error": str(exc)}, status="400 Bad Request")
+    return respond_json(start_response, {"override": override}, status="201 Created")
+
+
+@register("PUT", r"/api/episode-scene-overrides/(?P<override_id>\d+)")
+def update_scene_override(environ, start_response, override_id: str):
+    payload = parse_json(environ)
+    existing = assets_service.repository.get_episode_scene_override(int(override_id))
+    if not existing:
+        return respond_json(start_response, {"error": "Override not found"}, status="404 Not Found")
+    assets_service.repository.update_episode_scene_override(int(override_id), {
+        "lighting_style": payload.get("lighting_style", ""),
+        "time_of_day": payload.get("time_of_day", ""),
+        "weather": payload.get("weather", ""),
+    })
+    return respond_json(start_response, {"override": assets_service.repository.get_episode_scene_override(int(override_id))})
