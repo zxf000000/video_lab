@@ -49,3 +49,5 @@
    - **禁止**在 first_frame_prompt 或 video_prompt 末尾添加独立的「角色参考图使用说明」「参考图使用说明」附录段落
 
 项目 ID: {project_id}
+
+{rhythm_section}

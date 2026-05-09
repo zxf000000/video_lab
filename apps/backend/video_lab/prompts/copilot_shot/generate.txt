@@ -20,3 +20,5 @@
 
 上下文:
 {context_json}
+
+{rhythm_section}
