@@ -9,7 +9,6 @@ interface SceneVariant {
   imagePath?: string;
   [key: string]: unknown;
 }
-import { useSearchParams } from "next/navigation";
 import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { toast } from "react-toastify";
 import {
@@ -163,8 +162,6 @@ const SCENE_FIELD_LABELS: CopilotFieldDescriptor[] = [
 
 export default function ScenesPage() {
   const { project, refresh } = useProjectWorkspace();
-  const searchParams = useSearchParams();
-  const episodeFilterId = searchParams.get("episode") ? Number(searchParams.get("episode")) : null;
   const { adapter } = useProjectCopilot();
   const [editing, setEditing] = useState<SceneFormState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -192,12 +189,7 @@ export default function ScenesPage() {
   if (!project) return null;
   const currentProject = project;
 
-  const filteredScenes = episodeFilterId
-    ? currentProject.scenes.filter((s) => s.episodeId === episodeFilterId)
-    : currentProject.scenes;
-  const filterEpisode = episodeFilterId
-    ? currentProject.episodes?.find((e) => e.id === episodeFilterId)
-    : null;
+  const filteredScenes = currentProject.scenes;
 
   // ---------------------------------------------------------------------------
   // Copilot adapter
@@ -1097,7 +1089,7 @@ export default function ScenesPage() {
       {/* ------------------------------------------------------------------ */}
       <SectionCard
         title="场景模板"
-        description={filterEpisode ? `筛选：第 ${filterEpisode.episodeNo} 集「${filterEpisode.title}」· ${filteredScenes.length} 个场景` : `场景模板会被镜头、Prompt 和视觉生成反复复用。共 ${currentProject.scenes.length} 个场景。`}
+        description={`场景模板会被镜头、Prompt 和视觉生成反复复用。共 ${currentProject.scenes.length} 个场景。`}
         action={
           <div className="flex flex-wrap gap-2">
             <ProjectCopilotButton

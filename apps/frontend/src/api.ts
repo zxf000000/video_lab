@@ -372,6 +372,17 @@ export interface CharacterAsset {
   updatedAt: string;
 }
 
+export interface EpisodeSceneOverride {
+  id: number;
+  episodeId: number;
+  scenePresetId: number;
+  lightingStyle: string;
+  timeOfDay: string;
+  weather: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ScenePreset {
   id: number;
   projectId: number;
@@ -387,7 +398,6 @@ export interface ScenePreset {
   negativePrompt: string;
   referenceAssetIds: unknown[];
   variants: unknown[];
-  episodeId: number | null;
   status: string;
   versionNo: number;
   createdAt: string;
@@ -882,7 +892,6 @@ function normalizeScene(raw: Record<string, unknown>): ScenePreset {
     negativePrompt: asString(raw.negative_prompt),
     referenceAssetIds: parseJsonValue<unknown[]>(raw.reference_asset_ids, []),
     variants: parseJsonValue<unknown[]>(raw.variants, []),
-    episodeId: raw.episode_id != null ? asNumber(raw.episode_id) : null,
     status: asString(raw.status, "draft"),
     versionNo: asNumber(raw.version_no, 1),
     createdAt: asString(raw.created_at),
@@ -1242,7 +1251,6 @@ export async function createScene(projectId: number, data: Partial<ScenePreset> 
       negative_prompt: data.negativePrompt ?? "",
       reference_asset_ids: data.referenceAssetIds ?? [],
       variants: data.variants ?? [],
-      episode_id: data.episodeId ?? null,
       status: data.status ?? "draft",
       version_no: data.versionNo ?? 1,
     }),
@@ -1268,7 +1276,6 @@ export async function updateScene(sceneId: number, projectId: number, data: Part
       ...(data.negativePrompt !== undefined ? { negative_prompt: data.negativePrompt } : {}),
       ...(data.referenceAssetIds !== undefined ? { reference_asset_ids: data.referenceAssetIds } : {}),
       ...(data.variants !== undefined ? { variants: data.variants } : {}),
-      ...(data.episodeId !== undefined ? { episode_id: data.episodeId } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
       ...(data.versionNo !== undefined ? { version_no: data.versionNo } : {}),
     }),
@@ -1278,6 +1285,63 @@ export async function updateScene(sceneId: number, projectId: number, data: Part
 
 export function deleteScene(sceneId: number) {
   return request<{ ok: boolean }>(`/api/scenes/${sceneId}`, { method: "DELETE" });
+}
+
+function normalizeOverride(raw: Record<string, unknown>): EpisodeSceneOverride {
+  return {
+    id: asNumber(raw.id),
+    episodeId: asNumber(raw.episode_id),
+    scenePresetId: asNumber(raw.scene_preset_id),
+    lightingStyle: asString(raw.lighting_style),
+    timeOfDay: asString(raw.time_of_day),
+    weather: asString(raw.weather),
+    createdAt: asString(raw.created_at),
+    updatedAt: asString(raw.updated_at),
+  };
+}
+
+export async function listSceneOverrides(scenePresetId: number) {
+  const payload = await request<{ overrides: Record<string, unknown>[] }>(
+    `/api/scene-presets/${scenePresetId}/overrides`
+  );
+  return { overrides: payload.overrides.map(normalizeOverride) };
+}
+
+export async function upsertSceneOverride(
+  episodeId: number,
+  scenePresetId: number,
+  data: Partial<EpisodeSceneOverride>
+) {
+  const payload = await request<{ override: Record<string, unknown> }>(
+    `/api/episodes/${episodeId}/scene-presets/${scenePresetId}/overrides`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        lighting_style: data.lightingStyle ?? "",
+        time_of_day: data.timeOfDay ?? "",
+        weather: data.weather ?? "",
+      }),
+    }
+  );
+  return { override: normalizeOverride(payload.override) };
+}
+
+export async function updateSceneOverride(
+  overrideId: number,
+  data: Partial<EpisodeSceneOverride>
+) {
+  const payload = await request<{ override: Record<string, unknown> }>(
+    `/api/episode-scene-overrides/${overrideId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        lighting_style: data.lightingStyle ?? "",
+        time_of_day: data.timeOfDay ?? "",
+        weather: data.weather ?? "",
+      }),
+    }
+  );
+  return { override: normalizeOverride(payload.override) };
 }
 
 export async function listEpisodes(projectId: number) {

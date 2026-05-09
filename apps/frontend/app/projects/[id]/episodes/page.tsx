@@ -712,36 +712,7 @@ export default function EpisodesPage() {
                       <span>冲突: {ep.coreConflict.slice(0, 40)}...</span>
                     </div>
                   )}
-                  {/* Related scenes */}
-                  {(() => {
-                    const relatedScenes = scenes.filter((s) => s.episodeId === ep.id);
-                    if (relatedScenes.length === 0) return null;
-                    const shown = relatedScenes.slice(0, 3);
-                    const rest = relatedScenes.length - shown.length;
-                    return (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        <span className="text-xs text-gray-500">场景:</span>
-                        {shown.map((s) => (
-                          <Link
-                            key={s.id}
-                            href={`/projects/${projectId}/scenes?episode=${ep.id}`}
-                            className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20 transition"
-                          >
-                            {s.name}
-                          </Link>
-                        ))}
-                        {rest > 0 && (
-                          <Link
-                            href={`/projects/${projectId}/scenes?episode=${ep.id}`}
-                            className="text-xs text-gray-500 hover:text-primary transition"
-                          >
-                            +{rest}
-                          </Link>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
+</div>
                 <div className="flex gap-2 flex-shrink-0">
                   <Button
                     onClick={() => setEditing(toForm(ep))}
