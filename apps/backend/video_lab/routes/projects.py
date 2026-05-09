@@ -850,9 +850,9 @@ def update_scene_override(environ, start_response, override_id: str):
     existing = assets_service.repository.get_episode_scene_override(int(override_id))
     if not existing:
         return respond_json(start_response, {"error": "Override not found"}, status="404 Not Found")
-    assets_service.repository.update_episode_scene_override(int(override_id), {
-        "lighting_style": payload.get("lighting_style", ""),
-        "time_of_day": payload.get("time_of_day", ""),
-        "weather": payload.get("weather", ""),
-    })
+    update_payload = {}
+    for key in ("lighting_style", "time_of_day", "weather"):
+        if key in payload:
+            update_payload[key] = payload[key]
+    assets_service.repository.update_episode_scene_override(int(override_id), update_payload)
     return respond_json(start_response, {"override": assets_service.repository.get_episode_scene_override(int(override_id))})
