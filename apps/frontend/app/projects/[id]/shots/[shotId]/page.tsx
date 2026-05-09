@@ -124,6 +124,7 @@ export default function ShotDetailPage() {
   const [editVideoNeg, setEditVideoNeg] = useState("");
   const [editNegative, setEditNegative] = useState("");
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
+  const [promptRhythmLevel, setPromptRhythmLevel] = useState("");
   const [withFirstFrame, setWithFirstFrame] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(3);
   const [aspectRatio, setAspectRatio] = useState("16:9");
@@ -268,7 +269,7 @@ export default function ShotDetailPage() {
     if (!shotId) return;
     setGeneratingPrompt(true);
     try {
-      const result = await generateShotPromptFromShot(shotId);
+      const result = await generateShotPromptFromShot(shotId, { rhythmLevel: promptRhythmLevel || undefined });
       setFirstFramePrompt(result.firstFramePrompt);
       setFirstFrameNegative(result.firstFrameNegativePrompt);
       setVideoPrompt(result.videoPrompt);
@@ -663,6 +664,16 @@ export default function ShotDetailPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-gray-500">填写或使用 AI 自动填充提示词</span>
+                    <select
+                      className="h-7 rounded border border-input bg-background px-1.5 text-[11px]"
+                      value={promptRhythmLevel}
+                      onChange={(e) => setPromptRhythmLevel(e.target.value)}
+                    >
+                      <option value="">默认</option>
+                      <option value="fast">快节奏</option>
+                      <option value="ultra_fast">极快</option>
+                      <option value="frenzy">癫狂</option>
+                    </select>
                     <Button variant="secondary" size="sm" onClick={handleGeneratePrompt} disabled={generatingPrompt}>
                       {generatingPrompt ? "AI 生成中..." : "AI 生成 Prompt"}
                     </Button>

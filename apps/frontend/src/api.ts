@@ -1513,10 +1513,10 @@ export interface ImageReference {
   path: string;
 }
 
-export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean }) {
+export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean; rhythmLevel?: string }) {
   const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; duration_seconds: number; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
     method: "POST",
-    body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false }),
+    body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false, rhythm_level: opts?.rhythmLevel ?? "" }),
   });
   return {
     firstFramePrompt: payload.first_frame_prompt,
@@ -1592,11 +1592,11 @@ export async function generateScenes(
 
 export async function generateShots(
   episodeId: number,
-  data: { context: Record<string, unknown>; messages: { role: string; content: string }[] },
+  data: { context: Record<string, unknown>; messages: { role: string; content: string }[]; rhythmLevel?: string },
 ) {
   const payload = await request<{ task: Record<string, unknown> }>(`/api/episodes/${episodeId}/generate-shots`, {
     method: "POST",
-    body: JSON.stringify({ context: data.context, messages: data.messages }),
+    body: JSON.stringify({ context: data.context, messages: data.messages, rhythm_level: data.rhythmLevel ?? "" }),
   });
   return { task: normalizeTask(payload.task) };
 }

@@ -552,6 +552,7 @@ export default function EpisodesPage() {
 
   /* ---- per-episode shot generation ---- */
   const [generatingShots, setGeneratingShots] = useState<number | null>(null);
+  const [rhythmLevel, setRhythmLevel] = useState("");
 
   const handleGenerateShots = useCallback(
     async (episode: Episode) => {
@@ -611,6 +612,7 @@ export default function EpisodesPage() {
         const { task } = await generateShots(episode.id, {
           context,
           messages: [{ role: "user", content: "为此集生成镜头列表（Shot List）" }],
+          rhythmLevel: rhythmLevel || undefined,
         });
 
         const poll = async (): Promise<void> => {
@@ -631,7 +633,7 @@ export default function EpisodesPage() {
         setGeneratingShots(null);
       }
     },
-    [project, characters, scenes, projectId, refresh]
+    [project, characters, scenes, projectId, refresh, rhythmLevel]
   );
 
   /* ---- delete episode ---- */
@@ -751,6 +753,16 @@ export default function EpisodesPage() {
                   >
                     {generatingScenes === ep.id || getActiveTask(ep.id, "scene") ? "生成中..." : "生成场景"}
                   </Button>
+                  <select
+                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                    value={rhythmLevel}
+                    onChange={(e) => setRhythmLevel(e.target.value)}
+                  >
+                    <option value="">默认节奏</option>
+                    <option value="fast">快节奏</option>
+                    <option value="ultra_fast">极快节奏</option>
+                    <option value="frenzy">癫狂节奏</option>
+                  </select>
                   <Button
                     onClick={() => void handleGenerateShots(ep)}
                     disabled={generatingShots === ep.id || !!getActiveTask(ep.id, "shot")}
