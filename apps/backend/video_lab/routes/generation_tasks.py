@@ -499,4 +499,35 @@ def retry_task(environ, start_response, task_id: str):
         task = generation_service.get_task(int(task_id))
     except ValueError:
         return respond_json(start_response, {"error": "Task not found"}, status="404 Not Found")
+
+    # Re-submit to thread pool if it's a copilot task
+    provider = str(task.get("provider", ""))
+    model = str(task.get("model_name", ""))
+    if provider == "copilot" and model in ("screenplay", "scene", "shot"):
+        raw = task.get("input_payload", "{}")
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                raw = {}
+        context = raw.get("context", {}) if isinstance(raw, dict) else {}
+        messages_raw = raw.get("messages", []) if isinstance(raw, dict) else []
+        messages = _normalize_messages(messages_raw if isinstance(messages_raw, list) else [{"role": "user", "content": str(messages_raw)}])
+        executors = {
+            "screenplay": _run_generate_screenplay,
+            "scene": _run_generate_scenes,
+            "shot": _run_generate_shots,
+        }
+        rhythm_level = str(context.get("rhythm_level", "") if isinstance(context, dict) else "")
+        executor_fn = executors[model]
+        _copilot_executor.submit(
+            executor_fn,
+            task["id"],
+            int(task.get("episode_id", 0)),
+            int(task.get("project_id", 0)),
+            context,
+            messages,
+            rhythm_level,
+        )
+
     return respond_json(start_response, {"task": serialize_task(task)})
