@@ -34,10 +34,11 @@ class AssetsService:
                         "image_path", "negative_constraints", "status", "image_status"):
                 if key in payload:
                     data[key] = normalize_text(payload[key])
-            for key in ("personality_tags", "visual_profile", "voice_profile",
-                        "outfit_presets", "reference_asset_ids"):
+            for key, default in (("personality_tags", []), ("visual_profile", {}),
+                                  ("voice_profile", {}), ("outfit_presets", []),
+                                  ("reference_asset_ids", [])):
                 if key in payload:
-                    data[key] = normalize_json_text(payload[key])
+                    data[key] = normalize_json_text(payload[key], default)
             if "version_no" in payload:
                 data["version_no"] = max(1, normalize_int(payload["version_no"], 1))
             if data:
@@ -82,9 +83,9 @@ class AssetsService:
                         "negative_prompt", "status"):
                 if key in payload:
                     data[key] = normalize_text(payload[key])
-            for key in ("prop_list", "reference_asset_ids", "variants"):
+            for key, default in (("prop_list", []), ("reference_asset_ids", []), ("variants", [])):
                 if key in payload:
-                    data[key] = normalize_json_text(payload[key])
+                    data[key] = normalize_json_text(payload[key], default)
             if "version_no" in payload:
                 data["version_no"] = max(1, normalize_int(payload["version_no"], 1))
             if data:
