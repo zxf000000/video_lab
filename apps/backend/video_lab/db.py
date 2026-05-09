@@ -325,6 +325,46 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
     if existing_scene_presets and "episode_id" not in existing_scene_presets:
         conn.execute("ALTER TABLE scene_presets ADD COLUMN episode_id INTEGER DEFAULT NULL")
 
+    existing_overrides = {row[1] for row in conn.execute("PRAGMA table_info(episode_scene_overrides)").fetchall()} if conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='episode_scene_overrides'").fetchone() else set()
+    if not existing_overrides:
+        conn.execute("""
+            CREATE TABLE episode_scene_overrides (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                episode_id      INTEGER NOT NULL,
+                scene_preset_id INTEGER NOT NULL,
+                lighting_style  TEXT NOT NULL DEFAULT '',
+                time_of_day     TEXT NOT NULL DEFAULT '',
+                weather         TEXT NOT NULL DEFAULT '',
+                created_at      TEXT NOT NULL,
+                updated_at      TEXT NOT NULL,
+                FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE CASCADE,
+                FOREIGN KEY(scene_preset_id) REFERENCES scene_presets(id) ON DELETE CASCADE,
+                UNIQUE(episode_id, scene_preset_id)
+            )
+        """)
+        # Backfill existing scene_presets with episode_id into episode_scene_overrides
+        scene_presets_exists = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='scene_presets'"
+        ).fetchone()
+        if scene_presets_exists:
+            import datetime
+            ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            rows = conn.execute(
+                "SELECT id, episode_id FROM scene_presets WHERE episode_id IS NOT NULL"
+            ).fetchall()
+            for row in rows:
+                scene_id = row[0]
+                ep_id = row[1]
+                existing = conn.execute(
+                    "SELECT id FROM episode_scene_overrides WHERE episode_id = ? AND scene_preset_id = ?",
+                    (ep_id, scene_id),
+                ).fetchone()
+                if not existing:
+                    conn.execute(
+                        "INSERT INTO episode_scene_overrides (episode_id, scene_preset_id, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                        (ep_id, scene_id, ts, ts),
+                    )
+
     existing_shot_prompts = {row[1] for row in conn.execute("PRAGMA table_info(shot_prompts)").fetchall()}
     if existing_shot_prompts:
         for col, col_def in [

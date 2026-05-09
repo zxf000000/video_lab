@@ -73,13 +73,27 @@ CREATE TABLE IF NOT EXISTS scene_presets (
     negative_prompt TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     variants TEXT NOT NULL DEFAULT '[]',
-    episode_id INTEGER,
+    episode_id INTEGER DEFAULT NULL,
     status TEXT NOT NULL DEFAULT 'draft',
     version_no INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS episode_scene_overrides (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_id      INTEGER NOT NULL,
+    scene_preset_id INTEGER NOT NULL,
+    lighting_style  TEXT NOT NULL DEFAULT '',
+    time_of_day     TEXT NOT NULL DEFAULT '',
+    weather         TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE CASCADE,
+    FOREIGN KEY(scene_preset_id) REFERENCES scene_presets(id) ON DELETE CASCADE,
+    UNIQUE(episode_id, scene_preset_id)
 );
 
 CREATE TABLE IF NOT EXISTS episodes (
@@ -254,13 +268,27 @@ CREATE TABLE IF NOT EXISTS scene_presets (
     negative_prompt TEXT NOT NULL DEFAULT '',
     reference_asset_ids TEXT NOT NULL DEFAULT '[]',
     variants TEXT NOT NULL DEFAULT '[]',
-    episode_id INTEGER,
+    episode_id INTEGER DEFAULT NULL,
     status TEXT NOT NULL DEFAULT 'draft',
     version_no INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS episode_scene_overrides (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_id      INTEGER NOT NULL,
+    scene_preset_id INTEGER NOT NULL,
+    lighting_style  TEXT NOT NULL DEFAULT '',
+    time_of_day     TEXT NOT NULL DEFAULT '',
+    weather         TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    FOREIGN KEY(episode_id) REFERENCES episodes(id) ON DELETE CASCADE,
+    FOREIGN KEY(scene_preset_id) REFERENCES scene_presets(id) ON DELETE CASCADE,
+    UNIQUE(episode_id, scene_preset_id)
 );
 
 CREATE TABLE IF NOT EXISTS shot_prompts (
