@@ -365,6 +365,16 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
                         (ep_id, scene_id, ts, ts),
                     )
 
+    existing_shots = {row[1] for row in conn.execute("PRAGMA table_info(shots)").fetchall()}
+    if "storyboard_url" not in existing_shots:
+        conn.execute("ALTER TABLE shots ADD COLUMN storyboard_url TEXT NOT NULL DEFAULT ''")
+    if "storyboard_prompt" not in existing_shots:
+        conn.execute("ALTER TABLE shots ADD COLUMN storyboard_prompt TEXT NOT NULL DEFAULT ''")
+    if "storyboard_video_prompt" not in existing_shots:
+        conn.execute("ALTER TABLE shots ADD COLUMN storyboard_video_prompt TEXT NOT NULL DEFAULT ''")
+    if "storyboard_first_frame_prompt" not in existing_shots:
+        conn.execute("ALTER TABLE shots ADD COLUMN storyboard_first_frame_prompt TEXT NOT NULL DEFAULT ''")
+
     existing_shot_prompts = {row[1] for row in conn.execute("PRAGMA table_info(shot_prompts)").fetchall()}
     if existing_shot_prompts:
         for col, col_def in [

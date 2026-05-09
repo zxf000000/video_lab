@@ -11,6 +11,7 @@ import {
   generatePromptFrame,
   generatePromptVideo,
   generateShotPromptFromShot,
+  generateShotStoryboard,
   getApiBase,
   getShot,
   listShotPrompts,
@@ -107,7 +108,7 @@ export default function ShotDetailPage() {
   const [saving, setSaving] = useState(false);
 
   // Prompt state
-  const [detailTab, setDetailTab] = useState<"prompt" | "edit">("edit");
+  const [detailTab, setDetailTab] = useState<"prompt" | "edit" | "storyboard">("edit");
   const [shotPromptCache, setShotPromptCache] = useState<Record<number, ShotPrompt[]>>({});
   const [loadingPrompts, setLoadingPrompts] = useState(false);
 
@@ -126,6 +127,10 @@ export default function ShotDetailPage() {
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
   const [promptRhythmLevel, setPromptRhythmLevel] = useState("");
   const [withFirstFrame, setWithFirstFrame] = useState(false);
+  const [generatingStoryboard, setGeneratingStoryboard] = useState(false);
+  const [storyboardUrl, setStoryboardUrl] = useState("");
+  const [storyboardPrompt, setStoryboardPrompt] = useState("");
+  const [storyboardVideoPrompt, setStoryboardVideoPrompt] = useState("");
   const [durationSeconds, setDurationSeconds] = useState(3);
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("720p");
@@ -179,6 +184,9 @@ export default function ShotDetailPage() {
       .then(({ shot }) => {
         setDetailShot(shot);
         setEditing(toForm(shot));
+        setStoryboardUrl(shot.storyboardUrl || "");
+        setStoryboardPrompt(shot.storyboardPrompt || "");
+        setStoryboardVideoPrompt(shot.storyboardVideoPrompt || "");
         const sec = shot.estimatedDurationMs > 0
           ? Math.max(2, Math.min(8, Math.round(shot.estimatedDurationMs / 1000)))
           : 3;
@@ -276,12 +284,51 @@ export default function ShotDetailPage() {
       setVideoNegative(result.videoNegativePrompt);
       setNegativePrompt(result.negativePrompt);
       if (result.durationSeconds) setDurationSeconds(result.durationSeconds);
+      if (result.storyboardUrl) setStoryboardUrl(result.storyboardUrl);
       toast.success("AI 已生成 Prompt，请确认后保存");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setGeneratingPrompt(false);
     }
+  }
+
+  async function handleGenerateStoryboard() {
+    if (!shotId) return;
+    setGeneratingStoryboard(true);
+    try {
+      const result = await generateShotStoryboard(shotId);
+      toast.success("故事板任务已提交");
+      pollStoryboardTask(result.task.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      setGeneratingStoryboard(false);
+    }
+  }
+
+  function pollStoryboardTask(taskId: number) {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/api/tasks/${taskId}`);
+        const data = await res.json();
+        const status = data.task?.status;
+        if (status === "succeeded") {
+          clearInterval(interval);
+          setGeneratingStoryboard(false);
+          const updated = await getShot(shotId!);
+          setStoryboardUrl(updated.shot.storyboardUrl || "");
+          setStoryboardPrompt(updated.shot.storyboardPrompt || "");
+          setStoryboardVideoPrompt(updated.shot.storyboardVideoPrompt || "");
+          toast.success("故事板生成完成");
+        } else if (status === "failed") {
+          clearInterval(interval);
+          setGeneratingStoryboard(false);
+          toast.error("故事板生成失败");
+        }
+      } catch {
+        // keep polling
+      }
+    }, 2000);
   }
 
   async function handleCreatePrompt() {
@@ -592,11 +639,12 @@ export default function ShotDetailPage() {
             </div>
 
             {/* Tabs content */}
-            <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "prompt" | "edit")} className="flex flex-col">
+            <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "prompt" | "edit" | "storyboard")} className="flex flex-col">
               <div className="border-b border-line/50 px-6 shrink-0">
                 <TabsList>
                   <TabsTrigger value="edit">编辑</TabsTrigger>
                   <TabsTrigger value="prompt">Prompt</TabsTrigger>
+                  <TabsTrigger value="storyboard">故事板</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -678,6 +726,7 @@ export default function ShotDetailPage() {
                       {generatingPrompt ? "AI 生成中..." : "AI 生成 Prompt"}
                     </Button>
                   </div>
+
                   <div>
                     <Label className="mb-2 block text-xs text-gray-500">首帧图片提示词 (First Frame Prompt)</Label>
                     <Textarea size="1" className="min-h-[96px] text-xs leading-5" value={firstFramePrompt} onChange={(e) => setFirstFramePrompt(e.target.value)} placeholder="描述镜头第一帧的静态画面..." />
@@ -874,6 +923,58 @@ export default function ShotDetailPage() {
                       </div>
                     )}
                   </div>
+                </motion.div>
+              </TabsContent>
+
+              {/* ── Storyboard Tab ── */}
+              <TabsContent value="storyboard" className="px-6 py-4">
+                <motion.div
+                  key={shotId}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">9 宫格故事板 — 生成后可基于故事板生成连续视频</span>
+                    <Button variant="secondary" size="sm" onClick={handleGenerateStoryboard} disabled={generatingStoryboard}>
+                      {generatingStoryboard ? "生成中..." : "生成故事板"}
+                    </Button>
+                  </div>
+
+                  {storyboardUrl ? (
+                    <>
+                      <ImagePreview
+                        src={storyboardUrl.startsWith("http") ? storyboardUrl : `${apiBase}/assets/${storyboardUrl}`}
+                        alt="故事板"
+                        className="w-full rounded-lg border border-line/30"
+                      />
+
+                      {storyboardPrompt && (
+                        <details>
+                          <summary className="text-[11px] text-gray-500 cursor-pointer">故事板图片生成提示词</summary>
+                          <pre className="mt-2 text-[11px] text-gray-400 whitespace-pre-wrap bg-panel2 rounded p-3 max-h-64 overflow-y-auto">{storyboardPrompt}</pre>
+                        </details>
+                      )}
+
+                      {storyboardVideoPrompt && (
+                        <div>
+                          <Label className="mb-2 block text-xs text-gray-500">
+                            故事板视频提示词（基于 9 宫格关键帧时间线，用于生成连续动画视频）
+                          </Label>
+                          <pre className="text-[11px] text-gray-300 whitespace-pre-wrap bg-panel2 rounded p-3 max-h-96 overflow-y-auto leading-relaxed">{storyboardVideoPrompt}</pre>
+                        </div>
+                      )}
+
+                      {!storyboardVideoPrompt && storyboardUrl && (
+                        <p className="text-[11px] text-gray-600">重新生成故事板可同时获得视频提示词</p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-[11px] text-gray-600">
+                      尚未生成故事板。点击上方按钮生成 9 宫格分镜图，将同时获得对应的视频提示词。
+                    </div>
+                  )}
                 </motion.div>
               </TabsContent>
             </Tabs>

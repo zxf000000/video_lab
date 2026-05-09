@@ -849,6 +849,24 @@ class ChatfireProvider:
         data = self._request("POST", url, payload, timeout=timeout)
         return data["choices"][0]["message"]["content"]
 
+    def _chat_multimodal(self, system: str, user: str, images: list[str] | None = None, timeout: int | None = None) -> str:
+        content_parts = [{"type": "text", "text": user}]
+        if images:
+            for img in images:
+                content_parts.append({"type": "image_url", "image_url": {"url": img}})
+        payload = {
+            "model": self._config.text_model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": content_parts},
+            ],
+            "max_tokens": self._config.max_tokens,
+            "temperature": self._config.temperature,
+        }
+        url = f"{self._base_url}/v1/chat/completions"
+        data = self._request("POST", url, payload, timeout=timeout)
+        return data["choices"][0]["message"]["content"]
+
     def chat_stream(self, messages: list[dict], system_prompt: str):
         """Stream chat completions, yielding content delta strings."""
         payload = {

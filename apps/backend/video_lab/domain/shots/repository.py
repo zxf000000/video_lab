@@ -188,6 +188,10 @@ class ShotsRepository:
             "camera_motion",
             "dialogue_excerpt",
             "estimated_duration_ms",
+            "storyboard_url",
+            "storyboard_prompt",
+            "storyboard_video_prompt",
+            "storyboard_first_frame_prompt",
             "status",
             "sort_order",
         ):

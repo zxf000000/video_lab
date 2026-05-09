@@ -288,6 +288,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     # Determine video image references based on with_first_frame option
     payload = parse_json(environ)
     with_first_frame = bool(payload.get("with_first_frame", False))
+    with_storyboard = bool(payload.get("with_storyboard", False))
     rhythm_level = str(payload.get("rhythm_level", "") or "").strip()
     from . import build_rhythm_section
     rhythm_section = build_rhythm_section(rhythm_level, stage="prompt")
@@ -297,6 +298,15 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         video_image_reference_list = f"{first_frame_label} = 首帧图片 (镜头首帧截图)"
     else:
         video_image_reference_list = image_reference_list
+
+    # Storyboard section — use storyboard text prompt (not image) for LLM context
+    storyboard_section = ""
+    storyboard_url = ""
+    if with_storyboard:
+        storyboard_url = (shot.get("storyboard_url") or "").strip()
+        storyboard_prompt_text = (shot.get("storyboard_prompt") or "").strip()
+        if storyboard_prompt_text:
+            storyboard_section = f"## 故事板文本描述\n以下是当前镜头及相邻镜头的9格分镜故事板描述。请根据其中的运镜、动作、表情等信息，为当前镜头（标记★）生成提示词。角色的素描/线稿风格仅用于故事板参考，输出 prompt 中必须将角色还原为真人写实外观。\n\n{storyboard_prompt_text}"
 
     prompts_cfg = load_prompts()
     system_prompt = prompts_cfg.get("prompt_copilot_shot_prompt_system", "")
@@ -326,6 +336,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         next_shot_goal=next_shot_goal,
         prev_camera_angle=prev_camera_angle,
         rhythm_section=rhythm_section,
+        storyboard_section=storyboard_section,
     )
 
     config = load_config()
@@ -362,6 +373,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         "negative_prompt": proposal["negative_prompt"],
         "duration_seconds": final_duration,
         "image_references": image_refs,
+        "storyboard_url": storyboard_url,
     })
 
 
@@ -614,6 +626,305 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
 
 
 _video_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="video-gen")
+_storyboard_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="storyboard")
+
+
+def _build_storyboard_prompt(shot: dict, char_descriptions: list[str], scene_context: str, episode_shots: list[dict], image_reference_lines: list[str]) -> str:
+    """Build a Chinese prompt for generating a 3×3 9-grid storyboard image."""
+    current_id = int(shot["id"])
+    current_idx = None
+    for i, s in enumerate(episode_shots):
+        if s["id"] == current_id:
+            current_idx = i
+            break
+
+    # Select up to 9 shots centered on current
+    if current_idx is None:
+        target_shots = [shot]
+    else:
+        total = len(episode_shots)
+        window = min(9, total)
+        half = window // 2
+        start = max(0, current_idx - half)
+        end = min(total, start + window)
+        if end - start < window:
+            start = max(0, end - window)
+        target_shots = episode_shots[start:end]
+
+    ref_lines_str = "\n".join(image_reference_lines) if image_reference_lines else "无"
+
+    frames = []
+    for s in target_shots:
+        label = "★ 当前镜头" if s["id"] == current_id else ""
+        frames.append({
+            "shot_no": s.get("shot_no", 0),
+            "shot_size": s.get("shot_size", ""),
+            "camera_angle": s.get("camera_angle", ""),
+            "action": s.get("action_description", ""),
+            "emotion": s.get("facial_emotion", ""),
+            "label": label,
+        })
+
+    frame_descriptions = []
+    for i, f in enumerate(frames):
+        parts = [
+            f"第{i+1}帧{f['label']}：{f['shot_size']} {f['camera_angle']}。{f['action']}",
+        ]
+        if f["emotion"]:
+            parts.append(f"表情：{f['emotion']}")
+        frame_descriptions.append(" ".join(parts))
+
+    frames_text = "\n".join(frame_descriptions)
+
+    prompt = f"""3×3九宫格电影分镜故事板，均匀九等分网格，白色细线分隔，从左到右从上到下按时间顺序排列{len(frames)}帧，每帧16:9横构图。所有角色以全彩线稿/素描风格绘制——保留面部结构与身份特征，不渲染为真人写实照片，保持角色设定图的手绘质感。场景保持真实写实质感。
+
+参考图片：
+{ref_lines_str}
+
+场景：{scene_context}
+
+角色信息：
+{chr(10).join(char_descriptions)}
+
+各帧描述：
+{frames_text}
+
+要求：
+- 所有角色在全部分镜格中保持外貌完全一致
+- 角色以全彩线稿风格呈现（非黑白素描、非真人写实），保留清晰的五官轮廓和发丝线条
+- 场景为真实写实质感：灯光、材质、空间透视均写实
+- 统一暖金色调，电影级构图
+- 不要任何真人照片质感的人脸，角色部分必须是手绘/线稿风格"""
+
+    return prompt
+
+
+def _generate_storyboard_video_prompt(
+    shot: dict,
+    storyboard_prompt: str,
+    char_descriptions: list[str],
+    scene_context: str,
+) -> str:
+    """Generate a timeline-based video prompt from storyboard text.
+
+    This produces a special prompt format that treats the 9-grid as a keyframe
+    timeline, with each cell mapped to a time segment. Designed to be used with
+    the storyboard image as reference for video generation (animatic style).
+    """
+    char_context_text = "\n".join(char_descriptions) if char_descriptions else "无"
+
+    # Build a system/user prompt for the LLM to generate the timeline video prompt
+    system = (
+        "你是电影分镜师。你会根据9宫格故事板的文本描述，生成一段可直接用于视频生成模型的提示词。"
+        "将9宫格视为关键帧时间线——每格是一个时间锚点，从左到右从上到下依次对应镜头的不同时间点。"
+        "格子与格子之间的空白由视频模型插值生成过渡帧。"
+        "角色必须输出为真实人像质感（真肤、发丝光泽、服装纹理、电影光影），拒绝素描/线稿/插画风格。"
+        "最后附带负向提示词段。"
+        "你必须严格按以下格式输出，不得使用任何其他格式：\n\n"
+        "【初始画面·第0秒】\n"
+        "对应故事板第1格。画面内容：……（详细描述场景、人物位置姿态、光线氛围）。\n\n"
+        "【0-X秒·动作段一】\n"
+        "对应故事板第1格至第3格。运镜：……（具体描述镜头运动方式）。画面变化：……\n\n"
+        "【X-Y秒·动作段二】\n"
+        "对应故事板第4格至第6格。运镜：……。画面变化：……\n\n"
+        "【Y-Z秒·高潮段】\n"
+        "对应故事板第7格至第9格。运镜：……。画面变化：……\n\n"
+        "【负向提示词】\n"
+        "画面抖动、镜头卡顿、跳帧、人物变形、九宫格分割线残留、格线可见、拼贴画、画面撕裂"
+    )
+
+    user = f"""请根据以下9宫格故事板描述，生成一段时间线格式的视频提示词。
+
+【场景】
+{scene_context}
+
+【角色】
+{char_context_text}
+
+【故事板文本描述】
+{storyboard_prompt}
+
+【当前镜头信息】
+景别: {shot.get('shot_size', '')}
+机位: {shot.get('camera_angle', '')}
+运镜: {shot.get('camera_motion', '')}
+视觉目标: {shot.get('visual_goal', '')}
+对白: {shot.get('dialogue_excerpt', '')}
+预估时长: {max(2, min(8, round(max(0, int(shot.get('estimated_duration_ms', 0) or 0)) / 1000))) if shot.get('estimated_duration_ms') else '3'}秒
+
+要求：
+1. 按【初始画面·第0秒】【0-X秒·动作段】【X-Y秒·对白】...的时间轴格式输出
+2. 每段标注对应第几格（例如：对应故事板第1格到第3格）
+3. 运镜描述要具体（前推速度、跟拍距离、落幅构图）
+4. 角色的素描/线稿风格来自故事板参考，输出时全部还原为真实人像外观
+5. 末尾附【负向提示词】段：画面抖动、镜头卡顿、跳帧、人物变形、九宫格分割线残留、格线可见、拼贴画、画面撕裂
+6. 整体提示词约500-800字
+7. 直接输出提示词正文，不要JSON包裹，不要Markdown代码块，不要任何额外说明"""
+
+    config = load_config()
+    provider = ChatfireProvider(config)
+    result = provider._chat(system=system, user=user, timeout=90)
+    return (result or "").strip()
+
+
+def _run_generate_storyboard(task_id: int, shot_id: int) -> None:
+    """Background worker: generate 9-grid storyboard image AND video prompts from storyboard text."""
+    gen_svc = GenerationService()
+    shots_svc = ShotsService()
+    cfg = load_config()
+
+    try:
+        shot = shots_svc.get_shot(shot_id)
+        episode_id = int(shot["episode_id"])
+        episode_shots = shots_svc.repository.list_shots(episode_id)
+        episode_shots.sort(key=lambda s: (s.get("sort_order", 0) or s.get("shot_no", 0) or 0))
+
+        # Build character descriptions and reference images
+        character_ids_raw = shot.get("character_ids", "[]")
+        if isinstance(character_ids_raw, str):
+            try:
+                character_ids = json.loads(character_ids_raw)
+            except (json.JSONDecodeError, TypeError):
+                character_ids = []
+        elif isinstance(character_ids_raw, list):
+            character_ids = character_ids_raw
+        else:
+            character_ids = []
+
+        image_reference_lines = []
+        char_descriptions = []
+        for cid in (character_ids or [])[:5]:
+            try:
+                char = assets_service.get_character(int(cid))
+                if char:
+                    name = char.get("name", "角色")
+                    image_path = char.get("image_path", "")
+                    image_reference_lines.append(f"图{len(image_reference_lines)+1} = {name} (角色全彩线稿图)")
+                    parts = [f"角色: {name}"]
+                    if char.get("appearance_summary"):
+                        parts.append(f"外观: {char['appearance_summary']}")
+                    char_descriptions.append(" | ".join(parts))
+            except Exception:
+                continue
+
+        scene_context = "无"
+        scene_preset_id = shot.get("scene_preset_id")
+        if scene_preset_id:
+            try:
+                scene = assets_service.get_scene_preset(int(scene_preset_id))
+                if scene:
+                    scene_context = f"{scene.get('name', '')} - {scene.get('space_description', '')} | 灯光: {scene.get('lighting_style', '')} | 时间: {scene.get('time_of_day', '')}"
+                    variants = scene.get("variants", "[]")
+                    if isinstance(variants, str):
+                        variants = json.loads(variants)
+                    if isinstance(variants, list) and variants:
+                        first_v = variants[0]
+                        if isinstance(first_v, dict) and first_v.get("imagePath"):
+                            image_reference_lines.append(f"图{len(image_reference_lines)+1} = {scene.get('name', '场景')} (场景参考图)")
+            except Exception:
+                pass
+
+        # Build the storyboard prompt
+        storyboard_prompt = _build_storyboard_prompt(shot, char_descriptions, scene_context, episode_shots, image_reference_lines)
+
+        # Build reference images from character + scene files
+        reference_images = _build_frame_reference_images(shot)
+
+        # Call image generation API
+        size = "2560x1440"
+        api_body = {"model": cfg.image_model, "prompt": storyboard_prompt, "size": size, "n": 1}
+        if reference_images:
+            api_body["image"] = reference_images if len(reference_images) > 1 else reference_images[0]
+        resp = _req.post(
+            f"{cfg.api_base}/v1/images/generations",
+            headers={"Authorization": f"Bearer {cfg.api_key}", "Content-Type": "application/json"},
+            json=api_body, timeout=(30, 300),
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(resp.text[:200])
+        data = resp.json()
+        image_url = data["data"][0]["url"]
+
+        # Download to local assets
+        img_resp = _req.get(image_url, timeout=(10, 120))
+        if img_resp.status_code != 200:
+            raise RuntimeError(f"Failed to download storyboard: {img_resp.status_code}")
+        ext = ".png"
+        content_type = img_resp.headers.get("content-type", "")
+        if "jpeg" in content_type or "jpg" in content_type:
+            ext = ".jpg"
+        elif "webp" in content_type:
+            ext = ".webp"
+        filename = f"storyboard_{shot_id}_{uuid.uuid4().hex[:8]}{ext}"
+        filepath = ASSETS_DIR / filename
+        filepath.write_bytes(img_resp.content)
+
+        # Save storyboard prompt and video prompt as text files alongside the image
+        base_name = filename.rsplit(".", 1)[0]
+        storyboard_prompt_file = f"{base_name}_prompt.txt"
+        (ASSETS_DIR / storyboard_prompt_file).write_text(storyboard_prompt, encoding="utf-8")
+
+        # Generate storyboard-to-video prompt (timeline format for animatic generation)
+        storyboard_video_prompt = ""
+        try:
+            storyboard_video_prompt = _generate_storyboard_video_prompt(
+                shot, storyboard_prompt, char_descriptions, scene_context
+            )
+            if storyboard_video_prompt:
+                storyboard_video_prompt_file = f"{base_name}_video_prompt.txt"
+                (ASSETS_DIR / storyboard_video_prompt_file).write_text(storyboard_video_prompt, encoding="utf-8")
+        except Exception:
+            pass  # prompt generation is best-effort; image is the primary output
+
+        # Update shot record
+        shots_svc.repository.update_shot(shot_id, {
+            "storyboard_url": filename,
+            "storyboard_prompt": storyboard_prompt,
+            "storyboard_video_prompt": storyboard_video_prompt,
+        })
+
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+            "output_assets": json.dumps([{"url": filename, "type": "storyboard"}]),
+        })
+    except Exception as exc:
+        gen_svc.repository.update_task(task_id, {
+            "status": "failed",
+            "error_message": str(exc)[:500],
+        })
+
+
+@register("POST", r"/api/shots/(?P<shot_id>\d+)/generate-storyboard")
+def submit_generate_storyboard(environ, start_response, shot_id: str):
+    shots_svc = ShotsService()
+    try:
+        shot = shots_svc.get_shot(int(shot_id))
+    except ValueError:
+        return respond_json(start_response, {"error": "Shot not found"}, status="404 Not Found")
+
+    episode = shots_svc.repository.get_episode(int(shot["episode_id"]))
+    project_id = int(episode["project_id"]) if episode else 0
+
+    cfg = load_config()
+    task_payload = {
+        "project_id": project_id,
+        "episode_id": int(shot["episode_id"]),
+        "shot_id": int(shot_id),
+        "provider": "api",
+        "model_name": cfg.image_model,
+        "status": "queued",
+        "input_payload": json.dumps({"action": "generate_storyboard", "shot_id": int(shot_id)}),
+        "output_assets": "[]",
+        "retry_count": 0,
+        "error_message": "",
+        "cost_amount": 0,
+        "duration_ms": 0,
+    }
+    task_id = generation_service.repository.create_task(task_payload)
+    generation_service.repository.update_task(task_id, {"status": "running"})
+    _storyboard_executor.submit(_run_generate_storyboard, task_id, int(shot_id))
+    task = generation_service.get_task(task_id)
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
 
 
 @register("POST", r"/api/shot-prompts/(?P<prompt_id>\d+)/generate-video")

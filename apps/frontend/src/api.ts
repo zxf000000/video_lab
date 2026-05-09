@@ -453,6 +453,9 @@ export interface Shot {
   batchId: number | null;
   firstFrameUrl: string;
   videoUrl: string;
+  storyboardUrl: string;
+  storyboardPrompt: string;
+  storyboardVideoPrompt: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -943,6 +946,9 @@ function normalizeShot(raw: Record<string, unknown>): Shot {
     batchId: raw.batch_id == null ? null : asNumber(raw.batch_id),
     firstFrameUrl: asString(raw.firstFrameUrl),
     videoUrl: asString(raw.videoUrl),
+    storyboardUrl: asString(raw.storyboard_url),
+    storyboardPrompt: asString(raw.storyboard_prompt),
+    storyboardVideoPrompt: asString(raw.storyboard_video_prompt),
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
   };
@@ -1513,10 +1519,10 @@ export interface ImageReference {
   path: string;
 }
 
-export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean; rhythmLevel?: string }) {
-  const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; duration_seconds: number; image_references: ImageReference[] }>(`/api/shots/${shotId}/generate-prompt`, {
+export async function generateShotPromptFromShot(shotId: number, opts?: { withFirstFrame?: boolean; rhythmLevel?: string; withStoryboard?: boolean }) {
+  const payload = await request<{ first_frame_prompt: string; first_frame_negative_prompt: string; video_prompt: string; video_negative_prompt: string; negative_prompt: string; duration_seconds: number; image_references: ImageReference[]; storyboard_url?: string }>(`/api/shots/${shotId}/generate-prompt`, {
     method: "POST",
-    body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false, rhythm_level: opts?.rhythmLevel ?? "" }),
+    body: JSON.stringify({ with_first_frame: opts?.withFirstFrame ?? false, rhythm_level: opts?.rhythmLevel ?? "", with_storyboard: opts?.withStoryboard ?? false }),
   });
   return {
     firstFramePrompt: payload.first_frame_prompt,
@@ -1526,7 +1532,16 @@ export async function generateShotPromptFromShot(shotId: number, opts?: { withFi
     negativePrompt: payload.negative_prompt,
     durationSeconds: payload.duration_seconds ?? 3,
     imageReferences: payload.image_references ?? [],
+    storyboardUrl: payload.storyboard_url ?? "",
   };
+}
+
+export async function generateShotStoryboard(shotId: number) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/shots/${shotId}/generate-storyboard`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return { task: normalizeTask(payload.task) };
 }
 
 export async function generatePromptFrame(promptId: number, referenceImages: string[], aspectRatio?: string) {
