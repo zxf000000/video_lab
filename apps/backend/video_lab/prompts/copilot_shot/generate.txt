@@ -7,7 +7,7 @@
 4. 每个镜头需要明确景别、角度、构图、动作和情绪，充分利用 existing_scenes 中的 space_description、lighting_style 等细节。
 5. 镜头之间要有节奏变化：动作场景用快切短镜头，情感场景用慢节奏长镜头。
 6. 对白镜头注意正反打，动作镜头注意运动轨迹。
-7. 生成的镜头数量建议 6-15 个，取决于分集复杂度。
+7. 生成的镜头数量建议 4-10 个，取决于分集复杂度。连续动作优先合并为一个复合运镜镜头，而非切分成多个短镜头。
 8. scene_block 必须映射到剧本场次编号（如 "S1"、"S2"）。
 9. 优先从 screenplay_scenes[].scene_preset_id 获取场景关联，其次从 existing_scenes 中根据场次描述匹配最合适的 scene_preset_id。
 10. 如果上下文提供了已有角色（existing_characters），为镜头分配 character_ids。
