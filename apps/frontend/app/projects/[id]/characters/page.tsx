@@ -874,7 +874,7 @@ export default function CharactersPage() {
       visualProfile: buildVisualProfile(form),
       imagePrompt: resolvedImageSpec.imagePrompt,
       negativePrompt: resolvedImageSpec.negativePrompt,
-      imagePath: selectedVariant?.imagePath ?? form.imagePath,
+      imagePath: selectedVariant?.imagePath || form.imagePath || undefined,
       status: form.status,
     };
     if (form.id) {

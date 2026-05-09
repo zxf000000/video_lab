@@ -22,6 +22,28 @@ class AssetsService:
         self.repository = repository or AssetsRepository()
 
     def upsert_character(self, project_id: int, payload: dict) -> int:
+        character_id = payload.get("id")
+        if character_id:
+            existing = self.repository.get_character(int(character_id))
+            if not existing or int(existing["project_id"]) != project_id:
+                raise DomainError("character not found")
+            # Partial update — only include fields explicitly in the payload
+            data = {}
+            for key in ("name", "role_type", "identity_summary", "appearance_summary",
+                        "appearance_prompt", "speech_style", "image_prompt", "negative_prompt",
+                        "image_path", "negative_constraints", "status", "image_status"):
+                if key in payload:
+                    data[key] = normalize_text(payload[key])
+            for key in ("personality_tags", "visual_profile", "voice_profile",
+                        "outfit_presets", "reference_asset_ids"):
+                if key in payload:
+                    data[key] = normalize_json_text(payload[key])
+            if "version_no" in payload:
+                data["version_no"] = max(1, normalize_int(payload["version_no"], 1))
+            if data:
+                self.repository.update_character(int(character_id), data)
+            return int(character_id)
+        # Create — all fields with defaults
         data = {
             "project_id": project_id,
             "name": normalize_text(payload.get("name")),
@@ -45,16 +67,30 @@ class AssetsService:
         }
         if not data["name"]:
             raise DomainError("character name is required")
-        character_id = payload.get("id")
-        if character_id:
-            existing = self.repository.get_character(int(character_id))
-            if not existing or int(existing["project_id"]) != project_id:
-                raise DomainError("character not found")
-            self.repository.update_character(int(character_id), data)
-            return int(character_id)
         return self.repository.create_character(data)
 
     def upsert_scene_preset(self, project_id: int, payload: dict) -> int:
+        scene_preset_id = payload.get("id")
+        if scene_preset_id:
+            existing = self.repository.get_scene_preset(int(scene_preset_id))
+            if not existing or int(existing["project_id"]) != project_id:
+                raise DomainError("scene preset not found")
+            # Partial update — only include fields explicitly in the payload
+            data = {}
+            for key in ("name", "scene_type", "space_description", "lighting_style",
+                        "time_of_day", "weather", "negative_constraints", "image_prompt",
+                        "negative_prompt", "status"):
+                if key in payload:
+                    data[key] = normalize_text(payload[key])
+            for key in ("prop_list", "reference_asset_ids", "variants"):
+                if key in payload:
+                    data[key] = normalize_json_text(payload[key])
+            if "version_no" in payload:
+                data["version_no"] = max(1, normalize_int(payload["version_no"], 1))
+            if data:
+                self.repository.update_scene_preset(int(scene_preset_id), data)
+            return int(scene_preset_id)
+        # Create — all fields with defaults
         data = {
             "project_id": project_id,
             "name": normalize_text(payload.get("name")),
@@ -74,13 +110,6 @@ class AssetsService:
         }
         if not data["name"]:
             raise DomainError("scene preset name is required")
-        scene_preset_id = payload.get("id")
-        if scene_preset_id:
-            existing = self.repository.get_scene_preset(int(scene_preset_id))
-            if not existing or int(existing["project_id"]) != project_id:
-                raise DomainError("scene preset not found")
-            self.repository.update_scene_preset(int(scene_preset_id), data)
-            return int(scene_preset_id)
         return self.repository.create_scene_preset(data)
 
     def list_characters(self, project_id: int) -> list[dict]:
