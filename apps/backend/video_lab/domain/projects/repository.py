@@ -86,10 +86,30 @@ class ProjectsRepository:
             conn.close()
 
     def delete(self, project_id: int) -> None:
+        self.delete_many([project_id])
+
+    def delete_many(self, project_ids: list[int]) -> int:
+        """Batch-delete projects with manual cascade for FK constraints that lack ON DELETE CASCADE."""
+        if not project_ids:
+            return 0
         conn = self.get_connection()
         try:
-            conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+            ph = ",".join("?" * len(project_ids))
+            # Cascade in correct dependency order
+            conn.execute(f"DELETE FROM tasks                WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"DELETE FROM generation_tasks    WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"""DELETE FROM shot_prompts WHERE shot_id IN (
+                SELECT id FROM shots WHERE project_id IN ({ph}))""", project_ids)
+            conn.execute(f"DELETE FROM shots                WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"""DELETE FROM episode_versions WHERE episode_id IN (
+                SELECT id FROM episodes WHERE project_id IN ({ph}))""", project_ids)
+            conn.execute(f"DELETE FROM episodes             WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"DELETE FROM characters           WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"DELETE FROM scene_presets        WHERE project_id IN ({ph})", project_ids)
+            conn.execute(f"DELETE FROM project_briefs       WHERE project_id IN ({ph})", project_ids)
+            cur = conn.execute(f"DELETE FROM projects WHERE id IN ({ph})", project_ids)
             conn.commit()
+            return cur.rowcount
         finally:
             conn.close()
 

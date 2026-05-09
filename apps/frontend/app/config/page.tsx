@@ -25,7 +25,7 @@ type ConfigFormState = {
   text_model: string; image_model: string; video_model: string; voice_model: string;
   api_base: string; api_key: string;
 };
-type SdFormState = { seedance_api_base: string; seedance_api_key: string };
+type SdFormState = { seedance_api_base: string; seedance_api_key: string; seedance_model: string };
 type KlingFormState = { kling_api_base: string; kling_access_key: string; kling_secret_key: string };
 type VendorsData = Record<string, Record<string, ModelItem[]>>;
 type ModelsData = Record<string, ModelItem[]>;
@@ -74,6 +74,7 @@ export default function ConfigPage() {
         setSdForm((prev) => prev || {
           seedance_api_base: sdRes.config.seedance_api_base,
           seedance_api_key: "",
+          seedance_model: sdRes.config.seedance_model || "doubao-seedance-2-0-260128",
         });
         setKlingForm((prev) => prev || {
           kling_api_base: klingRes.config.kling_api_base,
@@ -275,7 +276,7 @@ export default function ConfigPage() {
               <h2 className="text-xl font-semibold text-gray-100">Seedance 2.0 配置</h2>
               <p className="mt-1 text-sm text-gray-500">基于火山引擎 Ark 平台的视频生成服务（画质、时长等参数在生成页面设置）</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex items-center gap-2">
                 <span className="shrink-0 text-[11px] text-gray-500 w-16">API Base</span>
                 <Input
@@ -293,6 +294,15 @@ export default function ConfigPage() {
                   value={sdForm.seedance_api_key}
                   onChange={(e) => sdSet("seedance_api_key", e.target.value)}
                   placeholder="已配置（留空保留）"
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span className="shrink-0 text-[11px] text-gray-500 w-12">模型</span>
+                <Input
+                  className="min-w-0 flex-1 rounded-2xl px-3 py-2 font-mono text-xs"
+                  value={sdForm.seedance_model}
+                  onChange={(e) => sdSet("seedance_model", e.target.value)}
+                  placeholder="doubao-seedance-2-0-260128"
                 />
               </label>
             </div>

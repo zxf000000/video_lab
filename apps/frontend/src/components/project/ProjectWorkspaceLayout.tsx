@@ -7,6 +7,7 @@ import { getProject, type ProjectDetail } from "@/src/api";
 import { ProjectCopilotProvider } from "@/src/components/copilot/ProjectCopilotContext";
 import { Button } from "@/src/components/ui/button";
 import { ProjectWorkspaceContext } from "@/src/components/project/ProjectWorkspaceContext";
+import RecentTasksDrawer from "@/src/components/project/RecentTasksDrawer";
 import { KeyValueGrid, ProjectStageNav, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 
 export default function ProjectWorkspaceLayout({ projectId, children }: { projectId: number; children: ReactNode }) {
@@ -155,6 +156,15 @@ export default function ProjectWorkspaceLayout({ projectId, children }: { projec
           ) : (
             children
           )}
+
+          {/* Floating task drawer — available when project is loaded */}
+          {project ? (
+            <RecentTasksDrawer
+              tasks={project.tasks}
+              activeCount={project.tasks.filter((t) => t.status === "queued" || t.status === "running").length}
+              refresh={refresh}
+            />
+          ) : null}
         </div>
       </ProjectCopilotProvider>
     </ProjectWorkspaceContext.Provider>

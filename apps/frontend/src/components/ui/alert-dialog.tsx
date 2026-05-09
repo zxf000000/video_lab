@@ -64,12 +64,20 @@ function AlertDialogDescription({
   return <ThemeAlertDialog.Description data-slot="alert-dialog-description" className={cn("text-sm text-gray-500", className)} {...props} />
 }
 
-function AlertDialogAction(props: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Action>) {
-  return <ThemeAlertDialog.Action data-slot="alert-dialog-action" {...props} />
+function AlertDialogAction({ children, ...props }: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Action>) {
+  return (
+    <ThemeAlertDialog.Action data-slot="alert-dialog-action" {...props}>
+      {typeof children === "string" ? <span>{children}</span> : children}
+    </ThemeAlertDialog.Action>
+  )
 }
 
-function AlertDialogCancel(props: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Cancel>) {
-  return <ThemeAlertDialog.Cancel data-slot="alert-dialog-cancel" {...props} />
+function AlertDialogCancel({ children, ...props }: React.ComponentPropsWithoutRef<typeof ThemeAlertDialog.Cancel>) {
+  return (
+    <ThemeAlertDialog.Cancel data-slot="alert-dialog-cancel" {...props}>
+      {typeof children === "string" ? <span>{children}</span> : children}
+    </ThemeAlertDialog.Cancel>
+  )
 }
 
 export {

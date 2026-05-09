@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { IconArrowRight, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { toast } from "react-toastify";
 import type { ProjectSummary } from "@/src/api";
-import { deleteProject, listProjects } from "@/src/api";
+import { deleteProject, deleteProjects, listProjects } from "@/src/api";
 import CreateProjectDrawer from "@/src/components/CreateProjectDrawer";
 import { EmptyState, SectionCard, StatCard, StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
@@ -64,8 +64,11 @@ export default function HomePage() {
     const count = selectedIds.size;
     if (!count) return;
     if (!(await confirm(`确定删除选中的 ${count} 个项目？`))) return;
-    for (const id of selectedIds) {
-      try { await deleteProject(id); } catch { /* batch best-effort */ }
+    try {
+      const result = await deleteProjects(Array.from(selectedIds));
+      toast.success(`已删除 ${result.deleted} 个项目`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
     setSelectedIds(new Set());
     refreshProjects();

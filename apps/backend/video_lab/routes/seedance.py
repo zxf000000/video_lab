@@ -14,6 +14,7 @@ def _seedance_config_response(cfg):
             "seedance_api_base": cfg.seedance_api_base,
             "seedance_api_key_masked": (key[:6] + "..." + key[-4:]) if len(key) > 10 else "",
             "has_seedance_api_key": bool(key),
+            "seedance_model": cfg.seedance_model,
         }
     }
 

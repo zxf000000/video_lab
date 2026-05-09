@@ -1,15 +1,38 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { retryTask } from "@/src/api";
 import { useProjectWorkspace } from "@/src/components/project/ProjectWorkspaceContext";
 import { EmptyState, SectionCard, StatusPill } from "@/src/components/project/project-ui";
 import { Button } from "@/src/components/ui/button";
+import { IconRefresh } from "@tabler/icons-react";
 
 export default function ProjectTasksPage() {
   const { project, refresh } = useProjectWorkspace();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   if (!project) return null;
   const currentProject = project;
+
+  const hasActive = currentProject.tasks.some(
+    (t) => t.status === "queued" || t.status === "running"
+  );
+
+  useEffect(() => {
+    if (hasActive && !timerRef.current) {
+      timerRef.current = setInterval(refresh, 5000);
+    } else if (!hasActive && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [hasActive, refresh]);
 
   async function handleRetry(taskId: number) {
     try {
@@ -21,8 +44,25 @@ export default function ProjectTasksPage() {
     }
   }
 
+  const activeCount = currentProject.tasks.filter(
+    (t) => t.status === "queued" || t.status === "running"
+  ).length;
+
   return (
-    <SectionCard title="任务面板" description="这里展示当前项目下的所有任务，支持失败任务重试。">
+    <SectionCard
+      title="任务面板"
+      description={
+        activeCount > 0
+          ? `进行中 ${activeCount} 个任务 · 每 5 秒自动刷新`
+          : "这里展示当前项目下的所有任务，支持失败任务重试。"
+      }
+      action={
+        <Button size="sm" variant="outline" onClick={refresh} className="shrink-0 gap-1">
+          <IconRefresh size={14} stroke={2} className={hasActive ? "animate-spin" : ""} />
+          刷新
+        </Button>
+      }
+    >
       {currentProject.tasks.length ? (
         <div className="grid gap-3">
           {currentProject.tasks.map((task) => (

@@ -92,3 +92,10 @@ class ProjectsService:
         if not self.repository.get(project_id):
             raise DomainError("project not found")
         self.repository.delete(project_id)
+
+    def delete_projects(self, project_ids: list[int]) -> int:
+        """Batch-delete projects. Returns count of deleted projects."""
+        ids = [int(i) for i in project_ids if int(i) > 0]
+        if not ids:
+            return 0
+        return self.repository.delete_many(ids)

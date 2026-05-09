@@ -197,6 +197,11 @@ a {
   9% { transform: skewX(0deg); }
 }
 
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 .cyber-glitch {
   position: relative;
 }
