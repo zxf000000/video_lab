@@ -69,7 +69,6 @@ class AssetsService:
             "negative_prompt": normalize_text(payload.get("negative_prompt")),
             "reference_asset_ids": normalize_json_text(payload.get("reference_asset_ids"), []),
             "variants": normalize_json_text(payload.get("variants"), []),
-            "episode_id": payload.get("episode_id"),
             "status": normalize_text(payload.get("status"), "draft"),
             "version_no": max(1, normalize_int(payload.get("version_no"), 1)),
         }
@@ -179,14 +178,14 @@ class AssetsService:
         # Step 2: Convert photo to colored pencil sketch
         sketchify_prompt = DEFAULT_PROMPTS["prompt_character_sketchify"].format()
         print(f"[PROMPT_DEBUG] action=character_sketchify char_id={character_id} ref_image={photo_path}")
-        if kling and hasattr(kling, "generate_image"):
-            image_path = kling.generate_image(
+        if kling and hasattr(kling, "generate_omni_image"):
+            image_path = kling.generate_omni_image(
                 task_id=character_id * 10000 + 2,
                 prompt=sketchify_prompt,
-                model_name="kling-v2-1",
+                model_name="kling-image-o1",
                 aspect_ratio="9:16",
                 negative_prompt="",
-                image=photo_path,
+                image_list=[photo_path],
             )
         else:
             image_path = providers["image"].generate_character_image(
@@ -278,6 +277,59 @@ class AssetsService:
                 "高一致性角色设定",
             ])
         return "。".join(segment for segment in segments if segment)
+
+    def upsert_episode_scene_override(self, episode_id: int, scene_preset_id: int, payload: dict) -> int:
+        if not self.repository.get_scene_preset(scene_preset_id):
+            raise DomainError("scene preset not found")
+        return self.repository.upsert_episode_scene_override(episode_id, scene_preset_id, {
+            "lighting_style": normalize_text(payload.get("lighting_style")),
+            "time_of_day": normalize_text(payload.get("time_of_day")),
+            "weather": normalize_text(payload.get("weather")),
+        })
+
+    def list_overrides_for_preset(self, scene_preset_id: int) -> list[dict]:
+        return self.repository.list_overrides_for_preset(scene_preset_id)
+
+    def list_overrides_for_episode(self, episode_id: int) -> list[dict]:
+        return self.repository.list_overrides_for_episode(episode_id)
+
+    def match_locations_to_presets(self, project_id: int, locations: list[str]) -> dict[str, int | None]:
+        """Match location names to existing scene_preset IDs using rule-based matching."""
+        presets = self.repository.list_scene_presets(project_id)
+        preset_by_name: dict[str, int] = {}
+        for p in presets:
+            name = (p.get("name") or "").strip()
+            if name:
+                normalized = self._normalize_location(name)
+                preset_by_name[normalized] = int(p["id"])
+                preset_by_name[name] = int(p["id"])
+
+        result: dict[str, int | None] = {}
+        for loc in locations:
+            normalized = self._normalize_location(loc)
+            if normalized in preset_by_name:
+                result[loc] = preset_by_name[normalized]
+                continue
+            matched_id = None
+            for pname, pid in preset_by_name.items():
+                if normalized in pname or pname in normalized:
+                    matched_id = pid
+                    break
+            result[loc] = matched_id
+
+        return result
+
+    @staticmethod
+    def _normalize_location(location: str) -> str:
+        """Strip time-of-day suffix and whitespace for matching."""
+        text = location.strip()
+        for sep in (" - ", " — ", "·"):
+            if sep in text:
+                parts = text.split(sep)
+                last = parts[-1].strip()
+                if last in ("日", "夜", "白天", "夜晚", "黄昏", "清晨", "傍晚", "午", "深夜", "早晨"):
+                    text = sep.join(parts[:-1]).strip()
+        return text.lower()
 
     def get_scene_preset(self, scene_preset_id: int) -> dict | None:
         return self.repository.get_scene_preset(scene_preset_id)
