@@ -178,8 +178,8 @@ class AssetsRepository:
                     time_of_day, weather, prop_list, negative_constraints,
                     image_prompt, negative_prompt,
                     reference_asset_ids, variants,
-                    episode_id, status, version_no, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    status, version_no, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["project_id"],
@@ -195,7 +195,6 @@ class AssetsRepository:
                     payload.get("negative_prompt", ""),
                     payload["reference_asset_ids"],
                     payload["variants"],
-                    payload.get("episode_id"),
                     payload["status"],
                     payload["version_no"],
                     ts,
@@ -223,7 +222,6 @@ class AssetsRepository:
             "negative_prompt",
             "reference_asset_ids",
             "variants",
-            "episode_id",
             "status",
             "version_no",
         ):
@@ -248,6 +246,100 @@ class AssetsRepository:
         try:
             conn.execute("DELETE FROM scene_presets WHERE id = ?", (scene_preset_id,))
             conn.commit()
+        finally:
+            conn.close()
+
+    def create_episode_scene_override(self, episode_id: int, scene_preset_id: int, payload: dict) -> int:
+        ts = now_iso()
+        conn = self.get_connection()
+        try:
+            cur = conn.execute(
+                """
+                INSERT INTO episode_scene_overrides (
+                    episode_id, scene_preset_id, lighting_style, time_of_day, weather, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    episode_id,
+                    scene_preset_id,
+                    payload.get("lighting_style", ""),
+                    payload.get("time_of_day", ""),
+                    payload.get("weather", ""),
+                    ts,
+                    ts,
+                ),
+            )
+            conn.commit()
+            return int(cur.lastrowid)
+        finally:
+            conn.close()
+
+    def update_episode_scene_override(self, override_id: int, payload: dict) -> None:
+        fields = []
+        values = []
+        for key in ("lighting_style", "time_of_day", "weather"):
+            if key in payload:
+                fields.append(f"{key} = ?")
+                values.append(payload[key])
+        if not fields:
+            return
+        values.extend([now_iso(), override_id])
+        conn = self.get_connection()
+        try:
+            conn.execute(
+                f"UPDATE episode_scene_overrides SET {', '.join(fields)}, updated_at = ? WHERE id = ?",
+                values,
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_episode_scene_override(self, override_id: int):
+        conn = self.get_connection()
+        try:
+            row = conn.execute("SELECT * FROM episode_scene_overrides WHERE id = ?", (override_id,)).fetchone()
+            return row_to_dict(row)
+        finally:
+            conn.close()
+
+    def list_overrides_for_preset(self, scene_preset_id: int) -> list[dict]:
+        conn = self.get_connection()
+        try:
+            rows = conn.execute(
+                """SELECT eso.*, e.episode_no, e.title as episode_title
+                   FROM episode_scene_overrides eso
+                   JOIN episodes e ON e.id = eso.episode_id
+                   WHERE eso.scene_preset_id = ?
+                   ORDER BY e.episode_no ASC""",
+                (scene_preset_id,),
+            ).fetchall()
+            return rows_to_dicts(rows)
+        finally:
+            conn.close()
+
+    def list_overrides_for_episode(self, episode_id: int) -> list[dict]:
+        conn = self.get_connection()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM episode_scene_overrides WHERE episode_id = ?",
+                (episode_id,),
+            ).fetchall()
+            return rows_to_dicts(rows)
+        finally:
+            conn.close()
+
+    def upsert_episode_scene_override(self, episode_id: int, scene_preset_id: int, payload: dict) -> int:
+        conn = self.get_connection()
+        try:
+            row = conn.execute(
+                "SELECT id FROM episode_scene_overrides WHERE episode_id = ? AND scene_preset_id = ?",
+                (episode_id, scene_preset_id),
+            ).fetchone()
+            if row:
+                override_id = int(row["id"])
+                self.update_episode_scene_override(override_id, payload)
+                return override_id
+            return self.create_episode_scene_override(episode_id, scene_preset_id, payload)
         finally:
             conn.close()
 
