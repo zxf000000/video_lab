@@ -22,7 +22,7 @@ shots_service = ShotsService()
 _copilot_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="copilot-gen")
 
 
-def _stream_llm_response(module_type: str, context: dict, messages: list[dict], project_id: int, entity_id: int) -> str:
+def _stream_llm_response(module_type: str, context: dict, messages: list[dict], project_id: int, entity_id: int, rhythm_level: str = "") -> str:
     """Call LLM with copilot prompts and return the full response text."""
     prompts = load_prompts()
     config = load_config()
@@ -33,6 +33,9 @@ def _stream_llm_response(module_type: str, context: dict, messages: list[dict], 
     if not system_prompt or not user_template:
         raise RuntimeError(f"Copilot prompts for '{module_type}' are not configured")
 
+    from . import build_rhythm_section
+    rhythm_section = build_rhythm_section(rhythm_level, stage="shot")
+
     user_goal = messages[-1]["content"] if messages else "请生成"
     compiled_messages = _compile_messages(
         messages,
@@ -41,6 +44,7 @@ def _stream_llm_response(module_type: str, context: dict, messages: list[dict], 
         user_goal=user_goal,
         project_id=project_id,
         entity_id=entity_id,
+        rhythm_section=rhythm_section,
     )
 
     full_text = ""
@@ -69,7 +73,7 @@ def _make_task_payload(project_id: int, episode_id: int, module_type: str, conte
 
 # ── Screenplay executor ──────────────────────────────────────────
 
-def _run_generate_screenplay(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict]) -> None:
+def _run_generate_screenplay(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict], rhythm_level: str = "") -> None:
     gen_svc = GenerationService()
     shots_svc = ShotsService()
     try:
@@ -149,7 +153,7 @@ def _derive_override_from_location(location: str, screenplay_scenes: list[dict],
     }
 
 
-def _run_generate_scenes(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict]) -> None:
+def _run_generate_scenes(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict], rhythm_level: str = "") -> None:
     gen_svc = GenerationService()
     assets_svc = AssetsService()
     shots_svc = ShotsService()
@@ -362,7 +366,7 @@ def _inject_spatial_context(context: dict, scenes: list[dict], project_id: int) 
 
 # ── Shot executor ────────────────────────────────────────────────
 
-def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict]) -> None:
+def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict], rhythm_level: str = "") -> None:
     gen_svc = GenerationService()
     shots_svc = ShotsService()
     try:
@@ -383,7 +387,7 @@ def _run_generate_shots(task_id: int, episode_id: int, project_id: int, context:
                 # Build spatial flow: enrich scenes with space_description from presets
                 if scenes:
                     _inject_spatial_context(context, scenes, project_id)
-        full_text = _stream_llm_response("shot", context, messages, project_id, episode_id)
+        full_text = _stream_llm_response("shot", context, messages, project_id, episode_id, rhythm_level=rhythm_level)
         proposal = _extract_shot_proposal(full_text)
         if not proposal or not proposal.get("shots"):
             raise RuntimeError("Unable to parse shot proposal from LLM response")
@@ -423,6 +427,8 @@ def _submit_copilot_task(environ, start_response, episode_id: str, module_type: 
     except ValueError as exc:
         return respond_json(start_response, {"error": str(exc)}, status="400 Bad Request")
 
+    rhythm_level = str(payload.get("rhythm_level", "") or "").strip()
+
     project_id = int(episode["project_id"])
     task_payload = _make_task_payload(project_id, episode_id_int, module_type, context)
     task_id = generation_service.repository.create_task(task_payload)
@@ -433,7 +439,7 @@ def _submit_copilot_task(environ, start_response, episode_id: str, module_type: 
         "shot": _run_generate_shots,
     }
     executor_fn = executors[module_type]
-    _copilot_executor.submit(executor_fn, task_id, episode_id_int, project_id, context, messages)
+    _copilot_executor.submit(executor_fn, task_id, episode_id_int, project_id, context, messages, rhythm_level)
 
     task = generation_service.get_task(task_id)
     return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")

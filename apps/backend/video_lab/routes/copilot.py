@@ -48,6 +48,7 @@ def _compile_messages(
     user_goal: str,
     project_id: int,
     entity_id: int | None,
+    rhythm_section: str = "",
 ) -> list[dict[str, str]]:
     compiled_goal = user_goal or "请基于当前上下文生成一版可直接回填的结构化建议。"
     context_json = json.dumps(context, ensure_ascii=False, indent=2)
@@ -56,6 +57,7 @@ def _compile_messages(
         context_json=context_json,
         project_id=project_id,
         entity_id=entity_id or "",
+        rhythm_section=rhythm_section,
     )
     history = messages[:-1] if len(messages) > 1 else []
     return history + [{"role": "user", "content": compiled_user}]
