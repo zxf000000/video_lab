@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface SceneVariant {
   id?: string;
@@ -9,6 +9,7 @@ interface SceneVariant {
   imagePath?: string;
   [key: string]: unknown;
 }
+import { useSearchParams } from "next/navigation";
 import { useProgressiveGeneration } from "@/src/hooks/useProgressiveGeneration";
 import { toast } from "react-toastify";
 import {
@@ -16,9 +17,11 @@ import {
   createScene,
   deleteScene,
   generateSceneImage,
+  listSceneOverrides,
   streamCopilot,
   updateScene,
   type CopilotProposal,
+  type EpisodeSceneOverride,
   type SceneCollectionProposal,
   type ScenePreset,
   type SceneProposal,
@@ -162,6 +165,8 @@ const SCENE_FIELD_LABELS: CopilotFieldDescriptor[] = [
 
 export default function ScenesPage() {
   const { project, refresh } = useProjectWorkspace();
+  const searchParams = useSearchParams();
+  const episodeFilterId = searchParams.get("episode") ? Number(searchParams.get("episode")) : null;
   const { adapter } = useProjectCopilot();
   const [editing, setEditing] = useState<SceneFormState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -186,10 +191,40 @@ export default function ScenesPage() {
     new Set()
   );
 
+  // Overrides state — maps scene preset id → overrides for that scene
+  const [overridesByPreset, setOverridesByPreset] = useState<Map<number, EpisodeSceneOverride[]>>(new Map());
+  const [expandedOverrides, setExpandedOverrides] = useState<Set<number>>(new Set());
+
   if (!project) return null;
   const currentProject = project;
 
-  const filteredScenes = currentProject.scenes;
+  // Fetch overrides for all scenes
+  useEffect(() => {
+    async function loadOverrides() {
+      const map = new Map<number, EpisodeSceneOverride[]>();
+      for (const scene of currentProject.scenes) {
+        try {
+          const { overrides } = await listSceneOverrides(scene.id);
+          map.set(scene.id, overrides);
+        } catch { /* scene may have no overrides */ }
+      }
+      setOverridesByPreset(map);
+    }
+    if (currentProject.scenes.length > 0) {
+      loadOverrides();
+    }
+  }, [currentProject?.id, currentProject.scenes.length]);
+
+  const filteredScenes = episodeFilterId
+    ? currentProject.scenes.filter((s) => {
+        const overrides = overridesByPreset.get(s.id) ?? [];
+        return overrides.some((o) => o.episodeId === episodeFilterId);
+      })
+    : currentProject.scenes;
+
+  const filterEpisode = episodeFilterId
+    ? currentProject.episodes?.find((e) => e.id === episodeFilterId)
+    : null;
 
   // ---------------------------------------------------------------------------
   // Copilot adapter
@@ -1089,7 +1124,7 @@ export default function ScenesPage() {
       {/* ------------------------------------------------------------------ */}
       <SectionCard
         title="场景模板"
-        description={`场景模板会被镜头、Prompt 和视觉生成反复复用。共 ${currentProject.scenes.length} 个场景。`}
+        description={filterEpisode ? `筛选：第 ${filterEpisode.episodeNo} 集「${filterEpisode.title}」· ${filteredScenes.length} 个场景` : `场景模板会被镜头、Prompt 和视觉生成反复复用。共 ${currentProject.scenes.length} 个场景。`}
         action={
           <div className="flex flex-wrap gap-2">
             <ProjectCopilotButton
@@ -1184,6 +1219,46 @@ export default function ScenesPage() {
                     </div>
                     <StatusPill value={scene.status} tone="purple" />
                   </div>
+
+                  {/* Episode association */}
+                  {(() => {
+                    const overrides = overridesByPreset.get(scene.id) ?? [];
+                    if (overrides.length === 0) return null;
+                    const isExpanded = expandedOverrides.has(scene.id);
+                    return (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedOverrides((prev) => {
+                              const next = new Set(prev);
+                              isExpanded ? next.delete(scene.id) : next.add(scene.id);
+                              return next;
+                            });
+                          }}
+                          className="text-xs text-mint hover:underline"
+                        >
+                          已用于 {overrides.length} 集 {isExpanded ? "▲" : "▼"}
+                        </button>
+                        {isExpanded && (
+                          <div className="mt-2 space-y-1">
+                            {overrides.map((o) => {
+                              const ep = currentProject.episodes?.find((e) => e.id === o.episodeId);
+                              return (
+                                <div key={o.id} className="text-xs text-gray-400 pl-2 border-l border-line">
+                                  第{ep?.episodeNo ?? "?"}集「{ep?.title ?? ""}」
+                                  {o.lightingStyle && ` · ${o.lightingStyle}`}
+                                  {o.timeOfDay && ` · ${o.timeOfDay}`}
+                                  {o.weather && ` · ${o.weather}`}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <p className="mt-4 text-sm leading-6 text-gray-400">
                     {scene.spaceDescription || "未填写空间描述"}
                   </p>
