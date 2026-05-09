@@ -574,6 +574,10 @@ export default function EpisodesPage() {
             id: c.id,
             name: c.name,
             role_type: c.roleType,
+            personality_tags: c.personalityTags,
+            speech_style: c.speechStyle,
+            identity_summary: c.identitySummary,
+            appearance_summary: c.appearanceSummary,
           })),
           existing_scenes: scenes.map((s) => ({
             id: s.id,
