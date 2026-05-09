@@ -288,6 +288,9 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
     # Determine video image references based on with_first_frame option
     payload = parse_json(environ)
     with_first_frame = bool(payload.get("with_first_frame", False))
+    rhythm_level = str(payload.get("rhythm_level", "") or "").strip()
+    from . import build_rhythm_section
+    rhythm_section = build_rhythm_section(rhythm_level, stage="prompt")
     if with_first_frame:
         next_idx = idx + 1
         first_frame_label = _ordinal_label(next_idx)
@@ -322,6 +325,7 @@ def generate_shot_prompt(environ, start_response, shot_id: str):
         prev_shot_goal=prev_shot_goal,
         next_shot_goal=next_shot_goal,
         prev_camera_angle=prev_camera_angle,
+        rhythm_section=rhythm_section,
     )
 
     config = load_config()
