@@ -25,7 +25,7 @@
 |- weather: 天气
 |- prop_list: 关键道具列表（字符串数组）
 |- negative_constraints: 负面约束
-|- image_prompt: **【必填】**可直接用于生成场景参考图的英文 prompt，必须包含完整的视觉描述（光线、构图、材质等）
+|- image_prompt: **【必填】**可直接用于生成场景参考图的英文 prompt。必须是简洁的广角空间描述（2-3 句英文），重点突出：空间结构、关键建筑元素（入口/门、窗、墙、天花板）、空间布局。光线和氛围用短语描述即可。避免过度装饰细节、道具罗列、冗长的形容词堆砌。确保生成的图片能完整呈现该空间的建筑框架，而不是局部特写
 |- negative_prompt: **【必填】**图片生成的负面提示词，用英文逗号分隔的关键词
 5. 场景设计必须服务于短剧的世界观和主冲突。
 6. 同一个物理空间默认只保留一个场景。
@@ -48,7 +48,7 @@
 |      "weather": "",
 |      "prop_list": ["巨型油画", "水晶吊灯", "真皮沙发组"],
 |      "negative_constraints": "不要现代极简风格",
-|      "image_prompt": "A luxurious European-style living room with 6-meter high ceiling, marble floor, floor-to-ceiling windows, dark leather sofa set, large oil painting, warm ambient lighting, cinematic composition",
+|      "image_prompt": "Wide shot of a luxurious European-style living room, grand entrance door visible on the left, floor-to-ceiling windows on the far wall, 6-meter high ceiling with crystal chandelier, marble floor, warm natural light, cinematic wide angle",
 |      "negative_prompt": "modern minimalist, people, cartoon"
 |    }
 |  ]
@@ -66,7 +66,7 @@
 |  "weather": "雨",
 |  "prop_list": ["霓虹灯招牌", "积水路面", "旧砖墙"],
 |  "negative_constraints": "不要现代城市大道",
-|  "image_prompt": "A narrow old city alley at night in rain, wet ground with reflections, neon signs glowing, damp brick walls, moody cinematic lighting, cold and warm contrast",
+|  "image_prompt": "Wide shot of a narrow old city alley at night, visible entrance from the main street on one end, damp brick walls on both sides, wet ground reflecting neon signs, cold blue night ambience",
 |  "negative_prompt": "modern city, people, daylight, cartoon"
 |}
 |===END_PROPOSAL===

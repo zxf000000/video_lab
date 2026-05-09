@@ -177,8 +177,8 @@ def test_scene_image_template_format():
 
     template = DEFAULT_PROMPTS["prompt_scene_image"]
     result = template.format(style="都市短剧", description="测试场景")
-    assert result.startswith("场景环境，都市短剧风格：测试场景。")
-    assert "电影级构图" in result
+    assert result.startswith("场景环境，都市短剧风格，广角空间：测试场景。")
+    assert "电影级自然光" in result
 
 
 # ---------------------------------------------------------------------------

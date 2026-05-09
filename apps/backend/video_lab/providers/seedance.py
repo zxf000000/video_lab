@@ -12,9 +12,6 @@ from ..config import SeedanceConfig
 from ..db import ASSETS_DIR
 from .utils import download_asset
 
-# Default model IDs
-DEFAULT_MODEL = "doubao-seedance-2-0-260128"
-
 TASKS_PATH = "/contents/generations/tasks"
 
 
@@ -30,11 +27,11 @@ class SeedanceProvider:
 
     def _request(self, method: str, path: str, payload: dict | None = None) -> dict:
         url = f"{self._base_url}{path}"
-        resp = requests.request(method, url, headers=self._headers, json=payload, timeout=30)
+        resp = requests.request(method, url, headers=self._headers, json=payload, timeout=30, proxies={"http": None, "https": None})
         resp.raise_for_status()
         return resp.json()
 
-    def _poll_result(self, ark_task_id: str, timeout: int = 600) -> dict:
+    def _poll_result(self, ark_task_id: str, timeout: int = 1200) -> dict:
         poll_url = f"{TASKS_PATH}/{ark_task_id}"
         interval = 10
         max_polls = timeout // interval
@@ -70,13 +67,14 @@ class SeedanceProvider:
 
     def generate_t2v(self, task_id: int, prompt: str, aspect_ratio: str = "16:9",
                       resolution: str = "720p", duration: int = 5,
-                      remove_watermark: bool = False, **_extra) -> str:
+                      remove_watermark: bool = False, model_name: str = "",
+                      **_extra) -> str:
         content = []
         if prompt.strip():
             content.append({"type": "text", "text": prompt.strip()})
 
         payload = {
-            "model": DEFAULT_MODEL,
+            "model": model_name or self._config.seedance_model,
             "content": content,
             "ratio": aspect_ratio,
             "resolution": resolution,
@@ -100,6 +98,7 @@ class SeedanceProvider:
     def generate_i2v(self, task_id: int, prompt: str, images_list: list[str],
                       aspect_ratio: str = "16:9", resolution: str = "720p",
                       duration: int = 5, remove_watermark: bool = False,
+                      model_name: str = "",
                       **_extra) -> str:
         content = []
         if prompt.strip():
@@ -112,14 +111,14 @@ class SeedanceProvider:
             })
 
         payload = {
-            "model": DEFAULT_MODEL,
+            "model": model_name or self._config.seedance_model,
             "content": content,
             "ratio": aspect_ratio,
             "resolution": resolution,
             "duration": duration,
             "watermark": remove_watermark,
         }
-        print(f"[PROMPT_DEBUG] provider=seedance model={DEFAULT_MODEL} action=i2v task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}")
+        print(f"[PROMPT_DEBUG] provider=seedance model={payload['model']} action=i2v task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}", flush=True)
         self._on_progress("提交生成请求")
         result = self._request("POST", TASKS_PATH, payload)
         ark_task_id = result.get("id")
@@ -137,6 +136,7 @@ class SeedanceProvider:
     def generate_character(self, task_id: int, images_list: list[str], prompt: str,
                             aspect_ratio: str = "9:16", resolution: str = "480p",
                             duration: int = 5, remove_watermark: bool = False,
+                            model_name: str = "",
                             **_extra) -> str:
         content = []
         if prompt.strip():
@@ -149,14 +149,14 @@ class SeedanceProvider:
             })
 
         payload = {
-            "model": DEFAULT_MODEL,
+            "model": model_name or self._config.seedance_model,
             "content": content,
             "ratio": aspect_ratio,
             "resolution": resolution,
             "duration": duration,
             "watermark": remove_watermark,
         }
-        print(f"[PROMPT_DEBUG] provider=seedance model={DEFAULT_MODEL} action=character task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}")
+        print(f"[PROMPT_DEBUG] provider=seedance model={payload['model']} action=character task_id={task_id} prompt={prompt.strip()!r} images_count={len(images_list)}", flush=True)
         self._on_progress("提交生成请求")
         result = self._request("POST", TASKS_PATH, payload)
         ark_task_id = result.get("id")

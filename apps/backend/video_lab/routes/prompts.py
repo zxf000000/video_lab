@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests as _req
 
-from ..config import load_config, load_prompts
+from ..config import load_config, load_prompts, load_seedance_config
 from ..db import ASSETS_DIR
 from ..domain.assets import AssetsService
 from ..domain.generation import GenerationService
@@ -544,7 +544,7 @@ def submit_generate_frame(environ, start_response, prompt_id: str):
     return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
 
 
-def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str], aspect_ratio: str = "16:9", with_first_frame: bool = False, duration: int = 5, resolution: str = "720p") -> None:
+def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt: str, reference_images: list[str], aspect_ratio: str = "16:9", with_first_frame: bool = False, duration: int = 5, resolution: str = "720p", model_name: str = "") -> None:
     """Background worker: generate video via seedance. If with_first_frame: i2v (1 first_frame image). Else: character mode (multiple reference_image)."""
     from ..config import load_seedance_config
     from ..providers.seedance import SeedanceProvider
@@ -575,6 +575,7 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
                 resolution=resolution,
                 duration=duration,
                 remove_watermark=False,
+                model_name=model_name,
             )
         else:
             video_path = provider.generate_character(
@@ -585,6 +586,7 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
                 resolution=resolution,
                 duration=duration,
                 remove_watermark=False,
+                model_name=model_name,
             )
         prompts_svc.update_prompt(prompt_id, {"video_url": video_path, "video_status": "succeeded"})
         gen_svc.repository.update_task(task_id, {
@@ -592,6 +594,8 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
             "output_assets": json.dumps([{"url": video_path, "type": "video"}]),
         })
     except Exception as exc:
+        import sys
+        print(f"[VIDEO_GEN] task_id={task_id} prompt_id={prompt_id} FAILED: {exc}", file=sys.stderr, flush=True)
         prompts_svc.update_prompt(prompt_id, {"video_status": "failed"})
         err_msg = str(exc)[:500]
         if hasattr(exc, "response") and exc.response is not None:
@@ -655,13 +659,14 @@ def submit_generate_video(environ, start_response, prompt_id: str):
     if not video_prompt:
         return respond_json(start_response, {"error": "Prompt has no video_prompt"}, status="400 Bad Request")
     cfg = load_config()
+    seedance_cfg = load_seedance_config()
     task_payload = {
         "project_id": project_id,
         "episode_id": int(shot["episode_id"]),
         "shot_id": shot_id,
         "shot_prompt_id": int(prompt_id),
         "provider": "seedance",
-        "model_name": "doubao-seedance-2-0-260128",
+        "model_name": seedance_cfg.seedance_model,
         "status": "queued",
         "input_payload": json.dumps({"video_prompt": video_prompt, "reference_images": reference_images, "with_first_frame": with_first_frame, "aspect_ratio": aspect_ratio, "duration": duration, "resolution": resolution}),
         "output_assets": "[]",
@@ -673,6 +678,6 @@ def submit_generate_video(environ, start_response, prompt_id: str):
     task_id = generation_service.repository.create_task(task_payload)
     prompts_svc.update_prompt(int(prompt_id), {"video_status": "queued"})
     generation_service.repository.update_task(task_id, {"status": "running"})
-    _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame, duration, resolution)
+    _video_executor.submit(_run_generate_prompt_video, task_id, int(prompt_id), video_prompt, reference_images, aspect_ratio, with_first_frame, duration, resolution, seedance_cfg.seedance_model)
     task = generation_service.get_task(task_id)
     return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
