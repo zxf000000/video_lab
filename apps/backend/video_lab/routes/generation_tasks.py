@@ -94,22 +94,201 @@ def _run_generate_screenplay(task_id: int, episode_id: int, project_id: int, con
 
 # ── Scene executor ───────────────────────────────────────────────
 
+def _llm_match_locations(unmatched: list[str], preset_names: list[str], project_id: int) -> dict[str, str | None]:
+    """Use LLM to match unmatched location names to existing preset names."""
+    try:
+        config = load_config()
+        prompts = load_prompts()
+        provider = ChatfireProvider(config, prompts)
+
+        system = "你是一个场景名称匹配助手。判断给定的位置名称是否和已有场景指同一物理空间（同一空间只是不同叫法）。"
+        user_msg = (
+            f"已有场景名称：{json.dumps(preset_names, ensure_ascii=False)}\n"
+            f"待匹配位置：{json.dumps(unmatched, ensure_ascii=False)}\n\n"
+            "判断每个待匹配位置是否和已有场景指同一物理空间。"
+            "返回纯 JSON（不要用 Markdown 代码块），格式："
+            '{"待匹配位置名称": "已有场景名称"}\n'
+            "不匹配的不要包含在结果中。"
+        )
+        raw = provider._chat(system, user_msg, timeout=60)
+        json_text = raw.strip()
+        if "```" in json_text:
+            lines = json_text.split("\n")
+            json_lines = [l for l in lines if not l.startswith("```")]
+            json_text = "\n".join(json_lines)
+        result = json.loads(json_text)
+        if isinstance(result, dict):
+            return {k: v for k, v in result.items() if isinstance(k, str) and isinstance(v, str)}
+    except Exception:
+        pass
+    return {}
+
+
+def _derive_override_from_location(location: str, screenplay_scenes: list[dict], preset: dict) -> dict:
+    """Derive lighting_style, time_of_day, weather from screenplay scene context."""
+    for scene in screenplay_scenes:
+        if not isinstance(scene, dict):
+            continue
+        if (scene.get("location") or "").strip() == location:
+            loc = location
+            for sep in (" - ", " — ", "·"):
+                if sep in loc:
+                    parts = loc.split(sep)
+                    last = parts[-1].strip()
+                    if last in ("日", "夜", "白天", "夜晚", "黄昏", "清晨", "傍晚", "午", "深夜", "早晨"):
+                        return {
+                            "time_of_day": last,
+                            "lighting_style": preset.get("lighting_style", ""),
+                            "weather": preset.get("weather", ""),
+                        }
+            break
+    return {
+        "lighting_style": preset.get("lighting_style", ""),
+        "time_of_day": preset.get("time_of_day", ""),
+        "weather": preset.get("weather", ""),
+    }
+
+
 def _run_generate_scenes(task_id: int, episode_id: int, project_id: int, context: dict, messages: list[dict]) -> None:
     gen_svc = GenerationService()
     assets_svc = AssetsService()
+    shots_svc = ShotsService()
     try:
         gen_svc.repository.update_task(task_id, {"status": "running"})
-        full_text = _stream_llm_response("scene", context, messages, project_id, episode_id)
-        proposal = _extract_scene_proposal(full_text)
-        if not proposal or not proposal.get("scenes"):
-            raise RuntimeError("Unable to parse scene proposal from LLM response")
-        created_ids: list[int] = []
-        for scene in proposal["scenes"]:
-            sid = assets_svc.upsert_scene_preset(project_id, {**scene, "episode_id": episode_id})
-            created_ids.append(sid)
+
+        # 1. Load episode → get screenplay_scenes
+        episode = shots_svc.repository.get_episode(episode_id)
+        if not episode:
+            raise RuntimeError("Episode not found")
+        screenplay_scenes_raw = episode.get("screenplay_scenes", "[]")
+        if isinstance(screenplay_scenes_raw, str):
+            try:
+                screenplay_scenes = json.loads(screenplay_scenes_raw)
+            except (json.JSONDecodeError, TypeError):
+                screenplay_scenes = []
+        else:
+            screenplay_scenes = screenplay_scenes_raw
+
+        if not screenplay_scenes:
+            raise RuntimeError("Episode has no screenplay scenes — generate screenplay first")
+
+        # 2. Parse locations from screenplay scenes, deduplicate
+        locations: list[str] = []
+        seen: set[str] = set()
+        for scene in screenplay_scenes:
+            if not isinstance(scene, dict):
+                continue
+            loc = (scene.get("location") or "").strip()
+            if loc and loc not in seen:
+                locations.append(loc)
+                seen.add(loc)
+
+        if not locations:
+            raise RuntimeError("No locations found in screenplay scenes")
+
+        # 3. Load all existing scene_presets for this project
+        presets = assets_svc.repository.list_scene_presets(project_id)
+        preset_names = [(p.get("name") or "").strip() for p in presets if (p.get("name") or "").strip()]
+
+        # 4. Rule-based match
+        match_result = assets_svc.match_locations_to_presets(project_id, locations)
+        unmatched = [loc for loc, pid in match_result.items() if pid is None]
+
+        # 5. LLM match for unresolved locations
+        if unmatched and preset_names:
+            llm_matches = _llm_match_locations(unmatched, preset_names, project_id)
+            for loc, matched_name in llm_matches.items():
+                if matched_name:
+                    for p in presets:
+                        if (p.get("name") or "").strip() == matched_name:
+                            match_result[loc] = int(p["id"])
+                            if loc in unmatched:
+                                unmatched.remove(loc)
+                            break
+
+        # 6. Generate new scene presets for unmatched locations
+        created_preset_ids: list[int] = []
+        if unmatched:
+            prompts = load_prompts()
+            config = load_config()
+            provider = ChatfireProvider(config, prompts)
+            system_prompt = prompts.get("prompt_copilot_scene_system", "")
+            user_template = prompts.get("prompt_copilot_scene_generate", "")
+
+            if not system_prompt or not user_template:
+                raise RuntimeError("Scene copilot prompts are not configured")
+
+            gen_context = {
+                "unmatched_locations": unmatched,
+                "project_id": project_id,
+                "episode_id": episode_id,
+            }
+            user_goal = f"请为以下新场景位置生成场景预设：{', '.join(unmatched)}"
+            compiled_messages = _compile_messages(
+                messages if messages else [{"role": "user", "content": user_goal}],
+                user_template=user_template,
+                context=gen_context,
+                user_goal=user_goal,
+                project_id=project_id,
+                entity_id=episode_id,
+            )
+            full_text = ""
+            for delta in provider.chat_stream(compiled_messages, system_prompt):
+                full_text += delta
+            proposal = _extract_scene_proposal(full_text)
+            if proposal and proposal.get("scenes"):
+                for scene in proposal["scenes"]:
+                    sid = assets_svc.repository.create_scene_preset({
+                        "project_id": project_id,
+                        "name": (scene.get("name") or "").strip(),
+                        "scene_type": str(scene.get("scene_type", "")).strip(),
+                        "space_description": str(scene.get("space_description", "")).strip(),
+                        "lighting_style": str(scene.get("lighting_style", "")).strip(),
+                        "time_of_day": str(scene.get("time_of_day", "")).strip(),
+                        "weather": str(scene.get("weather", "")).strip(),
+                        "prop_list": json.dumps([str(item) for item in scene.get("prop_list", []) if str(item).strip()], ensure_ascii=False),
+                        "negative_constraints": str(scene.get("negative_constraints", "")).strip(),
+                        "image_prompt": str(scene.get("image_prompt", "")).strip(),
+                        "negative_prompt": str(scene.get("negative_prompt", "")).strip(),
+                        "reference_asset_ids": "[]",
+                        "variants": "[]",
+                        "status": "draft",
+                        "version_no": 1,
+                    })
+                    created_preset_ids.append(sid)
+                    # Map the newly created preset to unmatched locations
+                    for loc in unmatched:
+                        if match_result.get(loc) is None:
+                            created_name = (scene.get("name") or "").strip()
+                            if created_name:
+                                match_result[loc] = sid
+                                break
+
+        # 7. Create episode_scene_overrides for all matched/generated locations
+        override_ids: list[int] = []
+        for loc, pid in match_result.items():
+            if pid is None:
+                continue
+            preset = assets_svc.repository.get_scene_preset(pid)
+            if not preset:
+                continue
+            override_payload = _derive_override_from_location(loc, screenplay_scenes, preset)
+            oid = assets_svc.repository.upsert_episode_scene_override(
+                episode_id, pid, override_payload
+            )
+            override_ids.append(oid)
+
+        all_preset_ids = [pid for pid in match_result.values() if pid is not None]
         gen_svc.repository.update_task(task_id, {
             "status": "succeeded",
-            "output_assets": json.dumps([{"type": "scenes", "scene_ids": created_ids}], ensure_ascii=False),
+            "output_assets": json.dumps([
+                {
+                    "type": "scenes",
+                    "scene_ids": all_preset_ids,
+                    "new_scene_ids": created_preset_ids,
+                    "override_ids": override_ids,
+                }
+            ], ensure_ascii=False),
         })
     except Exception as exc:
         gen_svc.repository.update_task(task_id, {"status": "failed", "error_message": str(exc)[:500]})
