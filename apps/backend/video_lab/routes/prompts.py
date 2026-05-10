@@ -627,6 +627,7 @@ def _run_generate_prompt_video(task_id: int, prompt_id: int, first_frame_prompt:
 
 _video_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="video-gen")
 _storyboard_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="storyboard")
+_storyboard_video_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="storyboard-video")
 
 
 def _build_storyboard_prompt(shot: dict, char_descriptions: list[str], scene_context: str, episode_shots: list[dict], image_reference_lines: list[str]) -> str:
@@ -721,6 +722,11 @@ def _generate_storyboard_video_prompt(
         "角色必须输出为真实人像质感（真肤、发丝光泽、服装纹理、电影光影），拒绝素描/线稿/插画风格。"
         "最后附带负向提示词段。"
         "你必须严格按以下格式输出，不得使用任何其他格式：\n\n"
+        "【图片引用说明】\n"
+        "图一中的九宫格分镜故事板，按从左到右、从上到下的顺序读取每格，各格画面依次映射到本镜头的时间线。"
+        "九宫格中的角色为CG渲染风格，在生成视频时必须将所有角色还原为真实人像——"
+        "真实肤色、自然发丝光泽、真实服装材质纹理、电影级写实摄影质感，"
+        "严禁保留CG感、3D渲染质感、动画风格或任何非真人质感。\n\n"
         "【初始画面·第0秒】\n"
         "对应故事板第1格。画面内容：……（详细描述场景、人物位置姿态、光线氛围）。\n\n"
         "【0-X秒·动作段一】\n"
@@ -892,6 +898,102 @@ def _run_generate_storyboard(task_id: int, shot_id: int) -> None:
             "status": "failed",
             "error_message": str(exc)[:500],
         })
+
+
+def _run_generate_storyboard_video(task_id: int, shot_id: int) -> None:
+    """Background worker: generate video from storyboard image as reference_image."""
+    from ..providers.seedance import SeedanceProvider
+
+    shots_svc = ShotsService()
+    gen_svc = GenerationService()
+    shot = shots_svc.get_shot(shot_id)
+    storyboard_url = (shot.get("storyboard_url") or "").strip()
+    storyboard_video_prompt = (shot.get("storyboard_video_prompt") or "").strip()
+
+    if not storyboard_url or not storyboard_video_prompt:
+        gen_svc.repository.update_task(task_id, {
+            "status": "failed",
+            "error_message": "Missing storyboard_url or storyboard_video_prompt",
+        })
+        return
+
+    shots_svc.repository.update_shot(shot_id, {"storyboard_video_status": "generating"})
+    try:
+        image_path = ASSETS_DIR / storyboard_url
+        if not image_path.exists():
+            raise RuntimeError(f"Storyboard image not found: {storyboard_url}")
+        image_b64 = _img_to_base64(image_path, max_size=1024)
+        if not image_b64:
+            raise RuntimeError("Failed to encode storyboard image")
+
+        seedance_cfg = load_seedance_config()
+        if not seedance_cfg.seedance_api_key:
+            raise RuntimeError("Seedance API key not configured")
+
+        duration = max(3, min(10, round(int(shot.get("estimated_duration_ms", 5000)) / 1000)))
+
+        provider = SeedanceProvider(seedance_cfg)
+        video_path = provider.generate_character(
+            task_id=task_id,
+            images_list=[image_b64],
+            prompt=storyboard_video_prompt,
+            aspect_ratio="16:9",
+            duration=duration,
+        )
+        shots_svc.repository.update_shot(shot_id, {
+            "storyboard_video_url": video_path,
+            "storyboard_video_status": "succeeded",
+        })
+        gen_svc.repository.update_task(task_id, {
+            "status": "succeeded",
+            "output_assets": json.dumps([{"url": video_path, "type": "video"}]),
+        })
+    except Exception as exc:
+        import sys
+        print(f"[STORYBOARD_VIDEO] task_id={task_id} shot_id={shot_id} FAILED: {exc}", file=sys.stderr, flush=True)
+        shots_svc.repository.update_shot(shot_id, {"storyboard_video_status": "failed"})
+        gen_svc.repository.update_task(task_id, {
+            "status": "failed",
+            "error_message": str(exc)[:500],
+        })
+
+
+@register("POST", r"/api/shots/(?P<shot_id>\d+)/generate-storyboard-video")
+def submit_generate_storyboard_video(environ, start_response, shot_id: str):
+    shots_svc = ShotsService()
+    try:
+        shot = shots_svc.get_shot(int(shot_id))
+    except ValueError:
+        return respond_json(start_response, {"error": "Shot not found"}, status="404 Not Found")
+
+    storyboard_url = (shot.get("storyboard_url") or "").strip()
+    storyboard_video_prompt = (shot.get("storyboard_video_prompt") or "").strip()
+    if not storyboard_url or not storyboard_video_prompt:
+        return respond_json(start_response, {"error": "Shot has no storyboard image or video prompt"}, status="400 Bad Request")
+
+    episode = shots_svc.repository.get_episode(int(shot["episode_id"]))
+    project_id = int(episode["project_id"]) if episode else 0
+
+    cfg = load_config()
+    task_payload = {
+        "project_id": project_id,
+        "episode_id": int(shot["episode_id"]),
+        "shot_id": int(shot_id),
+        "provider": "seedance",
+        "model_name": cfg.image_model,
+        "status": "queued",
+        "input_payload": json.dumps({"action": "generate_storyboard_video", "shot_id": int(shot_id)}),
+        "output_assets": "[]",
+        "retry_count": 0,
+        "error_message": "",
+        "cost_amount": 0,
+        "duration_ms": 0,
+    }
+    task_id = generation_service.repository.create_task(task_payload)
+    generation_service.repository.update_task(task_id, {"status": "running"})
+    _storyboard_video_executor.submit(_run_generate_storyboard_video, task_id, int(shot_id))
+    task = generation_service.get_task(task_id)
+    return respond_json(start_response, {"task": serialize_task(task)}, status="202 Accepted")
 
 
 @register("POST", r"/api/shots/(?P<shot_id>\d+)/generate-storyboard")

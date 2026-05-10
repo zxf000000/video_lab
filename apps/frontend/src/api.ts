@@ -456,6 +456,8 @@ export interface Shot {
   storyboardUrl: string;
   storyboardPrompt: string;
   storyboardVideoPrompt: string;
+  storyboardVideoUrl: string;
+  storyboardVideoStatus: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -949,6 +951,8 @@ function normalizeShot(raw: Record<string, unknown>): Shot {
     storyboardUrl: asString(raw.storyboard_url),
     storyboardPrompt: asString(raw.storyboard_prompt),
     storyboardVideoPrompt: asString(raw.storyboard_video_prompt),
+    storyboardVideoUrl: asString(raw.storyboard_video_url),
+    storyboardVideoStatus: asString(raw.storyboard_video_status),
     createdAt: asString(raw.created_at),
     updatedAt: asString(raw.updated_at),
   };
@@ -1538,6 +1542,14 @@ export async function generateShotPromptFromShot(shotId: number, opts?: { withFi
 
 export async function generateShotStoryboard(shotId: number) {
   const payload = await request<{ task: Record<string, unknown> }>(`/api/shots/${shotId}/generate-storyboard`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return { task: normalizeTask(payload.task) };
+}
+
+export async function generateShotStoryboardVideo(shotId: number) {
+  const payload = await request<{ task: Record<string, unknown> }>(`/api/shots/${shotId}/generate-storyboard-video`, {
     method: "POST",
     body: JSON.stringify({}),
   });

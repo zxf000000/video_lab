@@ -15,6 +15,7 @@ import {
   generateShot,
   generateShotPromptFromShot,
   generateShotStoryboard,
+  generateShotStoryboardVideo,
   getApiBase,
   getShot,
   listBatchShots,
@@ -174,6 +175,9 @@ export default function ProjectPromptsPage() {
   const [storyboardUrl, setStoryboardUrl] = useState("");
   const [storyboardPrompt, setStoryboardPrompt] = useState("");
   const [storyboardVideoPrompt, setStoryboardVideoPrompt] = useState("");
+  const [storyboardVideoUrl, setStoryboardVideoUrl] = useState("");
+  const [storyboardVideoStatus, setStoryboardVideoStatus] = useState("");
+  const [generatingStoryboardVideo, setGeneratingStoryboardVideo] = useState(false);
   // Duration / aspect ratio / quality
   const [durationSeconds, setDurationSeconds] = useState(3);
   const [aspectRatio, setAspectRatio] = useState("16:9");
@@ -298,7 +302,7 @@ export default function ProjectPromptsPage() {
     const sec = shot.estimatedDurationMs > 0 ? Math.max(2, Math.min(8, Math.round(shot.estimatedDurationMs / 1000))) : 3;
     setDurationSeconds(sec);
     // Fetch shot detail for prompt tab
-    getShot(shot.id).then(({ shot: s }) => { setDetailShot(s); setStoryboardUrl(s.storyboardUrl || ""); setStoryboardPrompt(s.storyboardPrompt || ""); setStoryboardVideoPrompt(s.storyboardVideoPrompt || ""); }).catch(() => {});
+    getShot(shot.id).then(({ shot: s }) => { setDetailShot(s); setStoryboardUrl(s.storyboardUrl || ""); setStoryboardPrompt(s.storyboardPrompt || ""); setStoryboardVideoPrompt(s.storyboardVideoPrompt || ""); setStoryboardVideoUrl(s.storyboardVideoUrl || ""); setStoryboardVideoStatus(s.storyboardVideoStatus || ""); }).catch(() => {});
     if (!shotPromptCache[shot.id]) {
       setLoadingPrompts(true);
       try {
@@ -438,6 +442,43 @@ export default function ProjectPromptsPage() {
           clearInterval(interval);
           setGeneratingStoryboard(false);
           toast.error("故事板生成失败");
+        }
+      } catch {
+        // keep polling
+      }
+    }, 2000);
+  }
+
+  async function handleGenerateStoryboardVideo() {
+    if (!detailShotId) return;
+    setGeneratingStoryboardVideo(true);
+    try {
+      const result = await generateShotStoryboardVideo(detailShotId);
+      toast.success("故事板视频任务已提交");
+      pollStoryboardVideoTask(result.task.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      setGeneratingStoryboardVideo(false);
+    }
+  }
+
+  function pollStoryboardVideoTask(taskId: number) {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/api/tasks/${taskId}`);
+        const data = await res.json();
+        const status = data.task?.status;
+        if (status === "succeeded") {
+          clearInterval(interval);
+          setGeneratingStoryboardVideo(false);
+          const updated = await getShot(detailShotId!);
+          setStoryboardVideoUrl(updated.shot.storyboardVideoUrl || "");
+          setStoryboardVideoStatus(updated.shot.storyboardVideoStatus || "");
+          toast.success("故事板视频生成完成");
+        } else if (status === "failed") {
+          clearInterval(interval);
+          setGeneratingStoryboardVideo(false);
+          toast.error("故事板视频生成失败");
         }
       } catch {
         // keep polling
@@ -1124,6 +1165,26 @@ export default function ProjectPromptsPage() {
 
                         {!storyboardVideoPrompt && storyboardUrl && (
                           <p className="text-[11px] text-gray-600">重新生成故事板可同时获得视频提示词</p>
+                        )}
+
+                        {storyboardVideoPrompt && storyboardUrl && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-gray-500">基于故事板生成连续视频</span>
+                            <Button variant="secondary" size="sm" onClick={handleGenerateStoryboardVideo} disabled={generatingStoryboardVideo || storyboardVideoStatus === "generating"}>
+                              {generatingStoryboardVideo || storyboardVideoStatus === "generating" ? "生成中..." : "生成视频"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {storyboardVideoStatus === "succeeded" && storyboardVideoUrl && (
+                          <VideoPreview
+                            src={storyboardVideoUrl.startsWith("http") ? storyboardVideoUrl : `${apiBase}/assets/${storyboardVideoUrl}`}
+                            className="w-full rounded-lg border border-line/30"
+                          />
+                        )}
+
+                        {storyboardVideoStatus === "failed" && (
+                          <p className="text-[11px] text-red-400">视频生成失败，请重试</p>
                         )}
                       </>
                     ) : (

@@ -500,7 +500,7 @@ def retry_task(environ, start_response, task_id: str):
     except ValueError:
         return respond_json(start_response, {"error": "Task not found"}, status="404 Not Found")
 
-    # Re-submit to thread pool if it's a copilot task
+    # Re-submit to thread pool
     provider = str(task.get("provider", ""))
     model = str(task.get("model_name", ""))
     if provider == "copilot" and model in ("screenplay", "scene", "shot"):
@@ -529,5 +529,22 @@ def retry_task(environ, start_response, task_id: str):
             messages,
             rhythm_level,
         )
+    elif provider == "api":
+        from .prompts import _storyboard_executor, _storyboard_video_executor, _run_generate_storyboard, _run_generate_storyboard_video
+
+        raw = task.get("input_payload", "{}")
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                raw = {}
+        action = raw.get("action", "") if isinstance(raw, dict) else ""
+        shot_id = int(raw.get("shot_id", 0)) if isinstance(raw, dict) else 0
+        if action == "generate_storyboard" and shot_id:
+            generation_service.repository.update_task(task["id"], {"status": "running"})
+            _storyboard_executor.submit(_run_generate_storyboard, task["id"], shot_id)
+        elif action == "generate_storyboard_video" and shot_id:
+            generation_service.repository.update_task(task["id"], {"status": "running"})
+            _storyboard_video_executor.submit(_run_generate_storyboard_video, task["id"], shot_id)
 
     return respond_json(start_response, {"task": serialize_task(task)})

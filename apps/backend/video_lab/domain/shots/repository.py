@@ -192,6 +192,8 @@ class ShotsRepository:
             "storyboard_prompt",
             "storyboard_video_prompt",
             "storyboard_first_frame_prompt",
+            "storyboard_video_url",
+            "storyboard_video_status",
             "status",
             "sort_order",
         ):

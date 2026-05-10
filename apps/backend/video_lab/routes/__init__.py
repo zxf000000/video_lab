@@ -232,6 +232,8 @@ def serialize_shot(shot: dict[str, object] | None) -> dict[str, object]:
             "storyboard_url": shot.get("storyboard_url", ""),
             "storyboard_prompt": shot.get("storyboard_prompt", ""),
             "storyboard_video_prompt": shot.get("storyboard_video_prompt", ""),
+            "storyboard_video_url": shot.get("storyboard_video_url", ""),
+            "storyboard_video_status": shot.get("storyboard_video_status", ""),
             "status": shot.get("status", "draft"),
             "sort_order": shot.get("sort_order", 0),
             "batch_id": shot.get("batch_id"),

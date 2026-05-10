@@ -137,6 +137,8 @@ CREATE TABLE IF NOT EXISTS shots (
     storyboard_prompt TEXT NOT NULL DEFAULT '',
     storyboard_video_prompt TEXT NOT NULL DEFAULT '',
     storyboard_first_frame_prompt TEXT NOT NULL DEFAULT '',
+    storyboard_video_url TEXT NOT NULL DEFAULT '',
+    storyboard_video_status TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'draft',
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
