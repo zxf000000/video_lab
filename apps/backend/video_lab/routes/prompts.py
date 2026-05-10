@@ -631,7 +631,11 @@ _storyboard_video_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefi
 
 
 def _build_storyboard_prompt(shot: dict, char_descriptions: list[str], scene_context: str, episode_shots: list[dict], image_reference_lines: list[str]) -> str:
-    """Build a Chinese prompt for generating a 3×3 9-grid storyboard image."""
+    """Build a Chinese prompt for generating a 3×3 9-grid storyboard image.
+
+    Uses LLM to generate 9 static visual frame descriptions — each frame is a frozen
+    moment describing composition, pose, expression, and lighting, NOT action progression.
+    """
     current_id = int(shot["id"])
     current_idx = None
     for i, s in enumerate(episode_shots):
@@ -640,44 +644,69 @@ def _build_storyboard_prompt(shot: dict, char_descriptions: list[str], scene_con
             break
 
     # Select up to 9 shots centered on current
+    total = len(episode_shots)
+    window = min(9, total)
     if current_idx is None:
-        target_shots = [shot]
+        start, end = 0, min(9, total)
     else:
-        total = len(episode_shots)
-        window = min(9, total)
         half = window // 2
         start = max(0, current_idx - half)
         end = min(total, start + window)
         if end - start < window:
             start = max(0, end - window)
-        target_shots = episode_shots[start:end]
+    target_shots = episode_shots[start:end]
 
     ref_lines_str = "\n".join(image_reference_lines) if image_reference_lines else "无"
 
-    frames = []
+    # Build shot summaries for the LLM
+    shot_summaries = []
     for s in target_shots:
-        label = "★ 当前镜头" if s["id"] == current_id else ""
-        frames.append({
-            "shot_no": s.get("shot_no", 0),
-            "shot_size": s.get("shot_size", ""),
-            "camera_angle": s.get("camera_angle", ""),
-            "action": s.get("action_description", ""),
-            "emotion": s.get("facial_emotion", ""),
-            "label": label,
-        })
+        marker = " ★ 当前镜头" if s["id"] == current_id else ""
+        shot_summaries.append(
+            f"镜头{s['shot_no']}{marker}：景别 {s.get('shot_size', '')}，"
+            f"机位 {s.get('camera_angle', '')}，"
+            f"动作 {s.get('action_description', '')}，"
+            f"表情 {s.get('facial_emotion', '')}"
+        )
 
-    frame_descriptions = []
-    for i, f in enumerate(frames):
-        parts = [
-            f"第{i+1}帧{f['label']}：{f['shot_size']} {f['camera_angle']}。{f['action']}",
-        ]
-        if f["emotion"]:
-            parts.append(f"表情：{f['emotion']}")
-        frame_descriptions.append(" ".join(parts))
+    # Use LLM to generate 9 static visual frame descriptions
+    frame_system = (
+        "你是电影分镜师。根据提供的镜头信息，生成9格静态分镜描述。"
+        "每格是一个凝固的视觉瞬间——描述该格画面中能直接看到的内容："
+        "构图、人物空间位置与姿态、面部表情、光线氛围、景别与角度。"
+        "严禁描述动作过程、严禁使用运动动词（走入、抬起、放下、转头、扫视等），"
+        "只描述静止画面中可见的状态。"
+        "第1格必须是场景建立镜头（空镜或极远景），第9格是落幅定格。"
+        "当前镜头标记★的镜头至少占3格。"
+        "按以下格式输出，每格一行：\n"
+        "第N格：景别 角度。画面内容描述。表情：xxx"
+    )
+    frame_user = (
+        f"场景：{scene_context}\n\n"
+        f"角色：\n{chr(10).join(char_descriptions)}\n\n"
+        f"镜头序列（共{len(target_shots)}个镜头，需拆为9格）：\n"
+        f"{chr(10).join(shot_summaries)}\n\n"
+        f"请生成9格静态分镜描述。"
+    )
 
-    frames_text = "\n".join(frame_descriptions)
+    config = load_config()
+    llm = ChatfireProvider(config)
+    try:
+        raw_output = llm._chat(system=frame_system, user=frame_user, timeout=60)
+        frames_text = raw_output.strip()
+        # Remove markdown fences if present
+        if frames_text.startswith("```"):
+            lines = frames_text.split("\n")
+            lines = [l for l in lines if not l.startswith("```")]
+            frames_text = "\n".join(lines).strip()
+    except Exception:
+        # Fallback: simple distribution
+        frames_text = "\n".join(
+            f"第{i+1}格：{s.get('shot_size', '')} {s.get('camera_angle', '')}。{s.get('action_description', '')}"
+            for i, s in enumerate(target_shots[:9])
+        )
 
-    prompt = f"""3×3九宫格电影分镜故事板，均匀九等分网格，白色细线分隔，从左到右从上到下按时间顺序排列{len(frames)}帧，每帧16:9横构图。所有角色以全彩线稿/素描风格绘制——保留面部结构与身份特征，不渲染为真人写实照片，保持角色设定图的手绘质感。场景保持真实写实质感。
+    prompt = f"""3×3九宫格电影分镜故事板，均匀九等分网格，白色细线分隔，从左到右从上到下按时间顺序排列9帧，每帧16:9横构图。所有角色以全彩线稿/素描风格绘制——保留面部结构与身份特征，不渲染为真人写实照片，保持角色设定图的手绘质感。场景保持真实写实质感。
 
 参考图片：
 {ref_lines_str}
@@ -722,7 +751,6 @@ def _generate_storyboard_video_prompt(
         "角色必须输出为真实人像质感（真肤、发丝光泽、服装纹理、电影光影），拒绝素描/线稿/插画风格。"
         "最后附带负向提示词段。"
         "你必须严格按以下格式输出，不得使用任何其他格式：\n\n"
-        "【图片引用说明】\n"
         "图一中的九宫格分镜故事板，按从左到右、从上到下的顺序读取每格，各格画面依次映射到本镜头的时间线。"
         "九宫格中的角色为CG渲染风格，在生成视频时必须将所有角色还原为真实人像——"
         "真实肤色、自然发丝光泽、真实服装材质纹理、电影级写实摄影质感，"
